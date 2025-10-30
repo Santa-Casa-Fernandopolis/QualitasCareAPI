@@ -1,0 +1,176 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+hide empty members
+
+title Modelo de Segurança — Classes (RBAC + ABAC + Multi-tenant)
+
+package "Domínio (Core)" {
+  class Tenant {
+    +id: Long
+    +name: String
+    +code: String
+    +active: boolean
+  }
+
+  class User {
+    +id: Long
+    +username: String
+    +fullName: String
+    +department: String
+    --
+    +tenant: Tenant
+    +roles: Set<Role>
+  }
+
+  class Role {
+    +id: Long
+    +name: String  <<ENFERMEIRO, TECNICO, MEDICO, ADMIN_QUALIDADE>>
+    +description: String
+    --
+    +tenant: Tenant
+  }
+
+  class Permission {
+    +id: Long
+    +resource: ResourceType
+    +action: Action
+    +feature: String <<nullable, curinga se null>>
+    +code: String
+    --
+    +tenant: Tenant
+  }
+
+  class RolePermission {
+    +id: Long
+    --
+    +role: Role
+    +permission: Permission
+    +tenant: Tenant
+  }
+
+  class UserPermissionOverride {
+    +id: Long
+    +resource: ResourceType
+    +action: Action
+    +feature: String <<nullable>>
+    +effect: Effect <<ALLOW/DENY>>
+    +priority: int
+    --
+    +user: User
+    +tenant: Tenant
+  }
+
+  class Policy {
+    +id: Long
+    +resource: ResourceType
+    +action: Action
+    +feature: String <<nullable>>
+    +effect: Effect
+    +enabled: boolean
+    +priority: int
+    +description: String
+    --
+    +tenant: Tenant
+    +roles: Set<Role>
+    +conditions: List<PolicyCondition>
+  }
+
+  class PolicyCondition {
+    +id: Long
+    +type: String  <<ex.: TARGET_DEPARTMENT, USER_PROFESSION>>
+    +operator: String <<EQ, NE, IN, NOT_IN>>
+    +value: String  <<ex.: CURRENT_DEPT, UTI, ENF>>
+    --
+    +policy: Policy
+  }
+
+  enum ResourceType {
+    INDICADOR
+    AUDITORIA
+    NC
+    PROTOCOLO
+    CAPACITACAO
+    PGRSS
+    USUARIO
+    DASHBOARD
+  }
+
+  enum Action {
+    READ
+    CREATE
+    UPDATE
+    DELETE
+    APPROVE
+    EXPORT
+    CLOSE
+  }
+
+  enum Effect {
+    ALLOW
+    DENY
+  }
+}
+
+package "Aplicação (AuthN/AuthZ)" {
+  class AuthContext {
+    +userId: Long
+    +tenantId: Long
+    +roles: Set<String>
+    +department: String
+  }
+
+  class HospitalPermissionEvaluator {
+    +hasPermission(auth, target, perm): boolean
+    +hasPermission(auth, targetId, targetType, perm): boolean
+    --
+    -parse("MODULO:ACAO@FEATURE"): Parsed
+  }
+
+  class AccessDecisionService {
+    +isAllowed(ctx: AuthContext, res: ResourceType, act: Action, feature: String, target: Object): boolean
+  }
+
+  class PolicyEvaluator {
+    +matchesAll(policy: Policy, ctx: AuthContext, target: Object): boolean
+  }
+
+  class TargetLoader {
+    +load(targetType: String, targetId: Serializable): Object
+  }
+}
+
+' ======= Relacionamentos =======
+
+' Multi-tenant
+Tenant "1" <-- "many" User
+Tenant "1" <-- "many" Role
+Tenant "1" <-- "many" Permission
+Tenant "1" <-- "many" RolePermission
+Tenant "1" <-- "many" UserPermissionOverride
+Tenant "1" <-- "many" Policy
+Policy "1" o- "many" PolicyCondition
+
+' RBAC
+User "many" -- "many" Role : possui >
+RolePermission "many" --> "1" Role
+RolePermission "many" --> "1" Permission
+RolePermission --> Tenant
+
+' Overrides (por usuário)
+UserPermissionOverride "many" --> "1" User
+
+' Policies (ABAC)
+Policy "many" -- "many" Role : aplica a >
+Policy --> Tenant
+
+' Aplicação
+HospitalPermissionEvaluator ..> AccessDecisionService : usa
+HospitalPermissionEvaluator ..> TargetLoader : carrega alvo
+AccessDecisionService ..> PolicyEvaluator : avalia condições
+AccessDecisionService ..> Policy : consulta
+AccessDecisionService ..> RolePermission : consulta
+AccessDecisionService ..> UserPermissionOverride : consulta
+AuthContext .. HospitalPermissionEvaluator
+AuthContext .. AccessDecisionService
+@enduml

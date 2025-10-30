@@ -1,0 +1,37 @@
+@startuml
+hide footbox
+title Fluxo de decisão de acesso (Sequence)
+
+actor Controller
+participant "PermissionEvaluator" as PE
+participant "CurrentUserExtractor" as CUE
+participant "TargetLoader" as TL
+participant "AccessDecisionService" as ADS
+participant "PolicyEvaluator" as PEV
+database "Repos (Overrides/Policies/RolePerms)" as REPO
+
+Controller -> PE: hasPermission(auth, targetId, targetType, "NC:READ@DETALHE")
+PE -> CUE: from(auth) -> AuthContext
+PE -> PE: parse("NC:READ@DETALHE") -> (res=NC, act=READ, feature=DETALHE)
+PE -> TL: load(targetType, targetId) -> alvo
+PE -> ADS: isAllowed(ctx, res, act, feature, alvo)
+
+ADS -> REPO: find UserPermissionOverride (exato + feature=NULL)
+REPO --> ADS: override? (ALLOW/DENY) [opcional]
+ADS -> ADS: if override DENY -> negar; if ALLOW -> permitir
+
+ADS -> REPO: find Policies (res, act, feature or NULL) ordered by priority
+REPO --> ADS: policies[]
+loop por prioridade
+  ADS -> PEV: matchesAll(policy, ctx, alvo)?
+  PEV --> ADS: true/false
+  ADS -> ADS: if DENY aplicável -> negar imediatamente
+  ADS -> ADS: if ALLOW aplicável -> permitir (se nenhum DENY mais prioritário)
+end
+
+ADS -> REPO: exists RolePermission (res, act, feature or NULL, roles, tenant)
+REPO --> ADS: true/false
+ADS -> PE: resultado final (true/false)
+
+PE --> Controller: permitir (200) ou negar (403)
+@enduml
