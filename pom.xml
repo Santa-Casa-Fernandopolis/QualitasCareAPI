@@ -89,7 +89,13 @@
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
-        
+        <!-- https://mvnrepository.com/artifact/org.junit.platform/junit-platform-suite-api -->
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-suite-api</artifactId>
+            <version>1.13.4</version>
+            <scope>test</scope>
+        </dependency>
         <!-- Liquibase para versionamento do BD (usado em PROD) -->
         <dependency>
             <groupId>org.liquibase</groupId>
