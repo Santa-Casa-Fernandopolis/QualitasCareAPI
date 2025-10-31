@@ -38,16 +38,6 @@ class PolicyEvaluatorTest {
                 99L,
                 "enf.scf",
                 1L,
-    void shouldMatchWhenUserHasRequiredRoleAndTargetDepartment() {
-        Policy policy = new Policy();
-        PolicyCondition roleCondition = new PolicyCondition(null, policy, "USER_ROLE", "IN", "ENFERMEIRO");
-        PolicyCondition departmentCondition = new PolicyCondition(null, policy, "TARGET_DEPARTMENT", "EQ", "CURRENT_DEPT");
-        policy.setConditions(List.of(roleCondition, departmentCondition));
-
-        AuthContext ctx = new AuthContext(
-                10L,
-                "enf",
-                5L,
                 Set.of("ENFERMEIRO"),
                 "UTI",
                 "Enfermagem",
@@ -74,17 +64,39 @@ class PolicyEvaluatorTest {
                 1L,
                 Set.of("ENFERMEIRO"),
                 "UTI",
-                null,
+                "Enfermagem",
+                UserStatus.ACTIVE,
+                IdentityOrigin.LOCAL,
                 Map.of()
         );
 
-        Object target = new Object() {
-            public String getDepartment() {
-                return "UTI";
-            }
-        };
+        NcTarget target = new NcTarget("UTI", "50", 1L, Set.of("sensivel", "uti"));
 
-        assertThat(evaluator.matchesAll(policy, ctx, target)).isTrue();
+        assertThat(evaluator.matchesAll(policy, context, target)).isFalse();
+    }
+
+    @Test
+    void shouldMatchWhenUserHasRequiredRoleAndTargetDepartment() {
+        Policy policy = new Policy();
+        PolicyCondition roleCondition = new PolicyCondition(null, policy, "USER_ROLE", "IN", "ENFERMEIRO");
+        PolicyCondition departmentCondition = new PolicyCondition(null, policy, "TARGET_DEPARTMENT", "EQ", "CURRENT_DEPT");
+        policy.setConditions(List.of(roleCondition, departmentCondition));
+
+        AuthContext context = new AuthContext(
+                10L,
+                "enf",
+                5L,
+                Set.of("ENFERMEIRO"),
+                "UTI",
+                "Enfermagem",
+                UserStatus.ACTIVE,
+                IdentityOrigin.LOCAL,
+                Map.of("shift", "DAY")
+        );
+
+        NcTarget target = new NcTarget("UTI", "99", 1L, Set.of("critical", "uti"));
+
+        assertThat(evaluator.matchesAll(policy, context, target)).isTrue();
     }
 
     @Test
@@ -93,7 +105,7 @@ class PolicyEvaluatorTest {
         PolicyCondition tagsCondition = new PolicyCondition(null, policy, "TARGET_TAG", "CONTAINS_ALL", "URGENTE|CRITICO");
         policy.setConditions(List.of(tagsCondition));
 
-        AuthContext ctx = new AuthContext(
+        AuthContext context = new AuthContext(
                 10L,
                 "enf",
                 5L,
@@ -108,6 +120,33 @@ class PolicyEvaluatorTest {
         NcTarget target = new NcTarget("UTI", "50", 1L, Set.of("sensivel", "alto_risco"));
 
         assertThat(evaluator.matchesAll(policy, context, target)).isFalse();
+    }
+
+    @Test
+    void shouldResolveDynamicTokensForCurrentUserId() {
+        Policy policy = new Policy();
+        PolicyCondition condition = new PolicyCondition(null, policy, "TARGET_OWNER_ID", "EQ", "CURRENT_USER_ID");
+        policy.setConditions(List.of(condition));
+
+        AuthContext context = new AuthContext(
+                42L,
+                "auditor",
+                7L,
+                Set.of("AUDITOR"),
+                null,
+                null,
+                UserStatus.ACTIVE,
+                IdentityOrigin.LOCAL,
+                Map.of()
+        );
+
+        Object target = new Object() {
+            public Long getOwnerId() {
+                return 42L;
+            }
+        };
+
+        assertThat(evaluator.matchesAll(policy, context, target)).isTrue();
     }
 
     private Policy policyWithConditions(PolicyCondition... conditions) {
@@ -153,39 +192,5 @@ class PolicyEvaluatorTest {
         public Set<String> getTags() {
             return tags;
         }
-        Object target = new Object() {
-            public Set<String> getTags() {
-                return Set.of("URGENTE");
-            }
-        };
-
-        assertThat(evaluator.matchesAll(policy, ctx, target)).isFalse();
-    }
-
-    @Test
-    void shouldResolveDynamicTokensForCurrentUserId() {
-        Policy policy = new Policy();
-        PolicyCondition condition = new PolicyCondition(null, policy, "TARGET_OWNER_ID", "EQ", "CURRENT_USER_ID");
-        policy.setConditions(List.of(condition));
-
-        AuthContext ctx = new AuthContext(
-                42L,
-                "auditor",
-                7L,
-                Set.of("AUDITOR"),
-                null,
-                null,
-                UserStatus.ACTIVE,
-                IdentityOrigin.LOCAL,
-                Map.of()
-        );
-
-        Object target = new Object() {
-            public Long getOwnerId() {
-                return 42L;
-            }
-        };
-
-        assertThat(evaluator.matchesAll(policy, ctx, target)).isTrue();
     }
 }
