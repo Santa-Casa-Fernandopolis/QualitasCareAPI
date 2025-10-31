@@ -134,7 +134,40 @@ package "Domínio (Core)" {
   }
 }
 
-package "Aplicação (AuthN/AuthZ)" {
+package "Autenticação (SAS)" {
+  class AuthorizationServerConfig {
+    +securityFilterChain(): SecurityFilterChain
+    +registeredClientRepository(): RegisteredClientRepository
+    +authorizationService(): OAuth2AuthorizationService
+    +jwtCustomizer(): OAuth2TokenCustomizer
+  }
+
+  class LocalUserDetailsService {
+    +loadUserByUsername(username: String): UserDetails
+    -resolveTenant(username: String, tenant: String): Tenant
+  }
+
+  class AuthenticatedUserDetails {
+    +getUsername(): String
+    +getPassword(): String
+    +getAuthorities(): Collection<GrantedAuthority>
+    +getTenantId(): Long
+    +getAttributes(): Map<String, Object>
+  }
+
+  class JwtCustomizer {
+    +customize(context: OAuth2TokenContext): void
+  }
+
+  AuthorizationServerConfig --> LocalUserDetailsService
+  AuthorizationServerConfig --> JwtCustomizer
+  LocalUserDetailsService --> AuthenticatedUserDetails
+  LocalUserDetailsService --> User
+  LocalUserDetailsService --> Tenant
+  AuthenticatedUserDetails --> Tenant
+}
+
+package "Autorização (Resource Server)" {
   class AuthContext {
     +userId: Long
     +username: String

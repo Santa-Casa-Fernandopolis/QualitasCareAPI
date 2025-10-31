@@ -116,7 +116,39 @@ Ex.: `NC:READ@DETALHE`, `INDICADOR:EXPORT@RELATORIO`, `PROTOCOLO:READ@*`.
 
 ---
 
+# Camada de autenticação (Spring Authorization Server)
+
+## Authorization Server embarcado
+
+* **Papel**: emite tokens OAuth2/JWT para usuários e integrações usando os fluxos `authorization_code` (com PKCE) e `client_credentials`.
+* **Localização**: pacote `authserver/` com `AuthorizationServerConfig`, provedores de cliente (`RegisteredClientRepository`) e persistência de autorizações.
+* **Integração IAM**: delega autenticação ao `LocalUserDetailsService` do módulo `iam/`, que resolve credenciais, status e `tenant` ativo.
+
+## Customização de JWT
+
+* **Claims**: adiciona `tenant_id`, `user_id`, `department`, `profession`, `user_status`, `origin`, `roles` normalizados e `tenant_authorities` (`TENANT_{id}`) para consumo pelo `CurrentUserExtractor`.
+* **Chaves**: tokens são assinados com par RSA gerenciado pelo SAS (`JWKSource` local) e expõem a chave pública via `/.well-known/jwks.json`.
+* **Expiração**: access tokens curtos (15 min recomendados) e refresh tokens opcionais, com política de revogação em banco (`OAuth2Authorization`).
+
+## Fluxo de login
+
+1. O front-end redireciona o usuário para `/oauth2/authorize` informando `tenant` escolhido.
+2. SAS autentica credenciais via `LocalUserDetailsService`, que valida status ativo, vínculos de tenant e carrega `roles`/atributos.
+3. `JwtCustomizer` injeta as claims multi-tenant e normaliza authorities.
+4. O token JWT é retornado ao cliente, que o envia na API principal (`Authorization: Bearer ...`).
+5. A API, configurada como **Resource Server**, valida assinatura e alimenta `AuthContext` via `CurrentUserExtractor`.
+
+![Fluxo de autenticação](security_auth_sequence_diagram.puml)
+
+---
+
 # Camada de aplicação (serviços de autorização)
+
+## SecurityConfig (Resource Server)
+
+* **Papel**: registra o `SecurityFilterChain` que habilita `oauth2ResourceServer().jwt()` e aplica o `JwtAuthenticationConverter` customizado com authorities `ROLE_*` e `TENANT_*`.
+* **Integração**: injeta o `CurrentUserExtractor` e `AccessDecisionService` para que endpoints protegidos (`@PreAuthorize`) reutilizem o mesmo contexto RBAC+ABAC.
+* **Fallbacks**: política `deny-all` por padrão, liberando apenas endpoints públicos (`/actuator/health`, `/oauth2/**`, `/login` do SAS).
 
 ## AuthContext
 
