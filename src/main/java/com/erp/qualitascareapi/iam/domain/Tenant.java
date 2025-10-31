@@ -1,4 +1,4 @@
-package com.erp.qualitascareapi.security.domains;
+package com.erp.qualitascareapi.iam.domain;
 
 import jakarta.persistence.*;
 
