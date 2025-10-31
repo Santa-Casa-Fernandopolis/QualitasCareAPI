@@ -9,10 +9,9 @@ import com.erp.qualitascareapi.security.domains.UserPermissionOverride;
 import com.erp.qualitascareapi.security.enums.Action;
 import com.erp.qualitascareapi.security.enums.Effect;
 import com.erp.qualitascareapi.security.enums.ResourceType;
-import com.erp.qualitascareapi.security.repo.UserPermissionOverrideRepository;
-import org.junit.jupiter.api.BeforeEach;
 import com.erp.qualitascareapi.security.repo.PolicyRepository;
 import com.erp.qualitascareapi.security.repo.UserPermissionOverrideRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -24,8 +23,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -42,6 +39,9 @@ class AccessDecisionServiceIntegrationTest {
 
     @Autowired
     private UserPermissionOverrideRepository overrideRepository;
+
+    @Autowired
+    private PolicyRepository policyRepository;
 
     private User nurseScf;
     private User adminScf;
@@ -60,19 +60,6 @@ class AccessDecisionServiceIntegrationTest {
         NcProjection target = new NcProjection(nurseScf.getDepartment(), nurseScf.getTenant().getId(), String.valueOf(nurseScf.getId()));
 
         boolean allowed = accessDecisionService.isAllowed(context, ResourceType.NC, Action.READ, "LISTA", target);
-    private PolicyRepository policyRepository;
-
-    @Autowired
-    private UserPermissionOverrideRepository overrideRepository;
-
-    @Test
-    void adminShouldUpdateNcViaPolicy() {
-        User admin = userRepository.findByUsernameIgnoreCase("admin.scf")
-                .orElseThrow();
-
-        AuthContext ctx = authContextFrom(admin);
-
-        boolean allowed = accessDecisionService.isAllowed(ctx, ResourceType.NC, Action.UPDATE, null, null);
 
         assertThat(allowed).isTrue();
     }
@@ -83,15 +70,17 @@ class AccessDecisionServiceIntegrationTest {
         NcProjection target = new NcProjection("Pronto Atendimento", nurseScf.getTenant().getId(), String.valueOf(nurseScf.getId()));
 
         boolean allowed = accessDecisionService.isAllowed(context, ResourceType.NC, Action.READ, "LISTA", target);
-    void nurseShouldBeDeniedNcUpdateWithoutOverride() {
-        User nurse = userRepository.findByUsernameIgnoreCase("enf.scf")
-                .orElseThrow();
 
-        AuthContext ctx = authContextFrom(nurse);
+        assertThat(allowed).isFalse();
+    }
+
+    @Test
+    void adminShouldUpdateNcViaPolicy() {
+        AuthContext ctx = authContextFrom(adminScf);
 
         boolean allowed = accessDecisionService.isAllowed(ctx, ResourceType.NC, Action.UPDATE, null, null);
 
-        assertThat(allowed).isFalse();
+        assertThat(allowed).isTrue();
     }
 
     @Test
@@ -99,14 +88,25 @@ class AccessDecisionServiceIntegrationTest {
         AuthContext context = authContextFrom(adminScf);
 
         boolean allowed = accessDecisionService.isAllowed(context, ResourceType.NC, Action.CREATE, null, null);
-    void nurseOverrideShouldGrantTemporaryUpdateAccess() {
-        User nurse = userRepository.findByUsernameIgnoreCase("enf.scf")
-                .orElseThrow();
 
+        assertThat(allowed).isTrue();
+    }
+
+    @Test
+    void nurseShouldBeDeniedNcUpdateWithoutOverride() {
+        AuthContext ctx = authContextFrom(nurseScf);
+
+        boolean allowed = accessDecisionService.isAllowed(ctx, ResourceType.NC, Action.UPDATE, null, null);
+
+        assertThat(allowed).isFalse();
+    }
+
+    @Test
+    void nurseOverrideShouldGrantTemporaryUpdateAccess() {
         UserPermissionOverride override = new UserPermissionOverride(
                 null,
-                nurse,
-                nurse.getTenant(),
+                nurseScf,
+                nurseScf.getTenant(),
                 ResourceType.NC,
                 Action.UPDATE,
                 null,
@@ -119,7 +119,7 @@ class AccessDecisionServiceIntegrationTest {
         override.setValidUntil(LocalDateTime.now().plusMinutes(5));
         overrideRepository.saveAndFlush(override);
 
-        AuthContext ctx = authContextFrom(nurse);
+        AuthContext ctx = authContextFrom(nurseScf);
 
         boolean allowed = accessDecisionService.isAllowed(ctx, ResourceType.NC, Action.UPDATE, null, null);
 
@@ -152,17 +152,11 @@ class AccessDecisionServiceIntegrationTest {
         assertThat(allowed).isFalse();
     }
 
-    private AuthContext authContextFrom(User user) {
-        Set<String> roles = user.getRoles().stream()
-                .map(role -> role.getName().toUpperCase())
-                .collect(Collectors.toUnmodifiableSet());
+    @Test
     void policyConditionShouldAllowUpdateWhenTargetMatchesContext() {
-        User nurse = userRepository.findByUsernameIgnoreCase("enf.scf")
-                .orElseThrow();
-
         Policy policy = new Policy(
                 null,
-                nurse.getTenant(),
+                nurseScf.getTenant(),
                 ResourceType.NC,
                 Action.UPDATE,
                 null,
@@ -171,13 +165,13 @@ class AccessDecisionServiceIntegrationTest {
                 7,
                 "Nurse can update own department"
         );
-        policy.setRoles(new HashSet<>(nurse.getRoles()));
+        policy.setRoles(new HashSet<>(nurseScf.getRoles()));
         PolicyCondition condition = new PolicyCondition(null, policy, "TARGET_DEPARTMENT", "EQ", "CURRENT_DEPT");
         policy.getConditions().add(condition);
         policyRepository.saveAndFlush(policy);
 
-        AuthContext ctx = authContextFrom(nurse);
-        NcRecord target = new NcRecord(nurse.getDepartment());
+        AuthContext ctx = authContextFrom(nurseScf);
+        NcRecord target = new NcRecord(nurseScf.getDepartment());
 
         boolean allowed = accessDecisionService.isAllowed(ctx, ResourceType.NC, Action.UPDATE, null, target);
 
@@ -187,12 +181,12 @@ class AccessDecisionServiceIntegrationTest {
     private AuthContext authContextFrom(User user) {
         Set<String> roleNames = user.getRoles().stream()
                 .map(Role::getName)
-                .collect(java.util.stream.Collectors.toSet());
+                .map(String::toUpperCase)
+                .collect(Collectors.toSet());
         return new AuthContext(
                 user.getId(),
                 user.getUsername(),
                 user.getTenant().getId(),
-                roles,
                 roleNames,
                 user.getDepartment(),
                 null,
@@ -224,6 +218,8 @@ class AccessDecisionServiceIntegrationTest {
         public String getOwnerId() {
             return ownerId;
         }
+    }
+
     private record NcRecord(String department) {
         public String getDepartment() {
             return department;
