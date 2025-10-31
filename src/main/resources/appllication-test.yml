@@ -18,10 +18,11 @@ spring:
       path: /h2-console
 
   liquibase:
-    enabled: false   # não roda no test
+    enabled: false  # não roda no test
 
-# 👇 chave na RAIZ (não aninhar sob "spring:")
-spring.autoconfigure.exclude: org.springframework.boot.autoconfigure.liquibase.LiquibaseAutoConfiguration
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.liquibase.LiquibaseAutoConfiguration
 
 server:
   port: 8081
