@@ -101,13 +101,41 @@
         </dependency>
     </dependencies>
 
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
-			</plugin>
-		</plugins>
-	</build>
+        <build>
+                <plugins>
+                        <plugin>
+                                <groupId>org.springframework.boot</groupId>
+                                <artifactId>spring-boot-maven-plugin</artifactId>
+                        </plugin>
+                </plugins>
+        </build>
+
+        <repositories>
+                <repository>
+                        <id>maven-central</id>
+                        <name>Maven Central</name>
+                        <url>https://repo1.maven.org/maven2/</url>
+                        <releases>
+                                <enabled>true</enabled>
+                        </releases>
+                        <snapshots>
+                                <enabled>false</enabled>
+                        </snapshots>
+                </repository>
+        </repositories>
+
+        <pluginRepositories>
+                <pluginRepository>
+                        <id>maven-central-plugins</id>
+                        <name>Maven Central Plugins</name>
+                        <url>https://repo1.maven.org/maven2/</url>
+                        <releases>
+                                <enabled>true</enabled>
+                        </releases>
+                        <snapshots>
+                                <enabled>false</enabled>
+                        </snapshots>
+                </pluginRepository>
+        </pluginRepositories>
 
 </project>
