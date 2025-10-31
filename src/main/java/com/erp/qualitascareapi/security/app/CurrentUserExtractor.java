@@ -45,7 +45,7 @@ public class CurrentUserExtractor {
 
         if (jwt != null) {
             userId = parseLongClaim(jwt.getClaim("user_id"));
-            if (jwt.containsClaim("sub")) {
+            if (jwt.getClaims().containsKey("sub")) {
                 username = jwt.getClaimAsString("sub");
             }
             tenantId = parseLongClaim(jwt.getClaim("tenant_id"));
