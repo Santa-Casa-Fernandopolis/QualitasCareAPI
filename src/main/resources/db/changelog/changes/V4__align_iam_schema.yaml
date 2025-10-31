@@ -1,0 +1,348 @@
+databaseChangeLog:
+  - changeSet:
+      id: v4-001-tenants-columns
+      author: qualitas
+      changes:
+        - addColumn:
+            tableName: tenants
+            columns:
+              - column:
+                  name: code
+                  type: VARCHAR(60)
+              - column:
+                  name: active
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+        - sql:
+            comment: Inicializa o código para tenants já existentes
+            sql: "UPDATE tenants SET code = UPPER(name) WHERE code IS NULL"
+        - addNotNullConstraint:
+            tableName: tenants
+            columnName: code
+        - addNotNullConstraint:
+            tableName: tenants
+            columnName: active
+        - addUniqueConstraint:
+            tableName: tenants
+            columnNames: code
+            constraintName: uq_tenant_code
+
+  - changeSet:
+      id: v4-002-default-tenant
+      author: qualitas
+      preConditions:
+        onFail: MARK_RAN
+        onError: MARK_RAN
+        - sqlCheck:
+            expectedResult: 0
+            sql: "SELECT COUNT(*) FROM tenants"
+      changes:
+        - insert:
+            tableName: tenants
+            columns:
+              - column: { name: code, value: "DEFAULT" }
+              - column: { name: name, value: "Default Tenant" }
+              - column: { name: active, valueBoolean: true }
+
+  - changeSet:
+      id: v4-003-roles-tenant
+      author: qualitas
+      changes:
+        - addColumn:
+            tableName: roles
+            columns:
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+              - column:
+                  name: description
+                  type: VARCHAR(255)
+        - sql:
+            comment: Atribui tenant padrão para roles existentes
+            sql: "UPDATE roles SET tenant_id = (SELECT id FROM tenants ORDER BY id LIMIT 1) WHERE tenant_id IS NULL"
+        - addNotNullConstraint:
+            tableName: roles
+            columnName: tenant_id
+        - addForeignKeyConstraint:
+            baseTableName: roles
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_roles_tenant
+        - sql:
+            comment: Remove unique global em roles.name (padrões diferentes conforme SGBD)
+            sql: "ALTER TABLE roles DROP CONSTRAINT IF EXISTS roles_name_key"
+        - sql:
+            sql: "ALTER TABLE roles DROP CONSTRAINT IF EXISTS uq_roles_name"
+        - addUniqueConstraint:
+            tableName: roles
+            columnNames: tenant_id, name
+            constraintName: uq_role_tenant_name
+
+  - changeSet:
+      id: v4-004-users-refactor
+      author: qualitas
+      changes:
+        - renameColumn:
+            tableName: users
+            oldColumnName: password
+            newColumnName: password_hash
+            columnDataType: VARCHAR(255)
+        - addColumn:
+            tableName: users
+            columns:
+              - column:
+                  name: full_name
+                  type: VARCHAR(150)
+              - column:
+                  name: department
+                  type: VARCHAR(120)
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  defaultValue: PROVISIONED
+              - column:
+                  name: origin
+                  type: VARCHAR(20)
+                  defaultValue: LOCAL
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+              - column:
+                  name: activated_at
+                  type: TIMESTAMP
+              - column:
+                  name: expires_at
+                  type: TIMESTAMP
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+        - sql:
+            comment: Ajusta valores padrão para os usuários existentes
+            sql: |
+              UPDATE users
+                 SET tenant_id   = COALESCE(tenant_id, (SELECT id FROM tenants ORDER BY id LIMIT 1)),
+                     status      = CASE WHEN enabled THEN 'ACTIVE' ELSE 'DISABLED' END,
+                     origin      = COALESCE(origin, 'LOCAL'),
+                     created_at  = COALESCE(created_at, CURRENT_TIMESTAMP),
+                     updated_at  = COALESCE(updated_at, CURRENT_TIMESTAMP),
+                     activated_at = CASE WHEN enabled THEN CURRENT_TIMESTAMP ELSE activated_at END,
+                     full_name   = COALESCE(full_name, username)
+        - dropColumn:
+            tableName: users
+            columnName: enabled
+        - sql:
+            comment: Remove unique global em users.username
+            sql: "ALTER TABLE users DROP CONSTRAINT IF EXISTS users_username_key"
+        - sql:
+            sql: "ALTER TABLE users DROP CONSTRAINT IF EXISTS uq_users_username"
+        - addNotNullConstraint:
+            tableName: users
+            columnName: tenant_id
+        - addNotNullConstraint:
+            tableName: users
+            columnName: status
+        - addNotNullConstraint:
+            tableName: users
+            columnName: origin
+        - addNotNullConstraint:
+            tableName: users
+            columnName: created_at
+        - addNotNullConstraint:
+            tableName: users
+            columnName: updated_at
+        - addUniqueConstraint:
+            tableName: users
+            columnNames: tenant_id, username
+            constraintName: uq_user_tenant_username
+
+  - changeSet:
+      id: v4-005-user-roles-rename
+      author: qualitas
+      changes:
+        - dropForeignKeyConstraint:
+            baseTableName: users_roles
+            constraintName: fk_ur_user
+        - dropForeignKeyConstraint:
+            baseTableName: users_roles
+            constraintName: fk_ur_role
+        - dropPrimaryKey:
+            tableName: users_roles
+            constraintName: pk_users_roles
+        - renameTable:
+            oldTableName: users_roles
+            newTableName: user_roles
+        - addPrimaryKey:
+            tableName: user_roles
+            columnNames: user_id, role_id
+            constraintName: pk_user_roles
+        - addForeignKeyConstraint:
+            baseTableName: user_roles
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_user_roles_user
+        - addForeignKeyConstraint:
+            baseTableName: user_roles
+            baseColumnNames: role_id
+            referencedTableName: roles
+            referencedColumnNames: id
+            constraintName: fk_user_roles_role
+
+  - changeSet:
+      id: v4-006-permissions-adjustments
+      author: qualitas
+      changes:
+        - sql:
+            comment: Define tenant padrão para permissões existentes
+            sql: "UPDATE permissions SET tenant_id = COALESCE(tenant_id, (SELECT id FROM tenants ORDER BY id LIMIT 1))"
+        - sql:
+            comment: Remove índice único antigo baseado em expressão (caso exista)
+            sql: "DROP INDEX IF EXISTS uq_permissions_scope_expr"
+        - addNotNullConstraint:
+            tableName: permissions
+            columnName: tenant_id
+        - addUniqueConstraint:
+            tableName: permissions
+            columnNames: tenant_id, resource, action, feature
+            constraintName: uq_perm_scope
+        - addUniqueConstraint:
+            tableName: permissions
+            columnNames: tenant_id, code
+            constraintName: uq_perm_code_tenant
+
+  - changeSet:
+      id: v4-007-role-permissions
+      author: qualitas
+      changes:
+        - createTable:
+            tableName: role_permissions
+            columns:
+              - column: { name: id, type: BIGSERIAL, constraints: { primaryKey: true } }
+              - column: { name: tenant_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: role_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: permission_id, type: BIGINT, constraints: { nullable: false } }
+        - addForeignKeyConstraint:
+            baseTableName: role_permissions
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_role_perm_tenant
+        - addForeignKeyConstraint:
+            baseTableName: role_permissions
+            baseColumnNames: role_id
+            referencedTableName: roles
+            referencedColumnNames: id
+            constraintName: fk_role_perm_role
+        - addForeignKeyConstraint:
+            baseTableName: role_permissions
+            baseColumnNames: permission_id
+            referencedTableName: permissions
+            referencedColumnNames: id
+            constraintName: fk_role_perm_permission
+        - addUniqueConstraint:
+            tableName: role_permissions
+            columnNames: tenant_id, role_id, permission_id
+            constraintName: uq_role_perm
+
+  - changeSet:
+      id: v4-008-user-permission-overrides
+      author: qualitas
+      changes:
+        - createTable:
+            tableName: user_permission_overrides
+            columns:
+              - column: { name: id, type: BIGSERIAL, constraints: { primaryKey: true } }
+              - column: { name: user_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: tenant_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: resource, type: VARCHAR(30), constraints: { nullable: false } }
+              - column: { name: action, type: VARCHAR(30), constraints: { nullable: false } }
+              - column: { name: feature, type: VARCHAR(80) }
+              - column: { name: effect, type: VARCHAR(10), constraints: { nullable: false } }
+              - column: { name: priority, type: INTEGER, constraints: { nullable: false }, defaultValueNumeric: 100 }
+              - column: { name: reason, type: VARCHAR(255) }
+              - column: { name: valid_from, type: TIMESTAMP }
+              - column: { name: valid_until, type: TIMESTAMP }
+              - column: { name: approved, type: BOOLEAN, constraints: { nullable: false }, defaultValueBoolean: false }
+              - column: { name: dual_approval_required, type: BOOLEAN, constraints: { nullable: false }, defaultValueBoolean: false }
+              - column: { name: requested_by, type: VARCHAR(120) }
+              - column: { name: approved_by, type: VARCHAR(120) }
+              - column: { name: approved_at, type: TIMESTAMP }
+        - addForeignKeyConstraint:
+            baseTableName: user_permission_overrides
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_override_user
+        - addForeignKeyConstraint:
+            baseTableName: user_permission_overrides
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_override_tenant
+        - createIndex:
+            tableName: user_permission_overrides
+            indexName: idx_override_lookup
+            columns:
+              - column: { name: tenant_id }
+              - column: { name: user_id }
+              - column: { name: resource }
+              - column: { name: action }
+              - column: { name: feature }
+              - column: { name: priority }
+
+  - changeSet:
+      id: v4-009-policy-conditions-rename
+      author: qualitas
+      changes:
+        - renameColumn:
+            tableName: policy_conditions
+            oldColumnName: cond_key
+            newColumnName: cond_type
+            columnDataType: VARCHAR(80)
+        - renameColumn:
+            tableName: policy_conditions
+            oldColumnName: operator
+            newColumnName: cond_operator
+            columnDataType: VARCHAR(20)
+        - addNotNullConstraint:
+            tableName: policy_conditions
+            columnName: cond_type
+        - addNotNullConstraint:
+            tableName: policy_conditions
+            columnName: cond_operator
+        - addNotNullConstraint:
+            tableName: policy_conditions
+            columnName: cond_value
+        - createIndex:
+            tableName: policy_conditions
+            indexName: idx_policy_condition_policy
+            columns:
+              - column: { name: policy_id }
+
+  - changeSet:
+      id: v4-010-policies-tenant-not-null
+      author: qualitas
+      changes:
+        - sql:
+            comment: Garante tenant para políticas existentes
+            sql: "UPDATE policies SET tenant_id = COALESCE(tenant_id, (SELECT id FROM tenants ORDER BY id LIMIT 1))"
+        - addNotNullConstraint:
+            tableName: policies
+            columnName: tenant_id
+        - createIndex:
+            tableName: policies
+            indexName: idx_policy_scope
+            columns:
+              - column: { name: tenant_id }
+              - column: { name: resource }
+              - column: { name: action }
+              - column: { name: feature }
+              - column: { name: priority }
+        - createIndex:
+            tableName: policies
+            indexName: idx_policy_enabled
+            columns:
+              - column: { name: enabled }

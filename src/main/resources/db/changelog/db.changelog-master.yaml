@@ -5,3 +5,5 @@
       file: db/changelog/changes/V2__security_feature_by_module.yaml
   - include:
       file: db/changelog/changes/V3__seed_minimos.yaml
+  - include:
+      file: db/changelog/changes/V4__align_iam_schema.yaml
