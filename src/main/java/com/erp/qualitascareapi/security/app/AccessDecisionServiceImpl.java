@@ -10,9 +10,14 @@ import com.erp.qualitascareapi.security.repo.RolePermissionRepository;
 import com.erp.qualitascareapi.security.repo.UserPermissionOverrideRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class AccessDecisionServiceImpl implements AccessDecisionService {
@@ -52,7 +57,9 @@ public class AccessDecisionServiceImpl implements AccessDecisionService {
         LocalDateTime now = LocalDateTime.now();
 
         // 1) Overrides (exato + NULL)
-        var ov = overrideRepo.findEffective(ctx.userId(), tenantId, res, act, f, now);
+        var ov = overrideRepo.findEffective(ctx.userId(), tenantId, res, act, f, now, PageRequest.of(0, 1))
+                .stream()
+                .findFirst();
         if (ov.isPresent()) {
             UserPermissionOverride override = ov.get();
             boolean allowed = override.getEffect() == Effect.ALLOW;
@@ -75,8 +82,14 @@ public class AccessDecisionServiceImpl implements AccessDecisionService {
         }
 
         // 3) RBAC (roles → permissions) com fallback (feature=NULL)
-        boolean allowed = !ctx.roles().isEmpty() &&
-                rolePermRepo.existsByRolesAndScope(ctx.roles(), tenantId, res, act, f);
+        Set<String> normalizedRoles = ctx.roles().stream()
+                .filter(Objects::nonNull)
+                .map(r -> r.trim().toUpperCase(Locale.ROOT))
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toSet());
+
+        boolean allowed = !normalizedRoles.isEmpty() &&
+                rolePermRepo.existsByRolesAndScope(normalizedRoles, tenantId, res, act, f);
         audit(ctx, res, act, f, target, "RBAC", allowed ? Effect.ALLOW : Effect.DENY, "roles=" + ctx.roles());
         return allowed;
     }

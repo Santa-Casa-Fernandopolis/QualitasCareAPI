@@ -149,6 +149,46 @@ class PolicyEvaluatorTest {
         assertThat(evaluator.matchesAll(policy, context, target)).isTrue();
     }
 
+    @Test
+    void shouldAllowNotInWhenTargetAttributeMissing() {
+        Policy policy = policyWithConditions(condition("TARGET_STATUS", "NOT_IN", "INATIVO"));
+
+        AuthContext context = new AuthContext(
+                17L,
+                "user",
+                3L,
+                Set.of("MEDICO"),
+                "CARDIO",
+                "Cardiologia",
+                UserStatus.ACTIVE,
+                IdentityOrigin.LOCAL,
+                Map.of()
+        );
+
+        Object targetWithoutStatus = new Object();
+
+        assertThat(evaluator.matchesAll(policy, context, targetWithoutStatus)).isTrue();
+    }
+
+    @Test
+    void shouldTreatNullRoleConditionAsNoRestrictionForNotIn() {
+        Policy policy = policyWithConditions(condition("USER_ROLE", "NOT_IN", null));
+
+        AuthContext context = new AuthContext(
+                33L,
+                "user",
+                2L,
+                Set.of("MEDICO"),
+                "CARDIO",
+                "Cardiologia",
+                UserStatus.ACTIVE,
+                IdentityOrigin.LOCAL,
+                Map.of()
+        );
+
+        assertThat(evaluator.matchesAll(policy, context, new Object())).isTrue();
+    }
+
     private Policy policyWithConditions(PolicyCondition... conditions) {
         Policy policy = new Policy();
         List<PolicyCondition> list = new ArrayList<>();
