@@ -1,5 +1,7 @@
 package com.erp.qualitascareapi.security.domains;
 
+import com.erp.qualitascareapi.iam.domain.Tenant;
+
 import jakarta.persistence.*;
 
 @Entity
