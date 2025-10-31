@@ -1,0 +1,80 @@
+package com.erp.qualitascareapi.security.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.web.SecurityFilterChain;
+
+import java.util.Collection;
+import java.util.HashSet;
+
+@Configuration
+public class SecurityConfig {
+
+    @Bean
+    PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    JwtAuthenticationConverter jwtAuthenticationConverter() {
+        JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
+        authoritiesConverter.setAuthorityPrefix("ROLE_");
+        authoritiesConverter.setAuthoritiesClaimName("roles");
+
+        JwtAuthenticationConverter authenticationConverter = new JwtAuthenticationConverter();
+        authenticationConverter.setJwtGrantedAuthoritiesConverter(jwt -> augmentWithTenant(authoritiesConverter, jwt));
+        return authenticationConverter;
+    }
+
+    @Bean
+    @Order(Ordered.LOWEST_PRECEDENCE)
+    SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http,
+                                                   JwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
+        http
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/actuator/**", "/api/**"))
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+                .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                        .anyRequest().authenticated())
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)))
+                .formLogin(Customizer.withDefaults())
+                .logout(Customizer.withDefaults());
+        return http.build();
+    }
+
+    private Collection<GrantedAuthority> augmentWithTenant(JwtGrantedAuthoritiesConverter converter, Jwt jwt) {
+        Collection<GrantedAuthority> authorities = converter.convert(jwt);
+        Collection<GrantedAuthority> enhanced = new HashSet<>(authorities != null ? authorities : java.util.List.of());
+        Long tenantId = extractTenantId(jwt.getClaim("tenant_id"));
+        if (tenantId != null) {
+            enhanced.add(new SimpleGrantedAuthority("TENANT_" + tenantId));
+        }
+        return enhanced;
+    }
+
+    private Long extractTenantId(Object claim) {
+        if (claim instanceof Number number) {
+            return number.longValue();
+        }
+        if (claim instanceof String value) {
+            try {
+                return Long.parseLong(value);
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return null;
+    }
+}
