@@ -19,8 +19,13 @@
             tableName: permissions
             indexName: uq_permissions_scope_expr
             unique: true
-            # Expressão (Liquibase usa raw SQL via customChange ou createIndex com column->computed)
+            # Expressões individuais para permitir uso do COALESCE nos campos opcionais
             columns:
+              - column: { name: resource }
+              - column: { name: action }
               - column:
-                  name: "(resource, action, COALESCE(feature,'*'), COALESCE(tenant_id,0))"
+                  name: "COALESCE(feature,'*')"
+                  computed: true
+              - column:
+                  name: "COALESCE(tenant_id,0)"
                   computed: true
