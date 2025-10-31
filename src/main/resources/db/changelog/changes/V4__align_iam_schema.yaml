@@ -33,9 +33,9 @@ databaseChangeLog:
       preConditions:
         onFail: MARK_RAN
         onError: MARK_RAN
-        - sqlCheck:
-            expectedResult: 0
-            sql: "SELECT COUNT(*) FROM tenants"
+        sqlCheck:
+          expectedResult: 0
+          sql: "SELECT COUNT(*) FROM tenants"
       changes:
         - insert:
             tableName: tenants
