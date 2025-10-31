@@ -18,9 +18,12 @@ package "Domínio (Core)" {
     +username: String
     +fullName: String
     +department: String
+    +profession: String
     --
     +tenant: Tenant
     +roles: Set<Role>
+    +status: UserStatus
+    +origin: IdentityOrigin
   }
 
   class Role {
@@ -56,6 +59,10 @@ package "Domínio (Core)" {
     +feature: String <<nullable>>
     +effect: Effect <<ALLOW/DENY>>
     +priority: int
+    +validFrom: LocalDateTime
+    +validUntil: LocalDateTime
+    +approved: boolean
+    +dualApprovalRequired: boolean
     --
     +user: User
     +tenant: Tenant
@@ -110,14 +117,35 @@ package "Domínio (Core)" {
     ALLOW
     DENY
   }
+
+  enum UserStatus {
+    PROVISIONED
+    ACTIVE
+    SUSPENDED
+    DISABLED
+    EXPIRED
+  }
+
+  enum IdentityOrigin {
+    LOCAL
+    LDAP
+    SSO
+    IMPORTED
+  }
 }
 
 package "Aplicação (AuthN/AuthZ)" {
   class AuthContext {
     +userId: Long
+    +username: String
     +tenantId: Long
     +roles: Set<String>
     +department: String
+    +profession: String
+    +status: UserStatus
+    +origin: IdentityOrigin
+    +attributes: Map<String,String>
+    +isActiveUser(): boolean
   }
 
   class HospitalPermissionEvaluator {
@@ -129,14 +157,22 @@ package "Aplicação (AuthN/AuthZ)" {
 
   class AccessDecisionService {
     +isAllowed(ctx: AuthContext, res: ResourceType, act: Action, feature: String, target: Object): boolean
+    -audit(...): void
   }
 
   class PolicyEvaluator {
     +matchesAll(policy: Policy, ctx: AuthContext, target: Object): boolean
+    -resolveDynamicToken(value: String, ctx: AuthContext): String
   }
 
   class TargetLoader {
     +load(targetType: String, targetId: Serializable): Object
+  }
+
+  class CurrentUserExtractor {
+    +from(auth: Authentication): AuthContext
+    -parseLongClaim(value: Object): Long
+    -extractTenantFromAuthorities(roles: Set<String>): Long
   }
 }
 
@@ -167,10 +203,12 @@ Policy --> Tenant
 ' Aplicação
 HospitalPermissionEvaluator ..> AccessDecisionService : usa
 HospitalPermissionEvaluator ..> TargetLoader : carrega alvo
+HospitalPermissionEvaluator ..> CurrentUserExtractor : extrai usuário
 AccessDecisionService ..> PolicyEvaluator : avalia condições
 AccessDecisionService ..> Policy : consulta
 AccessDecisionService ..> RolePermission : consulta
 AccessDecisionService ..> UserPermissionOverride : consulta
 AuthContext .. HospitalPermissionEvaluator
 AuthContext .. AccessDecisionService
+CurrentUserExtractor --> AuthContext : cria
 @enduml

@@ -12,10 +12,15 @@ database "Repos (Overrides/Policies/RolePerms)" as REPO
 
 Controller -> PE: hasPermission(auth, targetId, targetType, "NC:READ@DETALHE")
 PE -> CUE: from(auth) -> AuthContext
+CUE -> CUE: ler claims JWT (user_id, tenant_id, department, profession, status, origin)
+CUE -> CUE: inferir tenant via roles TENANT_* quando ausente
+CUE -> CUE: defaults seguros (status=ACTIVE, origin=LOCAL)
 PE -> PE: parse("NC:READ@DETALHE") -> (res=NC, act=READ, feature=DETALHE)
 PE -> TL: load(targetType, targetId) -> alvo
 PE -> ADS: isAllowed(ctx, res, act, feature, alvo)
 
+ADS -> ADS: negar se ctx.isActiveUser() == false
+ADS -> ADS: negar se tenantId ausente
 ADS -> REPO: find UserPermissionOverride (exato + feature=NULL)
 REPO --> ADS: override? (ALLOW/DENY) [opcional]
 ADS -> ADS: if override DENY -> negar; if ALLOW -> permitir
@@ -25,6 +30,7 @@ REPO --> ADS: policies[]
 loop por prioridade
   ADS -> PEV: matchesAll(policy, ctx, alvo)?
   PEV --> ADS: true/false
+  ADS -> ADS: validar filtros de role e tokens dinâmicos
   ADS -> ADS: if DENY aplicável -> negar imediatamente
   ADS -> ADS: if ALLOW aplicável -> permitir (se nenhum DENY mais prioritário)
 end
