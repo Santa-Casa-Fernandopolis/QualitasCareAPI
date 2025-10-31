@@ -5,6 +5,8 @@ import com.erp.qualitascareapi.security.enums.Effect;
 import com.erp.qualitascareapi.security.enums.ResourceType;
 import jakarta.persistence.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name="user_permission_overrides",
         indexes = @Index(name="idx_override_lookup",
@@ -43,6 +45,27 @@ public class UserPermissionOverride {
 
     private String reason;
 
+    @Column(name = "valid_from")
+    private LocalDateTime validFrom;
+
+    @Column(name = "valid_until")
+    private LocalDateTime validUntil;
+
+    @Column(nullable = false)
+    private boolean approved = false;
+
+    @Column(nullable = false)
+    private boolean dualApprovalRequired = false;
+
+    @Column(length = 120)
+    private String requestedBy;
+
+    @Column(length = 120)
+    private String approvedBy;
+
+    @Column
+    private LocalDateTime approvedAt;
+
     public UserPermissionOverride() {}
 
     public UserPermissionOverride(Long id) { this.id = id; }
@@ -71,5 +94,19 @@ public class UserPermissionOverride {
     public void setPriority(int priority) { this.priority = priority; }
     public String getReason() { return reason; }
     public void setReason(String reason) { this.reason = reason; }
+    public LocalDateTime getValidFrom() { return validFrom; }
+    public void setValidFrom(LocalDateTime validFrom) { this.validFrom = validFrom; }
+    public LocalDateTime getValidUntil() { return validUntil; }
+    public void setValidUntil(LocalDateTime validUntil) { this.validUntil = validUntil; }
+    public boolean isApproved() { return approved; }
+    public void setApproved(boolean approved) { this.approved = approved; }
+    public boolean isDualApprovalRequired() { return dualApprovalRequired; }
+    public void setDualApprovalRequired(boolean dualApprovalRequired) { this.dualApprovalRequired = dualApprovalRequired; }
+    public String getRequestedBy() { return requestedBy; }
+    public void setRequestedBy(String requestedBy) { this.requestedBy = requestedBy; }
+    public String getApprovedBy() { return approvedBy; }
+    public void setApprovedBy(String approvedBy) { this.approvedBy = approvedBy; }
+    public LocalDateTime getApprovedAt() { return approvedAt; }
+    public void setApprovedAt(LocalDateTime approvedAt) { this.approvedAt = approvedAt; }
 }
 
