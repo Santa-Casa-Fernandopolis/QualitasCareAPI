@@ -1,0 +1,31 @@
+@startuml
+hide footbox
+skinparam sequenceMessageAlign center
+skinparam participantPadding 20
+
+title Fluxo de autenticação OAuth2 (SAS embutido)
+
+actor Usuario as User
+participant "Frontend" as FE
+participant "Authorization Server (SAS)" as SAS
+participant "LocalUserDetailsService" as LUDS
+participant "IAM UserRepository" as REPO
+participant "API (Resource Server)" as API
+
+User -> FE: Solicita acesso selecionando tenant
+FE -> SAS: GET /oauth2/authorize?client_id=app&tenant=TENANT_ID
+SAS -> User: Tela de login
+User -> SAS: Credenciais (username, senha)
+SAS -> LUDS: authenticate(username, tenant)
+LUDS -> REPO: findActiveByUsernameAndTenant(...)
+REPO --> LUDS: User + Roles + Atributos
+LUDS --> SAS: AuthenticatedUserDetails
+SAS -> SAS: JwtCustomizer adiciona claims multi-tenant
+SAS --> FE: Authorization Code
+FE -> SAS: POST /oauth2/token (code, PKCE verifier)
+SAS --> FE: Access Token (JWT) + Refresh Token
+FE -> API: Authorization: Bearer <JWT>
+API -> API: Resource Server valida assinatura e scope
+API -> API: CurrentUserExtractor monta AuthContext
+API --> FE: Resposta protegida
+@enduml

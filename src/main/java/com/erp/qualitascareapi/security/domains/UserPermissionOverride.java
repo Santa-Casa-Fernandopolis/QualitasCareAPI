@@ -1,5 +1,8 @@
 package com.erp.qualitascareapi.security.domains;
 
+import com.erp.qualitascareapi.iam.domain.Tenant;
+import com.erp.qualitascareapi.iam.domain.User;
+
 import com.erp.qualitascareapi.security.enums.Action;
 import com.erp.qualitascareapi.security.enums.Effect;
 import com.erp.qualitascareapi.security.enums.ResourceType;
