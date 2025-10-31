@@ -77,16 +77,21 @@ public class PolicyEvaluator {
     }
 
     private boolean compare(String op, String left, String right, AuthContext ctx) {
+        String operation = op == null ? "" : op.toUpperCase();
         right = resolveDynamicToken(right, ctx);
         if ("CURRENT_DEPT".equalsIgnoreCase(right)) {
             right = ctx.department();
         }
-        if (left == null) return false;
-        if (right == null) return false;
 
-        switch (op.toUpperCase()) {
-            case "EQ":     return left.equalsIgnoreCase(right);
-            case "NE":     return !left.equalsIgnoreCase(right);
+        if (left == null || right == null) {
+            return handleNullComparison(operation, left, right);
+        }
+
+        switch (operation) {
+            case "EQ":
+                return left.equalsIgnoreCase(right);
+            case "NE":
+                return !left.equalsIgnoreCase(right);
             case "IN": {
                 Set<String> set = new HashSet<>(Arrays.asList(right.split("\\|")));
                 for (String s : set) if (s.equalsIgnoreCase(left)) return true;
@@ -97,19 +102,25 @@ public class PolicyEvaluator {
                 for (String s : set) if (s.equalsIgnoreCase(left)) return false;
                 return true;
             }
-            default: return false;
+            default:
+                return false;
         }
     }
 
     private boolean compareSet(String op, Set<String> left, String right, AuthContext ctx) {
+        String operation = op == null ? "" : op.toUpperCase();
         Set<String> leftNorm = left == null ? Set.of() : left.stream()
                 .filter(Objects::nonNull)
                 .map(String::toUpperCase)
                 .collect(Collectors.toSet());
 
         String resolved = resolveDynamicToken(right, ctx);
-        if (resolved == null) {
-            return false;
+        if (resolved == null || resolved.isBlank()) {
+            return switch (operation) {
+                case "NOT_IN", "CONTAINS_NONE" -> true;
+                case "CONTAINS_ALL" -> true;
+                default -> false;
+            };
         }
         Set<String> rightNorm = Arrays.stream(resolved.split("\\|"))
                 .map(String::trim)
@@ -117,7 +128,15 @@ public class PolicyEvaluator {
                 .map(String::toUpperCase)
                 .collect(Collectors.toSet());
 
-        switch (op.toUpperCase()) {
+        if (rightNorm.isEmpty()) {
+            return switch (operation) {
+                case "NOT_IN", "CONTAINS_NONE" -> true;
+                case "CONTAINS_ALL" -> true;
+                default -> false;
+            };
+        }
+
+        switch (operation) {
             case "IN":
             case "CONTAINS_ANY":
                 return rightNorm.stream().anyMatch(leftNorm::contains);
@@ -131,6 +150,15 @@ public class PolicyEvaluator {
             default:
                 return false;
         }
+    }
+
+    private boolean handleNullComparison(String operation, String left, String right) {
+        return switch (operation) {
+            case "EQ" -> left == null && right == null;
+            case "NE" -> !(left == null && right == null);
+            case "NOT_IN" -> true;
+            default -> false;
+        };
     }
 
     private boolean compareTemporal(String op, LocalTime left, String right) {

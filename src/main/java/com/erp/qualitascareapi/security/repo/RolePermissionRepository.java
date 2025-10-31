@@ -16,7 +16,7 @@ public interface RolePermissionRepository extends JpaRepository<RolePermission, 
         join rp.role r
         join rp.permission p
        where rp.tenant.id = :tenantId
-         and r.name in :roleNames
+         and upper(r.name) in :roleNames
          and p.resource = :res
          and p.action = :act
          and (p.feature = :feature or p.feature is null)

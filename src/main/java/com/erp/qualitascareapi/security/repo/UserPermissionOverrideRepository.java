@@ -3,11 +3,12 @@ package com.erp.qualitascareapi.security.repo;
 import com.erp.qualitascareapi.security.domains.UserPermissionOverride;
 import com.erp.qualitascareapi.security.enums.Action;
 import com.erp.qualitascareapi.security.enums.ResourceType;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
+import java.util.List;
 
 public interface UserPermissionOverrideRepository extends JpaRepository<UserPermissionOverride, Long> {
 
@@ -23,11 +24,12 @@ public interface UserPermissionOverrideRepository extends JpaRepository<UserPerm
          and (o.validUntil is null or o.validUntil >= :now)
        order by o.priority asc
     """)
-    Optional<UserPermissionOverride> findEffective(@Param("userId") Long userId,
-                                                   @Param("tenantId") Long tenantId,
-                                                   @Param("res") ResourceType res,
-                                                   @Param("act") Action act,
-                                                   @Param("feature") String feature,
-                                                   @Param("now") LocalDateTime now);
+    List<UserPermissionOverride> findEffective(@Param("userId") Long userId,
+                                               @Param("tenantId") Long tenantId,
+                                               @Param("res") ResourceType res,
+                                               @Param("act") Action act,
+                                               @Param("feature") String feature,
+                                               @Param("now") LocalDateTime now,
+                                               Pageable pageable);
 }
 
