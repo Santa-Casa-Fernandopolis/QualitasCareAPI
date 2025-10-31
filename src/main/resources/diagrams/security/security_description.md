@@ -23,7 +23,7 @@ Ex.: `NC:READ@DETALHE`, `INDICADOR:EXPORT@RELATORIO`, `PROTOCOLO:READ@*`.
 ## User
 
 * **O que é**: pessoa autenticada no sistema.
-* **Atributos-chave**: identificação, vínculo com **Tenant** ativo, metadados (setor, cargo, etc.).
+* **Atributos-chave**: identificação, vínculo com **Tenant** ativo, metadados (setor, profissão), status e origem da identidade.
 * **Relações**: associação com um conjunto de **Roles** dentro do *Tenant*.
 
 ## Role
@@ -54,6 +54,7 @@ Ex.: `NC:READ@DETALHE`, `INDICADOR:EXPORT@RELATORIO`, `PROTOCOLO:READ@*`.
 ## UserPermissionOverride
 
 * **O que é**: exceção individual (ALLOW/DENY) para um usuário, por *Tenant*.
+* **Campos-chave**: `effect`, `priority`, janelas `validFrom/validUntil`, flags `approved`/`dualApprovalRequired`, metadados (`reason`, `requestedBy`, `approvedBy`, `approvedAt`).
 * **Função**: granularidade fina para ajustes de acesso específicos, **precedendo** RBAC e *policies*.
 
 ## Policy
@@ -103,6 +104,16 @@ Ex.: `NC:READ@DETALHE`, `INDICADOR:EXPORT@RELATORIO`, `PROTOCOLO:READ@*`.
 * **Padrão**: `LISTA`, `DETALHE`, `FORM`, `RELATORIO`, `DASH`, `PLANEJAMENTO`, `EXECUCAO`, `FECHAMENTO`.
 * **Função**: granularidade de UI/fluxo sem explodir enums (string controlada).
 
+## UserStatus
+
+* **Valores**: PROVISIONED, ACTIVE, SUSPENDED, DISABLED, EXPIRED.
+* **Função**: determina se o usuário está elegível (`isActive()` true) para autenticação/autorização.
+
+## IdentityOrigin
+
+* **Valores**: LOCAL, LDAP, SSO, IMPORTED.
+* **Função**: rastreia a fonte da identidade (auditoria e decisões condicionais).
+
 ---
 
 # Camada de aplicação (serviços de autorização)
@@ -110,8 +121,8 @@ Ex.: `NC:READ@DETALHE`, `INDICADOR:EXPORT@RELATORIO`, `PROTOCOLO:READ@*`.
 ## AuthContext
 
 * **O que é**: *snapshot* do usuário autenticado.
-* **Conteúdo**: `userId`, `tenantId`, `roles` (nomes), metadados (ex.: setor), etc.
-* **Função**: fornece o contexto para decisões de acesso.
+* **Conteúdo**: `userId`, `username`, `tenantId`, `roles` normalizados, `department`, `profession`, `status`, `origin`, mapa de `attributes` e utilitários como `isActiveUser()`.
+* **Função**: fornece o contexto completo para decisões de acesso, inclusive tokens dinâmicos para ABAC.
 
 ## HospitalPermissionEvaluator (PermissionEvaluator do Spring)
 
@@ -127,30 +138,31 @@ Ex.: `NC:READ@DETALHE`, `INDICADOR:EXPORT@RELATORIO`, `PROTOCOLO:READ@*`.
 * **O que é**: orquestrador da decisão.
 * **Fluxo de decisão** (nesta ordem):
 
-    1. **UserPermissionOverride** (exato e fallback de feature) ⇒ se existir, **vence tudo** (DENY > ALLOW).
-    2. **Policies** (por prioridade ascendente): avalia condições; **DENY** interrompe e nega, **ALLOW** concede se não houver DENY anterior aplicável.
+    0. **Guarda inicial**: exige usuário ativo (`UserStatus.isActive()`) e `tenantId` presente — caso contrário, nega e audita motivo.
+    1. **UserPermissionOverride** (exato e fallback de feature) ⇒ se existir, **vence tudo** (DENY > ALLOW) respeitando janelas `validFrom/validUntil` e flag de aprovação.
+    2. **Policies** (por prioridade ascendente): avalia filtros de role e condições; **DENY** interrompe e nega, **ALLOW** concede se não houver DENY anterior aplicável.
     3. **RBAC (Role → Permission)**: verifica existência de permissão por role (match exato + fallback de feature).
     4. **Fail-safe**: ausência de match ⇒ **nega**.
 * **Observações**:
 
     * Avaliação **multi-tenant** (sempre filtra por `tenantId`).
     * **Fallback de feature**: específica → curinga (feature ausente).
-    * Pode aplicar **cache** leve (por usuário/tenant e escopo `(resource, action, feature)`).
+    * Gera **logs estruturados** (`stage`, `effect`, detalhes) para auditoria.
 
 ## CurrentUserExtractor
 
 * **O que é**: extrai `AuthContext` do `Authentication` (Spring Security).
-* **Função**: normaliza *claims* do token/session, determinando `tenantId`, roles, setor etc.
+* **Função**: lê tokens `Jwt` (claims `user_id`, `sub`, `tenant_id`, `department`, `profession`, `user_status`, `origin`, mapas `attributes`/`clinical_attributes`), converte para tipos fortes e normaliza roles (`ROLE_`, maiúsculas). Na ausência de `tenant_id`, tenta inferir via autoridade `TENANT_{id}`. Fallback para `UserDetails` grava metadados mínimos. Garante defaults seguros (`status=ACTIVE`, `origin=LOCAL`).
 
 ## TargetLoader
 
 * **O que é**: carrega o **alvo** (entidade) quando a autorização depende de atributos do registro (owner, setor, status).
-* **Função**: fornecer objeto para o avaliador ABAC com o menor custo (pode usar projeções ou cache).
+* **Função**: fornecer objeto para o avaliador ABAC com o menor custo (pode usar projeções ou cache). A implementação padrão é um *stub* que retorna `null`; os módulos devem sobrepor com buscas específicas.
 
 ## PolicyEvaluator
 
 * **O que é**: executa as **PolicyCondition** sobre `(AuthContext, alvo, contexto)`.
-* **Função**: resolver operadores (`EQ`, `IN`, `NE`, etc.) e tipos (`TARGET_DEPARTMENT`, `USER_PROFESSION`, `TARGET_STATUS`…), preferencialmente via *registry*/enum de condições suportadas.
+* **Função**: resolver operadores (`EQ`, `IN`, `NOT_IN`, `CONTAINS_*`, `BETWEEN`, `BEFORE`, `AFTER`), tokens dinâmicos (`CURRENT_DEPT`, `CURRENT_TENANT`, `CURRENT_USER_ID`, `CURRENT_PROFESSION`) e extrair atributos do alvo por reflexão (`department`, `status`, `ownerId`, `tenantId`, `tags`). Condições desconhecidas retornam `false` (fail-safe).
 
 ---
 
