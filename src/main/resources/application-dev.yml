@@ -1,0 +1,25 @@
+﻿spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/db_qualitascare_dev
+    username: postgres
+    password: postdba
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      pool-name: QualitasPool
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update          # DEV: Hibernate cuida do schema
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+  devtools:
+    add-properties: true
+
+  liquibase:
+    enabled: false              # DEV: desliga liquibase

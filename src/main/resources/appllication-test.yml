@@ -1,0 +1,27 @@
+﻿# src/main/resources/application-test.yml
+spring:
+  datasource:
+    url: jdbc:h2:mem:qualitas;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  liquibase:
+    enabled: false   # não roda no test
+
+# 👇 chave na RAIZ (não aninhar sob "spring:")
+spring.autoconfigure.exclude: org.springframework.boot.autoconfigure.liquibase.LiquibaseAutoConfiguration
+
+server:
+  port: 8081

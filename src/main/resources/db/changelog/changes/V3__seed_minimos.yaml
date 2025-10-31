@@ -1,0 +1,60 @@
+﻿databaseChangeLog:
+  - changeSet:
+      id: v3-001-roles-users
+      author: qualitas
+      changes:
+        - insert:
+            tableName: roles
+            columns:
+              - column: { name: name, value: "ADMIN_QUALIDADE" }
+        - insert:
+            tableName: roles
+            columns:
+              - column: { name: name, value: "ENFERMEIRO" }
+        - insert:
+            tableName: roles
+            columns:
+              - column: { name: name, value: "TECNICO" }
+
+        # Usuário admin (senha deve ser codificada em produção)
+        - insert:
+            tableName: users
+            columns:
+              - column: { name: username, value: "admin" }
+              - column: { name: password, value: "{noop}admin123" }   # só DEV/POC — em prod use BCrypt
+              - column: { name: enabled, valueBoolean: true }
+
+        # vincula admin -> ADMIN_QUALIDADE
+        - insert:
+            tableName: users_roles
+            columns:
+              - column: { name: user_id, valueNumeric: 1 }
+              - column: { name: role_id, valueNumeric: 1 }
+
+  - changeSet:
+      id: v3-002-permissions-exemplos
+      author: qualitas
+      changes:
+        - insert:
+            tableName: permissions
+            columns:
+              - column: { name: resource, value: "NC" }
+              - column: { name: action, value: "READ" }
+              - column: { name: feature, value: "LISTA" }
+              - column: { name: code, value: "NC_READ@LISTA" }
+
+        - insert:
+            tableName: permissions
+            columns:
+              - column: { name: resource, value: "NC" }
+              - column: { name: action, value: "READ" }
+              - column: { name: feature, value: "DETALHE" }
+              - column: { name: code, value: "NC_READ@DETALHE" }
+
+        - insert:
+            tableName: permissions
+            columns:
+              - column: { name: resource, value: "INDICADOR" }
+              - column: { name: action, value: "EXPORT" }
+              - column: { name: feature, value: "RELATORIO" }
+              - column: { name: code, value: "INDICADOR_EXPORT@RELATORIO" }

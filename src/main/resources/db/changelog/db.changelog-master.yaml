@@ -1,0 +1,7 @@
+﻿databaseChangeLog:
+  - include:
+      file: db/changelog/changes/V1__baseline.yaml
+  - include:
+      file: db/changelog/changes/V2__security_feature_by_module.yaml
+  - include:
+      file: db/changelog/changes/V3__seed_minimos.yaml

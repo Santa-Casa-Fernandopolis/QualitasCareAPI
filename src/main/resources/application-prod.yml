@@ -1,0 +1,31 @@
+﻿spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/db_qualitascare_prod}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASS:postdba}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 4
+      pool-name: QualitasPool
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: none            # PROD: Liquibase manda
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+
+server:
+  port: ${PORT:8080}
+
+logging:
+  level:
+    org.springframework: INFO
+    com.erp.qualitascareapi: INFO

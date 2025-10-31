@@ -1,0 +1,26 @@
+﻿databaseChangeLog:
+  - changeSet:
+      id: v2-001-indexes
+      author: qualitas
+      changes:
+        # Index de políticas por escopo + prioridade
+        - createIndex:
+            tableName: policies
+            indexName: idx_policies_scope_priority
+            columns:
+              - column: { name: resource }
+              - column: { name: action }
+              - column: { name: feature }
+              - column: { name: priority }
+
+        # (Opcional) Unique lógico para permissions por tenant (tratando nulos via expressão)
+        # Em PostgreSQL o COALESCE funciona em índices parciais via expression index:
+        - createIndex:
+            tableName: permissions
+            indexName: uq_permissions_scope_expr
+            unique: true
+            # Expressão (Liquibase usa raw SQL via customChange ou createIndex com column->computed)
+            columns:
+              - column:
+                  name: "(resource, action, COALESCE(feature,'*'), COALESCE(tenant_id,0))"
+                  computed: true
