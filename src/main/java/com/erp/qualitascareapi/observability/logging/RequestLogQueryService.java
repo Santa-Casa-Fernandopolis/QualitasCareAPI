@@ -20,13 +20,13 @@ public class RequestLogQueryService {
         return repository.findAll((root, query, cb) -> {
             var predicates = new ArrayList<Predicate>();
 
-            filter.from().ifPresent(from -> predicates.add(cb.greaterThanOrEqualTo(root.get("timestamp"), from)));
-            filter.to().ifPresent(to -> predicates.add(cb.lessThanOrEqualTo(root.get("timestamp"), to)));
-            filter.method().ifPresent(method -> predicates.add(cb.equal(root.get("method"), method)));
-            filter.status().ifPresent(status -> predicates.add(cb.equal(root.get("status"), status)));
-            filter.userId().ifPresent(userId -> predicates.add(cb.equal(root.get("userId"), userId)));
-            filter.traceId().ifPresent(traceId -> predicates.add(cb.equal(root.get("traceId"), traceId)));
-            filter.path().ifPresent(path -> predicates.add(cb.like(cb.lower(root.get("path")), "%" + path.toLowerCase() + "%")));
+            filter.fromOptional().ifPresent(from -> predicates.add(cb.greaterThanOrEqualTo(root.get("timestamp"), from)));
+            filter.toOptional().ifPresent(to -> predicates.add(cb.lessThanOrEqualTo(root.get("timestamp"), to)));
+            filter.methodOptional().ifPresent(method -> predicates.add(cb.equal(root.get("method"), method)));
+            filter.statusOptional().ifPresent(status -> predicates.add(cb.equal(root.get("status"), status)));
+            filter.userIdOptional().ifPresent(userId -> predicates.add(cb.equal(root.get("userId"), userId)));
+            filter.traceIdOptional().ifPresent(traceId -> predicates.add(cb.equal(root.get("traceId"), traceId)));
+            filter.pathOptional().ifPresent(path -> predicates.add(cb.like(cb.lower(root.get("path")), "%" + path.toLowerCase() + "%")));
 
             return cb.and(predicates.toArray(Predicate[]::new));
         }, pageable);

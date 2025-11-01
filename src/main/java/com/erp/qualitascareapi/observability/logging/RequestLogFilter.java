@@ -12,31 +12,31 @@ public record RequestLogFilter(
         String traceId,
         String path
 ) {
-    public Optional<Instant> from() {
+    public Optional<Instant> fromOptional() {
         return Optional.ofNullable(from);
     }
 
-    public Optional<Instant> to() {
+    public Optional<Instant> toOptional() {
         return Optional.ofNullable(to);
     }
 
-    public Optional<String> method() {
+    public Optional<String> methodOptional() {
         return Optional.ofNullable(method).filter(s -> !s.isBlank());
     }
 
-    public Optional<Integer> status() {
+    public Optional<Integer> statusOptional() {
         return Optional.ofNullable(status);
     }
 
-    public Optional<String> userId() {
+    public Optional<String> userIdOptional() {
         return Optional.ofNullable(userId).filter(s -> !s.isBlank());
     }
 
-    public Optional<String> traceId() {
+    public Optional<String> traceIdOptional() {
         return Optional.ofNullable(traceId).filter(s -> !s.isBlank());
     }
 
-    public Optional<String> path() {
+    public Optional<String> pathOptional() {
         return Optional.ofNullable(path).filter(s -> !s.isBlank());
     }
 }
