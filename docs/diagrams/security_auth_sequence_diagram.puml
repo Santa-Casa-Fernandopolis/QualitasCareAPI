@@ -20,12 +20,13 @@ SAS -> LUDS: authenticate(username, tenant)
 LUDS -> REPO: findActiveByUsernameAndTenant(...)
 REPO --> LUDS: User + Roles + Atributos
 LUDS --> SAS: AuthenticatedUserDetails
-SAS -> SAS: JwtCustomizer adiciona claims multi-tenant
+SAS -> SAS: OAuth2TokenCustomizer injeta claims (user_id, tenant_id, tenant_code, full_name, department, status, origin, roles)
 SAS --> FE: Authorization Code
 FE -> SAS: POST /oauth2/token (code, PKCE verifier)
 SAS --> FE: Access Token (JWT) + Refresh Token
 FE -> API: Authorization: Bearer <JWT>
 API -> API: Resource Server valida assinatura e scope
+API -> API: JwtAuthenticationConverter deriva ROLE_* e TENANT_{id}
 API -> API: CurrentUserExtractor monta AuthContext
 API --> FE: Resposta protegida
 @enduml

@@ -18,7 +18,6 @@ package "Domínio (Core)" {
     +username: String
     +fullName: String
     +department: String
-    +profession: String
     --
     +tenant: Tenant
     +roles: Set<Role>
@@ -136,31 +135,45 @@ package "Domínio (Core)" {
 
 package "Autenticação (SAS)" {
   class AuthorizationServerConfig {
-    +securityFilterChain(): SecurityFilterChain
-    +registeredClientRepository(): RegisteredClientRepository
-    +authorizationService(): OAuth2AuthorizationService
-    +jwtCustomizer(): OAuth2TokenCustomizer
+    +authorizationServerSecurityFilterChain(http: HttpSecurity): SecurityFilterChain
+    +registeredClientRepository(passwordEncoder: PasswordEncoder): RegisteredClientRepository
+    +authorizationService(repo: RegisteredClientRepository): OAuth2AuthorizationService
+    +authorizationConsentService(): OAuth2AuthorizationConsentService
+    +jwkSource(): JWKSource
+    +jwtDecoder(jwkSource: JWKSource): JwtDecoder
+    +authorizationServerSettings(issuer: String): AuthorizationServerSettings
+    +jwtCustomizer(): OAuth2TokenCustomizer<JwtEncodingContext>
   }
 
   class LocalUserDetailsService {
     +loadUserByUsername(username: String): UserDetails
-    -resolveTenant(username: String, tenant: String): Tenant
+    -resolveUser(username: String, tenantCode: String): User
   }
 
   class AuthenticatedUserDetails {
+    +getId(): Long
     +getUsername(): String
     +getPassword(): String
     +getAuthorities(): Collection<GrantedAuthority>
     +getTenantId(): Long
-    +getAttributes(): Map<String, Object>
+    +getTenantCode(): String
+    +getTenant(): Tenant
+    +getStatus(): UserStatus
+    +getOrigin(): IdentityOrigin
+    +getFullName(): String
+    +getDepartment(): String
+    +isAccountNonExpired(): boolean
+    +isAccountNonLocked(): boolean
+    +isCredentialsNonExpired(): boolean
+    +isEnabled(): boolean
   }
 
-  class JwtCustomizer {
-    +customize(context: OAuth2TokenContext): void
+  class TokenCustomizer {
+    +customize(context: JwtEncodingContext): void <<user_id, tenant_id, tenant_code, full_name, department, user_status, origin, roles>>
   }
 
   AuthorizationServerConfig --> LocalUserDetailsService
-  AuthorizationServerConfig --> JwtCustomizer
+  AuthorizationServerConfig --> TokenCustomizer
   LocalUserDetailsService --> AuthenticatedUserDetails
   LocalUserDetailsService --> User
   LocalUserDetailsService --> Tenant
@@ -174,11 +187,14 @@ package "Autorização (Resource Server)" {
     +tenantId: Long
     +roles: Set<String>
     +department: String
-    +profession: String
+    +profession: String <<nullable>>
     +status: UserStatus
     +origin: IdentityOrigin
     +attributes: Map<String,String>
     +isActiveUser(): boolean
+    +attribute(key: String): String
+    +tenantIdAsString(): String
+    +hasRole(roleName: String): boolean
   }
 
   class HospitalPermissionEvaluator {

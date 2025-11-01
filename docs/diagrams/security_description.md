@@ -126,7 +126,8 @@ Ex.: `NC:READ@DETALHE`, `INDICADOR:EXPORT@RELATORIO`, `PROTOCOLO:READ@*`.
 
 ## Customização de JWT
 
-* **Claims**: adiciona `tenant_id`, `user_id`, `department`, `profession`, `user_status`, `origin`, `roles` normalizados e `tenant_authorities` (`TENANT_{id}`) para consumo pelo `CurrentUserExtractor`.
+* **Claims**: adiciona `user_id`, `tenant_id`, `tenant_code`, `full_name`, `department`, `user_status`, `origin` e `roles` normalizados. Claims adicionais (ex.: `profession`) podem ser propagados via `attributes`/`clinical_attributes` quando disponíveis.
+* **Authorities derivadas**: no Resource Server, o `JwtAuthenticationConverter` lê `roles` e acrescenta a authority `TENANT_{id}` a partir do claim `tenant_id`, permitindo o fallback multi-tenant mesmo sem claim dedicado.
 * **Chaves**: tokens são assinados com par RSA gerenciado pelo SAS (`JWKSource` local) e expõem a chave pública via `/.well-known/jwks.json`.
 * **Expiração**: access tokens curtos (15 min recomendados) e refresh tokens opcionais, com política de revogação em banco (`OAuth2Authorization`).
 
@@ -134,9 +135,9 @@ Ex.: `NC:READ@DETALHE`, `INDICADOR:EXPORT@RELATORIO`, `PROTOCOLO:READ@*`.
 
 1. O front-end redireciona o usuário para `/oauth2/authorize` informando `tenant` escolhido.
 2. SAS autentica credenciais via `LocalUserDetailsService`, que valida status ativo, vínculos de tenant e carrega `roles`/atributos.
-3. `JwtCustomizer` injeta as claims multi-tenant e normaliza authorities.
+3. O `OAuth2TokenCustomizer` injeta as claims multi-tenant (`user_id`, `tenant_id`, `tenant_code`, `full_name`, `department`, `user_status`, `origin`, `roles`).
 4. O token JWT é retornado ao cliente, que o envia na API principal (`Authorization: Bearer ...`).
-5. A API, configurada como **Resource Server**, valida assinatura e alimenta `AuthContext` via `CurrentUserExtractor`.
+5. A API, configurada como **Resource Server**, valida assinatura, deriva `TENANT_{id}` a partir do claim `tenant_id` e alimenta `AuthContext` via `CurrentUserExtractor`.
 
 ![Fluxo de autenticação](security_auth_sequence_diagram.puml)
 
@@ -153,7 +154,7 @@ Ex.: `NC:READ@DETALHE`, `INDICADOR:EXPORT@RELATORIO`, `PROTOCOLO:READ@*`.
 ## AuthContext
 
 * **O que é**: *snapshot* do usuário autenticado.
-* **Conteúdo**: `userId`, `username`, `tenantId`, `roles` normalizados, `department`, `profession`, `status`, `origin`, mapa de `attributes` e utilitários como `isActiveUser()`.
+* **Conteúdo**: `userId`, `username`, `tenantId`, `roles` normalizados, `department`, `profession` (*opcional*), `status`, `origin`, mapa de `attributes` e utilitários como `isActiveUser()`.
 * **Função**: fornece o contexto completo para decisões de acesso, inclusive tokens dinâmicos para ABAC.
 
 ## HospitalPermissionEvaluator (PermissionEvaluator do Spring)
@@ -171,10 +172,11 @@ Ex.: `NC:READ@DETALHE`, `INDICADOR:EXPORT@RELATORIO`, `PROTOCOLO:READ@*`.
 * **Fluxo de decisão** (nesta ordem):
 
     0. **Guarda inicial**: exige usuário ativo (`UserStatus.isActive()`) e `tenantId` presente — caso contrário, nega e audita motivo.
-    1. **UserPermissionOverride** (exato e fallback de feature) ⇒ se existir, **vence tudo** (DENY > ALLOW) respeitando janelas `validFrom/validUntil` e flag de aprovação.
-    2. **Policies** (por prioridade ascendente): avalia filtros de role e condições; **DENY** interrompe e nega, **ALLOW** concede se não houver DENY anterior aplicável.
-    3. **RBAC (Role → Permission)**: verifica existência de permissão por role (match exato + fallback de feature).
-    4. **Fail-safe**: ausência de match ⇒ **nega**.
+    1. **Bypass administrativo**: presença do role `SYSTEM_ADMIN` concede acesso imediato, auditando o atalho.
+    2. **UserPermissionOverride** (exato e fallback de feature) ⇒ se existir, **vence tudo** (DENY > ALLOW) respeitando janelas `validFrom/validUntil` e flag de aprovação.
+    3. **Policies** (por prioridade ascendente): avalia filtros de role e condições; **DENY** interrompe e nega, **ALLOW** concede se não houver DENY anterior aplicável. Se ao menos uma policy for avaliada e nenhuma casar, o serviço registra `no_policy_matched` e nega por fail-safe.
+    4. **RBAC (Role → Permission)**: verifica existência de permissão por role (match exato + fallback de feature).
+    5. **Fail-safe**: ausência de match ⇒ **nega**.
 * **Observações**:
 
     * Avaliação **multi-tenant** (sempre filtra por `tenantId`).
@@ -184,7 +186,7 @@ Ex.: `NC:READ@DETALHE`, `INDICADOR:EXPORT@RELATORIO`, `PROTOCOLO:READ@*`.
 ## CurrentUserExtractor
 
 * **O que é**: extrai `AuthContext` do `Authentication` (Spring Security).
-* **Função**: lê tokens `Jwt` (claims `user_id`, `sub`, `tenant_id`, `department`, `profession`, `user_status`, `origin`, mapas `attributes`/`clinical_attributes`), converte para tipos fortes e normaliza roles (`ROLE_`, maiúsculas). Na ausência de `tenant_id`, tenta inferir via autoridade `TENANT_{id}`. Fallback para `UserDetails` grava metadados mínimos. Garante defaults seguros (`status=ACTIVE`, `origin=LOCAL`).
+* **Função**: lê tokens `Jwt` (claims `user_id`, `sub`, `tenant_id`, `department`, `user_status`, `origin` e mapas `attributes`/`clinical_attributes`), converte para tipos fortes e normaliza roles (`ROLE_`, maiúsculas). Caso o token traga `profession`, o campo é preenchido; do contrário permanece nulo. Na ausência de `tenant_id`, tenta inferir via autoridade `TENANT_{id}`. Fallback para `UserDetails` grava metadados mínimos. Garante defaults seguros (`status=ACTIVE`, `origin=LOCAL`).
 
 ## TargetLoader
 
