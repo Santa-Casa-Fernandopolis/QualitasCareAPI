@@ -69,16 +69,23 @@ public class AccessDecisionServiceImpl implements AccessDecisionService {
         }
 
         // 2) Policies (prioridade asc; DENY vence, ALLOW concede)
+        boolean evaluatedPolicy = false;
         for (Policy p : policyRepo.findEffective(tenantId, res, act, f)) {
             if (!p.getRoles().isEmpty()) {
                 boolean any = p.getRoles().stream().anyMatch(r -> ctx.hasRole(r.getName()));
                 if (!any) continue;
             }
+            evaluatedPolicy = true;
             if (policyEvaluator.matchesAll(p, ctx, target)) {
                 audit(ctx, res, act, f, target, "POLICY", p.getEffect(), "policyId=" + p.getId());
                 if (p.getEffect() == Effect.DENY) return false;
                 if (p.getEffect() == Effect.ALLOW) return true;
             }
+        }
+
+        if (evaluatedPolicy) {
+            audit(ctx, res, act, f, target, "POLICY", Effect.DENY, "no_policy_matched");
+            return false;
         }
 
         // 3) RBAC (roles → permissions) com fallback (feature=NULL)
