@@ -1,5 +1,7 @@
 package com.erp.qualitascareapi.iam.application;
 
+import com.erp.qualitascareapi.common.exception.BadRequestException;
+import com.erp.qualitascareapi.common.exception.ResourceNotFoundException;
 import com.erp.qualitascareapi.iam.api.dto.RoleSummaryDto;
 import com.erp.qualitascareapi.iam.api.dto.UserCreateRequest;
 import com.erp.qualitascareapi.iam.api.dto.UserDto;
@@ -14,13 +16,12 @@ import com.erp.qualitascareapi.security.enums.UserStatus;
 import com.erp.qualitascareapi.security.repo.RoleRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -51,13 +52,13 @@ public class UserService {
     public UserDto get(Long id) {
         return userRepository.findById(id)
                 .map(this::toDto)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User", id));
     }
 
     @Transactional
     public UserDto create(UserCreateRequest request) {
         Tenant tenant = tenantRepository.findById(request.tenantId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tenant not found"));
+                .orElseThrow(() -> new BadRequestException("Tenant not found", Map.of("tenantId", request.tenantId())));
 
         User user = new User();
         user.setTenant(tenant);
@@ -78,7 +79,7 @@ public class UserService {
     @Transactional
     public UserDto update(Long id, UserUpdateRequest request) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User", id));
 
         if (request.fullName() != null) {
             user.setFullName(request.fullName());
@@ -110,7 +111,7 @@ public class UserService {
     @Transactional
     public void delete(Long id) {
         if (!userRepository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+            throw new ResourceNotFoundException("User", id);
         }
         userRepository.deleteById(id);
     }
@@ -121,11 +122,11 @@ public class UserService {
         }
         Set<Role> roles = new HashSet<>(roleRepository.findAllById(roleIds));
         if (roles.size() != roleIds.size()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Some roles were not found");
+            throw new BadRequestException("Some roles were not found", Map.of("roleIds", roleIds));
         }
         boolean invalidTenant = roles.stream().anyMatch(role -> !role.getTenant().getId().equals(tenantId));
         if (invalidTenant) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Role tenant mismatch");
+            throw new BadRequestException("Role tenant mismatch", Map.of("tenantId", tenantId));
         }
         user.setRoles(roles);
     }

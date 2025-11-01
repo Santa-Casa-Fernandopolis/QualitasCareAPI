@@ -1,5 +1,7 @@
 package com.erp.qualitascareapi.security.application;
 
+import com.erp.qualitascareapi.common.exception.BadRequestException;
+import com.erp.qualitascareapi.common.exception.ResourceNotFoundException;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.repo.TenantRepository;
 import com.erp.qualitascareapi.security.api.dto.RoleDto;
@@ -8,10 +10,10 @@ import com.erp.qualitascareapi.security.domains.Role;
 import com.erp.qualitascareapi.security.repo.RoleRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
+
+import java.util.Map;
 
 @Service
 public class RoleService {
@@ -33,13 +35,13 @@ public class RoleService {
     public RoleDto get(Long id) {
         return roleRepository.findById(id)
                 .map(this::toDto)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Role not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Role", id));
     }
 
     @Transactional
     public RoleDto create(RoleRequest request) {
         Tenant tenant = tenantRepository.findById(request.tenantId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tenant not found"));
+                .orElseThrow(() -> new BadRequestException("Tenant not found", Map.of("tenantId", request.tenantId())));
 
         Role role = new Role();
         role.setName(request.name());
@@ -51,10 +53,10 @@ public class RoleService {
     @Transactional
     public RoleDto update(Long id, RoleRequest request) {
         Role role = roleRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Role not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Role", id));
 
         Tenant tenant = tenantRepository.findById(request.tenantId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tenant not found"));
+                .orElseThrow(() -> new BadRequestException("Tenant not found", Map.of("tenantId", request.tenantId())));
 
         role.setName(request.name());
         role.setDescription(request.description());
@@ -65,7 +67,7 @@ public class RoleService {
     @Transactional
     public void delete(Long id) {
         if (!roleRepository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Role not found");
+            throw new ResourceNotFoundException("Role", id);
         }
         roleRepository.deleteById(id);
     }
