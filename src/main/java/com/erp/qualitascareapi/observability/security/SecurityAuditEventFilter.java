@@ -10,23 +10,23 @@ public record SecurityAuditEventFilter(
         SecurityAuditEventType eventType,
         String traceId
 ) {
-    public Optional<Instant> from() {
+    public Optional<Instant> fromOptional() {
         return Optional.ofNullable(from);
     }
 
-    public Optional<Instant> to() {
+    public Optional<Instant> toOptional() {
         return Optional.ofNullable(to);
     }
 
-    public Optional<String> username() {
+    public Optional<String> usernameOptional() {
         return Optional.ofNullable(username).filter(s -> !s.isBlank());
     }
 
-    public Optional<SecurityAuditEventType> eventType() {
+    public Optional<SecurityAuditEventType> eventTypeOptional() {
         return Optional.ofNullable(eventType);
     }
 
-    public Optional<String> traceId() {
+    public Optional<String> traceIdOptional() {
         return Optional.ofNullable(traceId).filter(s -> !s.isBlank());
     }
 }
