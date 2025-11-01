@@ -72,8 +72,10 @@ public class DevTestDataInitializer implements ApplicationRunner {
         Tenant scf = tenantRepository.save(new Tenant(null, "SCF", "Santa Casa Felicidade", true));
         Tenant scj = tenantRepository.save(new Tenant(null, "SCJ", "Santa Casa Jacarandá", true));
 
+        Role scfSystemAdmin = roleRepository.save(new Role(null, "SYSTEM_ADMIN", scf, "Administrador do sistema"));
         Role scfAdmin = roleRepository.save(new Role(null, "ADMIN_QUALIDADE", scf, "Administrador de Qualidade"));
         Role scfNurse = roleRepository.save(new Role(null, "ENFERMEIRO", scf, "Profissional de enfermagem"));
+        Role scjSystemAdmin = roleRepository.save(new Role(null, "SYSTEM_ADMIN", scj, "Administrador do sistema"));
         Role scjAdmin = roleRepository.save(new Role(null, "ADMIN_QUALIDADE", scj, "Administrador de Qualidade"));
         Role scjNurse = roleRepository.save(new Role(null, "ENFERMEIRO", scj, "Profissional de enfermagem"));
 
@@ -87,9 +89,13 @@ public class DevTestDataInitializer implements ApplicationRunner {
                 new Permission(null, ResourceType.NC, Action.CREATE, null, scj, "NC_CREATE"));
 
         rolePermissionRepository.saveAll(List.of(
+                new RolePermission(null, scfSystemAdmin, scfNcRead, scf),
+                new RolePermission(null, scfSystemAdmin, scfNcCreate, scf),
                 new RolePermission(null, scfAdmin, scfNcRead, scf),
                 new RolePermission(null, scfAdmin, scfNcCreate, scf),
                 new RolePermission(null, scfNurse, scfNcRead, scf),
+                new RolePermission(null, scjSystemAdmin, scjNcRead, scj),
+                new RolePermission(null, scjSystemAdmin, scjNcCreate, scj),
                 new RolePermission(null, scjAdmin, scjNcRead, scj),
                 new RolePermission(null, scjAdmin, scjNcCreate, scj),
                 new RolePermission(null, scjNurse, scjNcRead, scj)
@@ -147,12 +153,14 @@ public class DevTestDataInitializer implements ApplicationRunner {
 
         LocalDateTime now = LocalDateTime.now();
 
+        createUser("sys.scf", "SysAdmin SCF", "TI", scf, scfSystemAdmin, now);
         createUser("admin.scf", "Admin SCF", "Qualidade", scf, scfAdmin, now);
         createUser("enf.scf", "Enfermeira SCF", "UTI", scf, scfNurse, now);
+        createUser("sys.scj", "SysAdmin SCJ", "TI", scj, scjSystemAdmin, now);
         createUser("admin.scj", "Admin SCJ", "Qualidade", scj, scjAdmin, now);
         createUser("enf.scj", "Enfermeira SCJ", "Pronto Atendimento", scj, scjNurse, now);
 
-        log.info("Dev/test data initialization finished. Users criados: admin.scf/admin123, enf.scf/enf123, admin.scj/admin123, enf.scj/enf123.");
+        log.info("Dev/test data initialization finished. Users criados: sys.scf/sys123, admin.scf/admin123, enf.scf/enf123, sys.scj/sys123, admin.scj/admin123, enf.scj/enf123.");
     }
 
     private Policy buildPolicy(Tenant tenant,
@@ -194,6 +202,9 @@ public class DevTestDataInitializer implements ApplicationRunner {
         }
         if (username.startsWith("enf")) {
             return "enf123";
+        }
+        if (username.startsWith("sys")) {
+            return "sys123";
         }
         return "changeme";
     }

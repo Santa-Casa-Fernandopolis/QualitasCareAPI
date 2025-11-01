@@ -6,11 +6,13 @@ import com.erp.qualitascareapi.security.application.PolicyService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/policies")
+@PreAuthorize("hasRole('SYSTEM_ADMIN')")
 public class PolicyController {
 
     private final PolicyService policyService;

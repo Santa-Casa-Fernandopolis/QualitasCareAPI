@@ -49,6 +49,11 @@ public class AccessDecisionServiceImpl implements AccessDecisionService {
             return false;
         }
 
+        if (ctx.hasRole("SYSTEM_ADMIN")) {
+            audit(ctx, res, act, f, target, "SYSTEM_ADMIN_PRIVILEGE", Effect.ALLOW, "role=SYSTEM_ADMIN");
+            return true;
+        }
+
         if (tenantId == null) {
             audit(ctx, res, act, f, target, "TENANT_GUARD", Effect.DENY, "tenant_missing");
             return false;
