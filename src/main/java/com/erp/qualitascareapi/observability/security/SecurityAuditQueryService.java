@@ -20,11 +20,11 @@ public class SecurityAuditQueryService {
         return repository.findAll((root, query, cb) -> {
             var predicates = new ArrayList<Predicate>();
 
-            filter.from().ifPresent(from -> predicates.add(cb.greaterThanOrEqualTo(root.get("timestamp"), from)));
-            filter.to().ifPresent(to -> predicates.add(cb.lessThanOrEqualTo(root.get("timestamp"), to)));
-            filter.username().ifPresent(username -> predicates.add(cb.equal(root.get("username"), username)));
-            filter.eventType().ifPresent(eventType -> predicates.add(cb.equal(root.get("eventType"), eventType)));
-            filter.traceId().ifPresent(traceId -> predicates.add(cb.equal(root.get("traceId"), traceId)));
+            filter.fromOptional().ifPresent(from -> predicates.add(cb.greaterThanOrEqualTo(root.get("timestamp"), from)));
+            filter.toOptional().ifPresent(to -> predicates.add(cb.lessThanOrEqualTo(root.get("timestamp"), to)));
+            filter.usernameOptional().ifPresent(username -> predicates.add(cb.equal(root.get("username"), username)));
+            filter.eventTypeOptional().ifPresent(eventType -> predicates.add(cb.equal(root.get("eventType"), eventType)));
+            filter.traceIdOptional().ifPresent(traceId -> predicates.add(cb.equal(root.get("traceId"), traceId)));
 
             return cb.and(predicates.toArray(Predicate[]::new));
         }, pageable);
