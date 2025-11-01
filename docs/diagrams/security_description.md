@@ -14,6 +14,9 @@ Ex.: `NC:READ@DETALHE`, `INDICADOR:EXPORT@RELATORIO`, `PROTOCOLO:READ@*`.
 
 # Camada de domínio (dados)
 
+## Diagrama de Classes
+![img.png](security_class_diagram.png)
+
 ## Tenant
 
 * **O que é**: contexto organizacional (hospital/unidade).
@@ -140,11 +143,13 @@ Ex.: `NC:READ@DETALHE`, `INDICADOR:EXPORT@RELATORIO`, `PROTOCOLO:READ@*`.
 5. A API, configurada como **Resource Server**, valida assinatura, deriva `TENANT_{id}` a partir do claim `tenant_id` e alimenta `AuthContext` via `CurrentUserExtractor`.
 
 ![Fluxo de autenticação](security_auth_sequence_diagram.puml)
-
+![img.png](security_auth_sequence_diagram.png)
 ---
 
 # Camada de aplicação (serviços de autorização)
 
+## Fluxo de Autorização
+![img.png](security_sequence_diagram.png)
 ## SecurityConfig (Resource Server)
 
 * **Papel**: registra o `SecurityFilterChain` que habilita `oauth2ResourceServer().jwt()` e aplica o `JwtAuthenticationConverter` customizado com authorities `ROLE_*` e `TENANT_*`.
