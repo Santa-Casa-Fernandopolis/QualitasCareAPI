@@ -27,6 +27,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -176,15 +177,43 @@ public class DevTestDataInitializer implements ApplicationRunner {
         return policy;
     }
 
-    private void createUser(String username,
-                            String fullName,
-                            String department,
-                            Tenant tenant,
-                            Role role,
-                            LocalDateTime referenceTime) {
+    private Role findOrCreateRole(Tenant tenant, String name, String description) {
+        return roleRepository.findByNameIgnoreCaseAndTenant_Id(name, tenant.getId())
+                .orElseGet(() -> roleRepository.save(new Role(null, name, tenant, description)));
+    }
+
+    private Permission findOrCreatePermission(Tenant tenant,
+                                              ResourceType resource,
+                                              Action action,
+                                              String feature,
+                                              String code) {
+        return permissionRepository.findByTenant_IdAndResourceAndActionAndFeature(tenant.getId(), resource, action, feature)
+                .orElseGet(() -> permissionRepository.save(new Permission(null, resource, action, feature, tenant, code)));
+    }
+
+    private void ensureRolePermission(Role role, Permission permission, Tenant tenant) {
+        if (!rolePermissionRepository.existsByRoleAndPermissionAndTenant(role, permission, tenant)) {
+            rolePermissionRepository.save(new RolePermission(null, role, permission, tenant));
+        }
+    }
+
+    private void createUserIfMissing(String username,
+                                     String fullName,
+                                     String department,
+                                     Tenant tenant,
+                                     Role role,
+                                     LocalDateTime referenceTime,
+                                     List<String> createdUsers) {
+        if (userRepository.findByUsernameIgnoreCase(username).isPresent()) {
+            log.debug("Usuário {} já existe - pulando criação.", username);
+            return;
+        }
+
+        String defaultPassword = defaultPasswordFor(username);
+
         User user = new User();
         user.setUsername(username);
-        user.setPasswordHash(passwordEncoder.encode(defaultPasswordFor(username)));
+        user.setPasswordHash(passwordEncoder.encode(defaultPassword));
         user.setFullName(fullName);
         user.setDepartment(department);
         user.setTenant(tenant);
@@ -194,6 +223,7 @@ public class DevTestDataInitializer implements ApplicationRunner {
         user.setExpiresAt(referenceTime.plusYears(1));
         user.getRoles().add(role);
         userRepository.save(user);
+        createdUsers.add(username + "/" + defaultPassword);
     }
 
     private String defaultPasswordFor(String username) {

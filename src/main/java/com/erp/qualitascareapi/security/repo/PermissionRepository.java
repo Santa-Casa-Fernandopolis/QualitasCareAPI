@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface PermissionRepository extends JpaRepository<Permission, Long> {
 
@@ -21,5 +22,10 @@ public interface PermissionRepository extends JpaRepository<Permission, Long> {
                                @Param("res") ResourceType res,
                                @Param("act") Action act,
                                @Param("feature") String feature);
+
+    Optional<Permission> findByTenant_IdAndResourceAndActionAndFeature(Long tenantId,
+                                                                       ResourceType resource,
+                                                                       Action action,
+                                                                       String feature);
 }
 

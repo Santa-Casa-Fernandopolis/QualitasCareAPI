@@ -1,6 +1,9 @@
 package com.erp.qualitascareapi.security.repo;
 
+import com.erp.qualitascareapi.security.domains.Role;
 import com.erp.qualitascareapi.security.domains.RolePermission;
+import com.erp.qualitascareapi.security.domains.Permission;
+import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.security.enums.Action;
 import com.erp.qualitascareapi.security.enums.ResourceType;
 import org.springframework.data.jpa.repository.*;
@@ -26,5 +29,7 @@ public interface RolePermissionRepository extends JpaRepository<RolePermission, 
                                   @Param("res") ResourceType res,
                                   @Param("act") Action act,
                                   @Param("feature") String feature);
+
+    boolean existsByRoleAndPermissionAndTenant(Role role, Permission permission, Tenant tenant);
 }
 
