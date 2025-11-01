@@ -1,0 +1,76 @@
+databaseChangeLog:
+  - changeSet:
+      id: v5-001-request-logs
+      author: qualitas
+      changes:
+        - createTable:
+            tableName: request_logs
+            columns:
+              - column: { name: id, type: BIGSERIAL, constraints: { primaryKey: true } }
+              - column: { name: logged_at, type: TIMESTAMP, constraints: { nullable: false } }
+              - column: { name: method, type: VARCHAR(10), constraints: { nullable: false } }
+              - column: { name: path, type: VARCHAR(255), constraints: { nullable: false } }
+              - column: { name: status, type: INTEGER, constraints: { nullable: false } }
+              - column: { name: duration_ms, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: trace_id, type: VARCHAR(64) }
+              - column: { name: user_id, type: VARCHAR(120) }
+              - column: { name: client_ip, type: VARCHAR(64) }
+              - column: { name: http_version, type: VARCHAR(16) }
+              - column: { name: content_length, type: BIGINT }
+        - createIndex:
+            tableName: request_logs
+            indexName: idx_request_logs_ts
+            columns:
+              - column: { name: logged_at }
+        - createIndex:
+            tableName: request_logs
+            indexName: idx_request_logs_user
+            columns:
+              - column: { name: user_id }
+        - createIndex:
+            tableName: request_logs
+            indexName: idx_request_logs_trace
+            columns:
+              - column: { name: trace_id }
+
+  - changeSet:
+      id: v5-002-security-audit-events
+      author: qualitas
+      changes:
+        - createTable:
+            tableName: security_audit_events
+            columns:
+              - column: { name: id, type: BIGSERIAL, constraints: { primaryKey: true } }
+              - column: { name: occurred_at, type: TIMESTAMP, constraints: { nullable: false } }
+              - column: { name: username, type: VARCHAR(120), constraints: { nullable: false } }
+              - column: { name: event_type, type: VARCHAR(40), constraints: { nullable: false } }
+              - column: { name: client_ip, type: VARCHAR(64) }
+              - column: { name: trace_id, type: VARCHAR(64) }
+              - column: { name: description, type: VARCHAR(255) }
+        - createIndex:
+            tableName: security_audit_events
+            indexName: idx_sec_audit_ts
+            columns:
+              - column: { name: occurred_at }
+        - createIndex:
+            tableName: security_audit_events
+            indexName: idx_sec_audit_user
+            columns:
+              - column: { name: username }
+        - createIndex:
+            tableName: security_audit_events
+            indexName: idx_sec_audit_type
+            columns:
+              - column: { name: event_type }
+
+  - changeSet:
+      id: v5-003-revinfo
+      author: qualitas
+      changes:
+        - createTable:
+            tableName: revinfo
+            columns:
+              - column: { name: id, type: BIGSERIAL, constraints: { primaryKey: true } }
+              - column: { name: timestamp, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: username, type: VARCHAR(120) }
+              - column: { name: client_ip, type: VARCHAR(64) }
