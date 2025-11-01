@@ -20,6 +20,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -67,7 +68,7 @@ class LocalUserDetailsServiceTest {
         assertThat(details.getUsername()).isEqualTo("admin.scf");
 
         ArgumentCaptor<String> tenantCaptor = ArgumentCaptor.forClass(String.class);
-        verify(userRepository).findByUsernameIgnoreCaseAndTenant_CodeIgnoreCase("admin.scf", tenantCaptor.capture());
+        verify(userRepository).findByUsernameIgnoreCaseAndTenant_CodeIgnoreCase(eq("admin.scf"), tenantCaptor.capture());
         assertThat(tenantCaptor.getValue()).isEqualTo("SCF");
         verify(userRepository, never()).findByUsernameIgnoreCase("admin.scf");
     }
