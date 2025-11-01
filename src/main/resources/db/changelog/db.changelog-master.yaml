@@ -7,3 +7,5 @@
       file: db/changelog/changes/V3__seed_minimos.yaml
   - include:
       file: db/changelog/changes/V4__align_iam_schema.yaml
+  - include:
+      file: db/changelog/changes/V5__observability_logs.yaml
