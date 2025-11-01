@@ -27,6 +27,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -72,28 +73,28 @@ public class DevTestDataInitializer implements ApplicationRunner {
         Tenant scf = tenantRepository.save(new Tenant(null, "SCF", "Santa Casa Felicidade", true));
         Tenant scj = tenantRepository.save(new Tenant(null, "SCJ", "Santa Casa Jacarandá", true));
 
-        Role scfAdmin = roleRepository.save(new Role(null, "ADMIN_QUALIDADE", scf, "Administrador de Qualidade"));
-        Role scfNurse = roleRepository.save(new Role(null, "ENFERMEIRO", scf, "Profissional de enfermagem"));
-        Role scjAdmin = roleRepository.save(new Role(null, "ADMIN_QUALIDADE", scj, "Administrador de Qualidade"));
-        Role scjNurse = roleRepository.save(new Role(null, "ENFERMEIRO", scj, "Profissional de enfermagem"));
+        Role scfSystemAdmin = findOrCreateRole(scf, "SYSTEM_ADMIN", "Administrador do sistema");
+        Role scfAdmin = findOrCreateRole(scf, "ADMIN_QUALIDADE", "Administrador de Qualidade");
+        Role scfNurse = findOrCreateRole(scf, "ENFERMEIRO", "Profissional de enfermagem");
+        Role scjSystemAdmin = findOrCreateRole(scj, "SYSTEM_ADMIN", "Administrador do sistema");
+        Role scjAdmin = findOrCreateRole(scj, "ADMIN_QUALIDADE", "Administrador de Qualidade");
+        Role scjNurse = findOrCreateRole(scj, "ENFERMEIRO", "Profissional de enfermagem");
 
-        Permission scfNcRead = permissionRepository.save(
-                new Permission(null, ResourceType.NC, Action.READ, "LISTA", scf, "NC_READ@LISTA"));
-        Permission scfNcCreate = permissionRepository.save(
-                new Permission(null, ResourceType.NC, Action.CREATE, null, scf, "NC_CREATE"));
-        Permission scjNcRead = permissionRepository.save(
-                new Permission(null, ResourceType.NC, Action.READ, "LISTA", scj, "NC_READ@LISTA"));
-        Permission scjNcCreate = permissionRepository.save(
-                new Permission(null, ResourceType.NC, Action.CREATE, null, scj, "NC_CREATE"));
+        Permission scfNcRead = findOrCreatePermission(scf, ResourceType.NC, Action.READ, "LISTA", "NC_READ@LISTA");
+        Permission scfNcCreate = findOrCreatePermission(scf, ResourceType.NC, Action.CREATE, null, "NC_CREATE");
+        Permission scjNcRead = findOrCreatePermission(scj, ResourceType.NC, Action.READ, "LISTA", "NC_READ@LISTA");
+        Permission scjNcCreate = findOrCreatePermission(scj, ResourceType.NC, Action.CREATE, null, "NC_CREATE");
 
-        rolePermissionRepository.saveAll(List.of(
-                new RolePermission(null, scfAdmin, scfNcRead, scf),
-                new RolePermission(null, scfAdmin, scfNcCreate, scf),
-                new RolePermission(null, scfNurse, scfNcRead, scf),
-                new RolePermission(null, scjAdmin, scjNcRead, scj),
-                new RolePermission(null, scjAdmin, scjNcCreate, scj),
-                new RolePermission(null, scjNurse, scjNcRead, scj)
-        ));
+        ensureRolePermission(scfSystemAdmin, scfNcRead, scf);
+        ensureRolePermission(scfSystemAdmin, scfNcCreate, scf);
+        ensureRolePermission(scfAdmin, scfNcRead, scf);
+        ensureRolePermission(scfAdmin, scfNcCreate, scf);
+        ensureRolePermission(scfNurse, scfNcRead, scf);
+        ensureRolePermission(scjSystemAdmin, scjNcRead, scj);
+        ensureRolePermission(scjSystemAdmin, scjNcCreate, scj);
+        ensureRolePermission(scjAdmin, scjNcRead, scj);
+        ensureRolePermission(scjAdmin, scjNcCreate, scj);
+        ensureRolePermission(scjNurse, scjNcRead, scj);
 
         policyRepository.save(buildPolicy(
                 scf,
@@ -147,12 +148,19 @@ public class DevTestDataInitializer implements ApplicationRunner {
 
         LocalDateTime now = LocalDateTime.now();
 
-        createUser("admin.scf", "Admin SCF", "Qualidade", scf, scfAdmin, now);
-        createUser("enf.scf", "Enfermeira SCF", "UTI", scf, scfNurse, now);
-        createUser("admin.scj", "Admin SCJ", "Qualidade", scj, scjAdmin, now);
-        createUser("enf.scj", "Enfermeira SCJ", "Pronto Atendimento", scj, scjNurse, now);
+        List<String> createdUsers = new ArrayList<>();
+        createUserIfMissing("sys.scf", "SysAdmin SCF", "TI", scf, scfSystemAdmin, now, createdUsers);
+        createUserIfMissing("admin.scf", "Admin SCF", "Qualidade", scf, scfAdmin, now, createdUsers);
+        createUserIfMissing("enf.scf", "Enfermeira SCF", "UTI", scf, scfNurse, now, createdUsers);
+        createUserIfMissing("sys.scj", "SysAdmin SCJ", "TI", scj, scjSystemAdmin, now, createdUsers);
+        createUserIfMissing("admin.scj", "Admin SCJ", "Qualidade", scj, scjAdmin, now, createdUsers);
+        createUserIfMissing("enf.scj", "Enfermeira SCJ", "Pronto Atendimento", scj, scjNurse, now, createdUsers);
 
-        log.info("Dev/test data initialization finished. Users criados: admin.scf/admin123, enf.scf/enf123, admin.scj/admin123, enf.scj/enf123.");
+        if (createdUsers.isEmpty()) {
+            log.info("Dev/test data initialization finished. Nenhum usuário novo foi criado (entradas já existiam).");
+        } else {
+            log.info("Dev/test data initialization finished. Users criados: {}.", String.join(", ", createdUsers));
+        }
     }
 
     private Policy buildPolicy(Tenant tenant,
@@ -168,15 +176,43 @@ public class DevTestDataInitializer implements ApplicationRunner {
         return policy;
     }
 
-    private void createUser(String username,
-                            String fullName,
-                            String department,
-                            Tenant tenant,
-                            Role role,
-                            LocalDateTime referenceTime) {
+    private Role findOrCreateRole(Tenant tenant, String name, String description) {
+        return roleRepository.findByNameIgnoreCaseAndTenant_Id(name, tenant.getId())
+                .orElseGet(() -> roleRepository.save(new Role(null, name, tenant, description)));
+    }
+
+    private Permission findOrCreatePermission(Tenant tenant,
+                                              ResourceType resource,
+                                              Action action,
+                                              String feature,
+                                              String code) {
+        return permissionRepository.findByTenant_IdAndResourceAndActionAndFeature(tenant.getId(), resource, action, feature)
+                .orElseGet(() -> permissionRepository.save(new Permission(null, resource, action, feature, tenant, code)));
+    }
+
+    private void ensureRolePermission(Role role, Permission permission, Tenant tenant) {
+        if (!rolePermissionRepository.existsByRoleAndPermissionAndTenant(role, permission, tenant)) {
+            rolePermissionRepository.save(new RolePermission(null, role, permission, tenant));
+        }
+    }
+
+    private void createUserIfMissing(String username,
+                                     String fullName,
+                                     String department,
+                                     Tenant tenant,
+                                     Role role,
+                                     LocalDateTime referenceTime,
+                                     List<String> createdUsers) {
+        if (userRepository.findByUsernameIgnoreCase(username).isPresent()) {
+            log.debug("Usuário {} já existe - pulando criação.", username);
+            return;
+        }
+
+        String defaultPassword = defaultPasswordFor(username);
+
         User user = new User();
         user.setUsername(username);
-        user.setPasswordHash(passwordEncoder.encode(defaultPasswordFor(username)));
+        user.setPasswordHash(passwordEncoder.encode(defaultPassword));
         user.setFullName(fullName);
         user.setDepartment(department);
         user.setTenant(tenant);
@@ -186,6 +222,7 @@ public class DevTestDataInitializer implements ApplicationRunner {
         user.setExpiresAt(referenceTime.plusYears(1));
         user.getRoles().add(role);
         userRepository.save(user);
+        createdUsers.add(username + "/" + defaultPassword);
     }
 
     private String defaultPasswordFor(String username) {
@@ -194,6 +231,9 @@ public class DevTestDataInitializer implements ApplicationRunner {
         }
         if (username.startsWith("enf")) {
             return "enf123";
+        }
+        if (username.startsWith("sys")) {
+            return "sys123";
         }
         return "changeme";
     }
