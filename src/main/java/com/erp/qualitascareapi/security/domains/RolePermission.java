@@ -3,8 +3,10 @@ package com.erp.qualitascareapi.security.domains;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 
 import jakarta.persistence.*;
+import org.hibernate.envers.Audited;
 
 @Entity
+@Audited
 @Table(name="role_permissions",
         uniqueConstraints = @UniqueConstraint(name="uq_role_perm",
                 columnNames={"tenant_id","role_id","permission_id"}))

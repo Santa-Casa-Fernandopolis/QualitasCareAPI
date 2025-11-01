@@ -1,8 +1,10 @@
 package com.erp.qualitascareapi.iam.domain;
 
 import jakarta.persistence.*;
+import org.hibernate.envers.Audited;
 
 @Entity
+@Audited
 @Table(name = "tenants")
 public class Tenant {
 
