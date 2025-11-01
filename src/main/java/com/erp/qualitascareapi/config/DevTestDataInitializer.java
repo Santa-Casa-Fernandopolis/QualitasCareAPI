@@ -73,28 +73,34 @@ public class DevTestDataInitializer implements ApplicationRunner {
         Tenant scf = tenantRepository.save(new Tenant(null, "SCF", "Santa Casa Felicidade", true));
         Tenant scj = tenantRepository.save(new Tenant(null, "SCJ", "Santa Casa Jacarandá", true));
 
-        Role scfSystemAdmin = findOrCreateRole(scf, "SYSTEM_ADMIN", "Administrador do sistema");
-        Role scfAdmin = findOrCreateRole(scf, "ADMIN_QUALIDADE", "Administrador de Qualidade");
-        Role scfNurse = findOrCreateRole(scf, "ENFERMEIRO", "Profissional de enfermagem");
-        Role scjSystemAdmin = findOrCreateRole(scj, "SYSTEM_ADMIN", "Administrador do sistema");
-        Role scjAdmin = findOrCreateRole(scj, "ADMIN_QUALIDADE", "Administrador de Qualidade");
-        Role scjNurse = findOrCreateRole(scj, "ENFERMEIRO", "Profissional de enfermagem");
+        Role scfSystemAdmin = roleRepository.save(new Role(null, "SYSTEM_ADMIN", scf, "Administrador do sistema"));
+        Role scfAdmin = roleRepository.save(new Role(null, "ADMIN_QUALIDADE", scf, "Administrador de Qualidade"));
+        Role scfNurse = roleRepository.save(new Role(null, "ENFERMEIRO", scf, "Profissional de enfermagem"));
+        Role scjSystemAdmin = roleRepository.save(new Role(null, "SYSTEM_ADMIN", scj, "Administrador do sistema"));
+        Role scjAdmin = roleRepository.save(new Role(null, "ADMIN_QUALIDADE", scj, "Administrador de Qualidade"));
+        Role scjNurse = roleRepository.save(new Role(null, "ENFERMEIRO", scj, "Profissional de enfermagem"));
 
-        Permission scfNcRead = findOrCreatePermission(scf, ResourceType.NC, Action.READ, "LISTA", "NC_READ@LISTA");
-        Permission scfNcCreate = findOrCreatePermission(scf, ResourceType.NC, Action.CREATE, null, "NC_CREATE");
-        Permission scjNcRead = findOrCreatePermission(scj, ResourceType.NC, Action.READ, "LISTA", "NC_READ@LISTA");
-        Permission scjNcCreate = findOrCreatePermission(scj, ResourceType.NC, Action.CREATE, null, "NC_CREATE");
+        Permission scfNcRead = permissionRepository.save(
+                new Permission(null, ResourceType.NC, Action.READ, "LISTA", scf, "NC_READ@LISTA"));
+        Permission scfNcCreate = permissionRepository.save(
+                new Permission(null, ResourceType.NC, Action.CREATE, null, scf, "NC_CREATE"));
+        Permission scjNcRead = permissionRepository.save(
+                new Permission(null, ResourceType.NC, Action.READ, "LISTA", scj, "NC_READ@LISTA"));
+        Permission scjNcCreate = permissionRepository.save(
+                new Permission(null, ResourceType.NC, Action.CREATE, null, scj, "NC_CREATE"));
 
-        ensureRolePermission(scfSystemAdmin, scfNcRead, scf);
-        ensureRolePermission(scfSystemAdmin, scfNcCreate, scf);
-        ensureRolePermission(scfAdmin, scfNcRead, scf);
-        ensureRolePermission(scfAdmin, scfNcCreate, scf);
-        ensureRolePermission(scfNurse, scfNcRead, scf);
-        ensureRolePermission(scjSystemAdmin, scjNcRead, scj);
-        ensureRolePermission(scjSystemAdmin, scjNcCreate, scj);
-        ensureRolePermission(scjAdmin, scjNcRead, scj);
-        ensureRolePermission(scjAdmin, scjNcCreate, scj);
-        ensureRolePermission(scjNurse, scjNcRead, scj);
+        rolePermissionRepository.saveAll(List.of(
+                new RolePermission(null, scfSystemAdmin, scfNcRead, scf),
+                new RolePermission(null, scfSystemAdmin, scfNcCreate, scf),
+                new RolePermission(null, scfAdmin, scfNcRead, scf),
+                new RolePermission(null, scfAdmin, scfNcCreate, scf),
+                new RolePermission(null, scfNurse, scfNcRead, scf),
+                new RolePermission(null, scjSystemAdmin, scjNcRead, scj),
+                new RolePermission(null, scjSystemAdmin, scjNcCreate, scj),
+                new RolePermission(null, scjAdmin, scjNcRead, scj),
+                new RolePermission(null, scjAdmin, scjNcCreate, scj),
+                new RolePermission(null, scjNurse, scjNcRead, scj)
+        ));
 
         policyRepository.save(buildPolicy(
                 scf,
@@ -148,19 +154,14 @@ public class DevTestDataInitializer implements ApplicationRunner {
 
         LocalDateTime now = LocalDateTime.now();
 
-        List<String> createdUsers = new ArrayList<>();
-        createUserIfMissing("sys.scf", "SysAdmin SCF", "TI", scf, scfSystemAdmin, now, createdUsers);
-        createUserIfMissing("admin.scf", "Admin SCF", "Qualidade", scf, scfAdmin, now, createdUsers);
-        createUserIfMissing("enf.scf", "Enfermeira SCF", "UTI", scf, scfNurse, now, createdUsers);
-        createUserIfMissing("sys.scj", "SysAdmin SCJ", "TI", scj, scjSystemAdmin, now, createdUsers);
-        createUserIfMissing("admin.scj", "Admin SCJ", "Qualidade", scj, scjAdmin, now, createdUsers);
-        createUserIfMissing("enf.scj", "Enfermeira SCJ", "Pronto Atendimento", scj, scjNurse, now, createdUsers);
+        createUser("sys.scf", "SysAdmin SCF", "TI", scf, scfSystemAdmin, now);
+        createUser("admin.scf", "Admin SCF", "Qualidade", scf, scfAdmin, now);
+        createUser("enf.scf", "Enfermeira SCF", "UTI", scf, scfNurse, now);
+        createUser("sys.scj", "SysAdmin SCJ", "TI", scj, scjSystemAdmin, now);
+        createUser("admin.scj", "Admin SCJ", "Qualidade", scj, scjAdmin, now);
+        createUser("enf.scj", "Enfermeira SCJ", "Pronto Atendimento", scj, scjNurse, now);
 
-        if (createdUsers.isEmpty()) {
-            log.info("Dev/test data initialization finished. Nenhum usuário novo foi criado (entradas já existiam).");
-        } else {
-            log.info("Dev/test data initialization finished. Users criados: {}.", String.join(", ", createdUsers));
-        }
+        log.info("Dev/test data initialization finished. Users criados: sys.scf/sys123, admin.scf/admin123, enf.scf/enf123, sys.scj/sys123, admin.scj/admin123, enf.scj/enf123.");
     }
 
     private Policy buildPolicy(Tenant tenant,
