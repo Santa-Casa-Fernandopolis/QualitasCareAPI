@@ -153,15 +153,20 @@ public class DevTestDataInitializer implements ApplicationRunner {
         policyRepository.save(scjNursePolicy);
 
         LocalDateTime now = LocalDateTime.now();
+        List<String> createdUsers = new ArrayList<>();
 
-        createUser("sys.scf", "SysAdmin SCF", "TI", scf, scfSystemAdmin, now);
-        createUser("admin.scf", "Admin SCF", "Qualidade", scf, scfAdmin, now);
-        createUser("enf.scf", "Enfermeira SCF", "UTI", scf, scfNurse, now);
-        createUser("sys.scj", "SysAdmin SCJ", "TI", scj, scjSystemAdmin, now);
-        createUser("admin.scj", "Admin SCJ", "Qualidade", scj, scjAdmin, now);
-        createUser("enf.scj", "Enfermeira SCJ", "Pronto Atendimento", scj, scjNurse, now);
+        createUserIfMissing("sys.scf", "SysAdmin SCF", "TI", scf, scfSystemAdmin, now, createdUsers);
+        createUserIfMissing("admin.scf", "Admin SCF", "Qualidade", scf, scfAdmin, now, createdUsers);
+        createUserIfMissing("enf.scf", "Enfermeira SCF", "UTI", scf, scfNurse, now, createdUsers);
+        createUserIfMissing("sys.scj", "SysAdmin SCJ", "TI", scj, scjSystemAdmin, now, createdUsers);
+        createUserIfMissing("admin.scj", "Admin SCJ", "Qualidade", scj, scjAdmin, now, createdUsers);
+        createUserIfMissing("enf.scj", "Enfermeira SCJ", "Pronto Atendimento", scj, scjNurse, now, createdUsers);
 
-        log.info("Dev/test data initialization finished. Users criados: sys.scf/sys123, admin.scf/admin123, enf.scf/enf123, sys.scj/sys123, admin.scj/admin123, enf.scj/enf123.");
+        if (createdUsers.isEmpty()) {
+            log.info("Dev/test data initialization finished. Nenhum usuário novo criado.");
+        } else {
+            log.info("Dev/test data initialization finished. Users criados: {}", String.join(", ", createdUsers));
+        }
     }
 
     private Policy buildPolicy(Tenant tenant,
