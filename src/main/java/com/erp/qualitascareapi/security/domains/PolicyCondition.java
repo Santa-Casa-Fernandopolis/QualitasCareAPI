@@ -1,8 +1,10 @@
 package com.erp.qualitascareapi.security.domains;
 
 import jakarta.persistence.*;
+import org.hibernate.envers.Audited;
 
 @Entity
+@Audited
 @Table(
         name = "policy_conditions",
         indexes = {

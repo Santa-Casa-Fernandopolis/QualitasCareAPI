@@ -4,6 +4,7 @@ import com.erp.qualitascareapi.security.domains.Role;
 import com.erp.qualitascareapi.security.enums.IdentityOrigin;
 import com.erp.qualitascareapi.security.enums.UserStatus;
 import jakarta.persistence.*;
+import org.hibernate.envers.Audited;
 import org.hibernate.annotations.BatchSize;
 
 import java.time.LocalDateTime;
@@ -11,6 +12,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
+@Audited
 @Table(name = "users",
         uniqueConstraints = @UniqueConstraint(name = "uq_user_tenant_username",
                 columnNames = {"tenant_id","username"}))

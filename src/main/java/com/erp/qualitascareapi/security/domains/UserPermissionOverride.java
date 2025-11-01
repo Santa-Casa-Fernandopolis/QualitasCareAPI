@@ -7,10 +7,12 @@ import com.erp.qualitascareapi.security.enums.Action;
 import com.erp.qualitascareapi.security.enums.Effect;
 import com.erp.qualitascareapi.security.enums.ResourceType;
 import jakarta.persistence.*;
+import org.hibernate.envers.Audited;
 
 import java.time.LocalDateTime;
 
 @Entity
+@Audited
 @Table(name="user_permission_overrides",
         indexes = @Index(name="idx_override_lookup",
                 columnList = "tenant_id,user_id,resource,action,feature,priority"))

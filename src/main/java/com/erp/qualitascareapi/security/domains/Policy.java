@@ -6,6 +6,7 @@ import com.erp.qualitascareapi.security.enums.Action;
 import com.erp.qualitascareapi.security.enums.Effect;
 import com.erp.qualitascareapi.security.enums.ResourceType;
 import jakarta.persistence.*;
+import org.hibernate.envers.Audited;
 import org.hibernate.annotations.BatchSize;
 
 import java.util.ArrayList;
@@ -14,6 +15,7 @@ import java.util.List;
 import java.util.Set;
 
 @Entity
+@Audited
 @Table(name="policies",
         indexes = {
                 @Index(name="idx_policy_scope",   columnList="tenant_id,resource,action,feature,priority"),

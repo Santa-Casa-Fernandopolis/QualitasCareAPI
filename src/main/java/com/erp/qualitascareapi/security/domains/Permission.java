@@ -5,8 +5,10 @@ import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.security.enums.Action;
 import com.erp.qualitascareapi.security.enums.ResourceType;
 import jakarta.persistence.*;
+import org.hibernate.envers.Audited;
 
 @Entity
+@Audited
 @Table(name="permissions",
         uniqueConstraints = {
                 @UniqueConstraint(name="uq_perm_scope", columnNames={"tenant_id","resource","action","feature"}),
