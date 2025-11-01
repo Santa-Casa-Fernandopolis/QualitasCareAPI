@@ -1,5 +1,7 @@
 package com.erp.qualitascareapi.security.application;
 
+import com.erp.qualitascareapi.common.exception.BadRequestException;
+import com.erp.qualitascareapi.common.exception.ResourceNotFoundException;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.repo.TenantRepository;
 import com.erp.qualitascareapi.security.api.dto.RolePermissionDto;
@@ -12,10 +14,10 @@ import com.erp.qualitascareapi.security.repo.RolePermissionRepository;
 import com.erp.qualitascareapi.security.repo.RoleRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
+
+import java.util.Map;
 
 @Service
 public class RolePermissionService {
@@ -44,17 +46,17 @@ public class RolePermissionService {
     public RolePermissionDto get(Long id) {
         return rolePermissionRepository.findById(id)
                 .map(this::toDto)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Role permission link not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("RolePermission", id));
     }
 
     @Transactional
     public RolePermissionDto create(RolePermissionRequest request) {
         Tenant tenant = tenantRepository.findById(request.tenantId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tenant not found"));
+                .orElseThrow(() -> new BadRequestException("Tenant not found", Map.of("tenantId", request.tenantId())));
         Role role = roleRepository.findById(request.roleId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Role not found"));
+                .orElseThrow(() -> new BadRequestException("Role not found", Map.of("roleId", request.roleId())));
         Permission permission = permissionRepository.findById(request.permissionId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Permission not found"));
+                .orElseThrow(() -> new BadRequestException("Permission not found", Map.of("permissionId", request.permissionId())));
 
         validateTenant(tenant, role.getTenant(), permission.getTenant());
 
@@ -68,14 +70,14 @@ public class RolePermissionService {
     @Transactional
     public RolePermissionDto update(Long id, RolePermissionRequest request) {
         RolePermission rolePermission = rolePermissionRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Role permission link not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("RolePermission", id));
 
         Tenant tenant = tenantRepository.findById(request.tenantId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tenant not found"));
+                .orElseThrow(() -> new BadRequestException("Tenant not found", Map.of("tenantId", request.tenantId())));
         Role role = roleRepository.findById(request.roleId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Role not found"));
+                .orElseThrow(() -> new BadRequestException("Role not found", Map.of("roleId", request.roleId())));
         Permission permission = permissionRepository.findById(request.permissionId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Permission not found"));
+                .orElseThrow(() -> new BadRequestException("Permission not found", Map.of("permissionId", request.permissionId())));
 
         validateTenant(tenant, role.getTenant(), permission.getTenant());
 
@@ -88,14 +90,14 @@ public class RolePermissionService {
     @Transactional
     public void delete(Long id) {
         if (!rolePermissionRepository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Role permission link not found");
+            throw new ResourceNotFoundException("RolePermission", id);
         }
         rolePermissionRepository.deleteById(id);
     }
 
     private void validateTenant(Tenant tenant, Tenant roleTenant, Tenant permissionTenant) {
         if (!roleTenant.getId().equals(tenant.getId()) || !permissionTenant.getId().equals(tenant.getId())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tenant mismatch for role or permission");
+            throw new BadRequestException("Tenant mismatch for role or permission", Map.of("tenantId", tenant.getId()));
         }
     }
 

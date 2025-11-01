@@ -1,5 +1,7 @@
 package com.erp.qualitascareapi.security.application;
 
+import com.erp.qualitascareapi.common.exception.BadRequestException;
+import com.erp.qualitascareapi.common.exception.ResourceNotFoundException;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.repo.TenantRepository;
 import com.erp.qualitascareapi.security.api.dto.*;
@@ -10,13 +12,12 @@ import com.erp.qualitascareapi.security.repo.PolicyRepository;
 import com.erp.qualitascareapi.security.repo.RoleRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -44,13 +45,13 @@ public class PolicyService {
     public PolicyDto get(Long id) {
         return policyRepository.findById(id)
                 .map(this::toDto)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Policy not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Policy", id));
     }
 
     @Transactional
     public PolicyDto create(PolicyRequest request) {
         Tenant tenant = tenantRepository.findById(request.tenantId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tenant not found"));
+                .orElseThrow(() -> new BadRequestException("Tenant not found", Map.of("tenantId", request.tenantId())));
 
         Policy policy = new Policy();
         policy.setTenant(tenant);
@@ -61,7 +62,7 @@ public class PolicyService {
     @Transactional
     public PolicyDto update(Long id, PolicyRequest request) {
         Policy policy = policyRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Policy not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Policy", id));
         Long tenantId = policy.getTenant().getId();
         applyRequest(policy, tenantId, request);
         return toDto(policy);
@@ -70,7 +71,7 @@ public class PolicyService {
     @Transactional
     public void delete(Long id) {
         if (!policyRepository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Policy not found");
+            throw new ResourceNotFoundException("Policy", id);
         }
         policyRepository.deleteById(id);
     }
@@ -91,11 +92,11 @@ public class PolicyService {
         if (request.roleIds() != null) {
             Set<Role> roles = new HashSet<>(roleRepository.findAllById(request.roleIds()));
             if (roles.size() != request.roleIds().size()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Some roles were not found");
+                throw new BadRequestException("Some roles were not found", Map.of("roleIds", request.roleIds()));
             }
             boolean invalidTenant = roles.stream().anyMatch(role -> !role.getTenant().getId().equals(tenantId));
             if (invalidTenant) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Role tenant mismatch");
+                throw new BadRequestException("Role tenant mismatch", Map.of("tenantId", tenantId));
             }
             policy.getRoles().clear();
             policy.getRoles().addAll(roles);

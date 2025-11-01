@@ -1,15 +1,14 @@
 package com.erp.qualitascareapi.iam.application;
 
+import com.erp.qualitascareapi.common.exception.ResourceNotFoundException;
 import com.erp.qualitascareapi.iam.api.dto.TenantDto;
 import com.erp.qualitascareapi.iam.api.dto.TenantRequest;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.repo.TenantRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class TenantService {
@@ -29,7 +28,7 @@ public class TenantService {
     public TenantDto get(Long id) {
         return tenantRepository.findById(id)
                 .map(this::toDto)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tenant not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Tenant", id));
     }
 
     @Transactional
@@ -42,7 +41,7 @@ public class TenantService {
     @Transactional
     public TenantDto update(Long id, TenantRequest request) {
         Tenant tenant = tenantRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tenant not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Tenant", id));
         applyRequest(request, tenant);
         return toDto(tenant);
     }
@@ -50,7 +49,7 @@ public class TenantService {
     @Transactional
     public void delete(Long id) {
         if (!tenantRepository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Tenant not found");
+            throw new ResourceNotFoundException("Tenant", id);
         }
         tenantRepository.deleteById(id);
     }

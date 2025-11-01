@@ -1,5 +1,7 @@
 package com.erp.qualitascareapi.security.application;
 
+import com.erp.qualitascareapi.common.exception.BadRequestException;
+import com.erp.qualitascareapi.common.exception.ResourceNotFoundException;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.domain.User;
 import com.erp.qualitascareapi.iam.repo.TenantRepository;
@@ -10,10 +12,10 @@ import com.erp.qualitascareapi.security.domains.UserPermissionOverride;
 import com.erp.qualitascareapi.security.repo.UserPermissionOverrideRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
+
+import java.util.Map;
 
 @Service
 public class UserPermissionOverrideService {
@@ -39,17 +41,17 @@ public class UserPermissionOverrideService {
     public UserPermissionOverrideDto get(Long id) {
         return overrideRepository.findById(id)
                 .map(this::toDto)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Override not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("UserPermissionOverride", id));
     }
 
     @Transactional
     public UserPermissionOverrideDto create(UserPermissionOverrideRequest request) {
         Tenant tenant = tenantRepository.findById(request.tenantId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tenant not found"));
+                .orElseThrow(() -> new BadRequestException("Tenant not found", Map.of("tenantId", request.tenantId())));
         User user = userRepository.findById(request.userId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "User not found"));
+                .orElseThrow(() -> new BadRequestException("User not found", Map.of("userId", request.userId())));
         if (!user.getTenant().getId().equals(tenant.getId())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tenant mismatch for user");
+            throw new BadRequestException("Tenant mismatch for user", Map.of("tenantId", request.tenantId()));
         }
 
         UserPermissionOverride override = new UserPermissionOverride();
@@ -62,14 +64,14 @@ public class UserPermissionOverrideService {
     @Transactional
     public UserPermissionOverrideDto update(Long id, UserPermissionOverrideRequest request) {
         UserPermissionOverride override = overrideRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Override not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("UserPermissionOverride", id));
 
         Tenant tenant = tenantRepository.findById(request.tenantId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tenant not found"));
+                .orElseThrow(() -> new BadRequestException("Tenant not found", Map.of("tenantId", request.tenantId())));
         User user = userRepository.findById(request.userId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "User not found"));
+                .orElseThrow(() -> new BadRequestException("User not found", Map.of("userId", request.userId())));
         if (!user.getTenant().getId().equals(tenant.getId())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tenant mismatch for user");
+            throw new BadRequestException("Tenant mismatch for user", Map.of("tenantId", request.tenantId()));
         }
 
         override.setTenant(tenant);
@@ -81,7 +83,7 @@ public class UserPermissionOverrideService {
     @Transactional
     public void delete(Long id) {
         if (!overrideRepository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Override not found");
+            throw new ResourceNotFoundException("UserPermissionOverride", id);
         }
         overrideRepository.deleteById(id);
     }
