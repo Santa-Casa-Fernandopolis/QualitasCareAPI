@@ -22,7 +22,8 @@ package "CME" {
   class Setor {
     +id: Long
     +nome: String
-    +tipo: String <<CME, CC, UTI, Enfermaria...>>
+    +tipo: String
+    ' Possíveis tipos: CME, CC, UTI, Enfermaria...
     +ativo: boolean
     +tenantId: Long
   }
@@ -104,8 +105,10 @@ package "CME" {
     +autoclaveId: Long
     +inicio: Instant
     +fim: Instant
-    +parametros: String  <<temp, pressão, tempo>>
-    +status: String <<EM_ANDAMENTO, CONCLUIDO, ABORTADO>>
+    +parametros: String
+    ' Parâmetros registrados: temperatura, pressão, tempo
+    +status: String
+    ' Status esperados: EM_ANDAMENTO, CONCLUIDO, ABORTADO
     +operadorUserId: Long
     +tenantId: Long
   }
@@ -131,7 +134,8 @@ package "CME" {
     +id: Long
     +cicloId: Long
     +loteInsumo: String
-    +tipo: String  <<classe>>
+    +tipo: String
+    ' Classe do indicador químico
     +resultado: ResultadoTeste
     +observacao: String
     +tenantId: Long
@@ -185,7 +189,8 @@ package "CME" {
     +lotePeraceticoId: Long
     +dataHora: Instant
     +quantidade: BigDecimal
-    +finalidade: String <<desinfecção alta, termodesinfectora...>>
+    +finalidade: String
+    ' Finalidades: desinfecção alta, termodesinfectora...
     +tenantId: Long
   }
   SaneantePeraceticoLote "1" -- "0..*" UsoSaneante
@@ -219,10 +224,12 @@ package "CME" {
     +autoclaveId: Long
     +cicloId: Long
     +dataAbertura: Instant
-    +tipo: String <<BD, BI, CI, embalagem, sujidade, prazo...>>
+    +tipo: String
+    ' Tipos: BD, BI, CI, embalagem, sujidade, prazo...
     +descricao: String
     +acaoCorretiva: String
-    +status: String <<ABERTA, EM_TRATAMENTO, ENCERRADA>>
+    +status: String
+    ' Status: ABERTA, EM_TRATAMENTO, ENCERRADA
     +tenantId: Long
   }
   LoteEtiqueta "0..1" -- "0..*" NaoConformidade
