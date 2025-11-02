@@ -55,7 +55,12 @@ package "CME" {
   Instrumento "1" -- "0..*" KitItem
 
   ' ---- Etiqueta/Lote e Movimentações ----
-  enum StatusLote { EM_PROCESSO; LIBERADO; VENCIDO; BLOQUEADO }
+  enum StatusLote {
+    EM_PROCESSO
+    LIBERADO
+    VENCIDO
+    BLOQUEADO
+  }
 
   class LoteEtiqueta {
     +id: Long
@@ -73,7 +78,12 @@ package "CME" {
   }
   KitCirurgico "1" -- "0..*" LoteEtiqueta
 
-  enum MovTipo { SAIDA_CME; RECEBIDO_NO_SETOR; USO; RETORNO_CONTAMINADO }
+  enum MovTipo {
+    SAIDA_CME
+    RECEBIDO_NO_SETOR
+    USO
+    RETORNO_CONTAMINADO
+  }
 
   class MovimentacaoKit {
     +id: Long
@@ -115,7 +125,11 @@ package "CME" {
   Autoclave "1" -- "0..*" CicloEsterilizacao
   CicloEsterilizacao "1" -- "0..*" LoteEtiqueta : lotesProcessados
 
-  enum ResultadoTeste { OK; FALHA; INCONCLUSIVO }
+  enum ResultadoTeste {
+    OK
+    FALHA
+    INCONCLUSIVO
+  }
 
   class TesteBowieDick {
     +id: Long
