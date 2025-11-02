@@ -1,0 +1,198 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam packageStyle rect
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+package "QualitasCare API" {
+  class QualitasCareApiApplication
+
+  package "Configuration" {
+    class SecurityConfig
+    class ObservabilityConfiguration
+    class DevTestDataInitializer
+    class AuthorizationServerConfig
+    class Jwks
+  }
+
+  package "IAM" {
+    package "API" {
+      class TenantController <<RestController>>
+      class UserController <<RestController>>
+    }
+    package "Application" {
+      class TenantService <<Service>>
+      class UserService <<Service>>
+      class LocalUserDetailsService <<Service>>
+      class AuthenticatedUserDetails
+    }
+    package "Repository" {
+      interface TenantRepository <<Repository>>
+      interface UserRepository <<Repository>>
+    }
+    package "Domain" {
+      class Tenant
+      class User
+    }
+  }
+
+  package "Security" {
+    package "API" {
+      class RoleController <<RestController>>
+      class PermissionController <<RestController>>
+      class PolicyController <<RestController>>
+      class RolePermissionController <<RestController>>
+      class UserPermissionOverrideController <<RestController>>
+    }
+    package "Application" {
+      class RoleService <<Service>>
+      class PermissionService <<Service>>
+      class PolicyService <<Service>>
+      class RolePermissionService <<Service>>
+      class UserPermissionOverrideService <<Service>>
+      class AccessDecisionServiceImpl <<Service>>
+      interface AccessDecisionService
+      class PolicyEvaluator
+      class TargetLoader
+      class CurrentUserExtractor
+    }
+    package "Repository" {
+      interface RoleRepository <<Repository>>
+      interface PermissionRepository <<Repository>>
+      interface PolicyRepository <<Repository>>
+      interface RolePermissionRepository <<Repository>>
+      interface UserPermissionOverrideRepository <<Repository>>
+    }
+    package "Domain" {
+      class Role
+      class Permission
+      class Policy
+      class PolicyCondition
+      class RolePermission
+      class UserPermissionOverride
+    }
+  }
+
+  package "Observability" {
+    package "Security Audit" {
+      class SecurityAuditLogController <<RestController>>
+      class SecurityAuditQueryService <<Service>>
+      interface SecurityAuditEventRepository <<Repository>>
+      class SecurityAuditEvent
+      enum SecurityAuditEventType
+      class SecurityAuditEventListener
+      class SecurityAuditEventFilter
+    }
+    package "Data Audit" {
+      class DataAuditLogController <<RestController>>
+      class DataAuditQueryService <<Service>>
+      class AuditRevisionEntity
+      class AuditRevisionListener
+      class DataAuditEntry
+    }
+    package "Logging" {
+      class OperationalLogController <<RestController>>
+      class RequestLogQueryService <<Service>>
+      interface RequestLogRepository <<Repository>>
+      class RequestLog
+      class RequestLoggingFilter
+      class RequestLogFilter
+      class CorrelationFilter
+    }
+  }
+}
+
+QualitasCareApiApplication --> SecurityConfig
+QualitasCareApiApplication --> ObservabilityConfiguration
+QualitasCareApiApplication --> AuthorizationServerConfig
+DevTestDataInitializer --> TenantService
+DevTestDataInitializer --> RoleService
+DevTestDataInitializer --> PermissionService
+DevTestDataInitializer --> PolicyService
+DevTestDataInitializer --> UserService
+
+TenantController --> TenantService
+TenantService --> TenantRepository
+TenantService --> Tenant
+UserController --> UserService
+UserService --> UserRepository
+UserService --> TenantRepository
+UserService --> RoleRepository
+UserService --> User
+UserService --> Tenant
+UserService --> Role
+LocalUserDetailsService --> UserRepository
+LocalUserDetailsService --> AuthenticatedUserDetails
+AuthenticatedUserDetails --> User
+AuthenticatedUserDetails --> Tenant
+AuthenticatedUserDetails --> Role
+
+RoleController --> RoleService
+PermissionController --> PermissionService
+PolicyController --> PolicyService
+RolePermissionController --> RolePermissionService
+UserPermissionOverrideController --> UserPermissionOverrideService
+
+RoleService --> RoleRepository
+RolePermissionService --> RolePermissionRepository
+RolePermissionService --> Role
+RolePermissionService --> Permission
+RolePermissionService --> Tenant
+PermissionService --> PermissionRepository
+PolicyService --> PolicyRepository
+PolicyService --> RoleRepository
+PolicyService --> Policy
+PolicyService --> PolicyCondition
+UserPermissionOverrideService --> UserPermissionOverrideRepository
+UserPermissionOverrideService --> UserRepository
+UserPermissionOverrideService --> UserPermissionOverride
+UserPermissionOverrideService --> User
+
+Role --> Tenant
+Permission --> Tenant
+RolePermission --> Role
+RolePermission --> Permission
+RolePermission --> Tenant
+Policy --> Tenant
+Policy --> Role
+Policy --> PolicyCondition
+UserPermissionOverride --> User
+UserPermissionOverride --> Tenant
+User --> Tenant
+User "*" -- "*" Role : roles
+
+AccessDecisionServiceImpl ..|> AccessDecisionService
+AccessDecisionServiceImpl --> PolicyEvaluator
+AccessDecisionServiceImpl --> TargetLoader
+AccessDecisionServiceImpl --> CurrentUserExtractor
+PolicyEvaluator --> PolicyService
+PolicyEvaluator --> UserPermissionOverrideService
+TargetLoader --> UserRepository
+CurrentUserExtractor --> AuthenticatedUserDetails
+
+SecurityAuditLogController --> SecurityAuditQueryService
+SecurityAuditQueryService --> SecurityAuditEventRepository
+SecurityAuditQueryService --> SecurityAuditEventFilter
+SecurityAuditEventRepository --> SecurityAuditEvent
+SecurityAuditEventListener --> SecurityAuditEventRepository
+SecurityAuditEventListener --> SecurityAuditEvent
+
+DataAuditLogController --> DataAuditQueryService
+DataAuditQueryService --> AuditRevisionEntity
+DataAuditQueryService --> DataAuditEntry
+AuditRevisionListener --> AuditRevisionEntity
+AuditRevisionEntity --> Tenant
+
+OperationalLogController --> RequestLogQueryService
+RequestLogQueryService --> RequestLogRepository
+RequestLogRepository --> RequestLog
+RequestLoggingFilter --> RequestLogRepository
+RequestLogFilter --> RequestLogRepository
+CorrelationFilter --> RequestLoggingFilter
+
+AuthorizationServerConfig --> AuthenticatedUserDetails
+AuthorizationServerConfig --> LocalUserDetailsService
+AuthorizationServerConfig --> Jwks
+SecurityConfig --> LocalUserDetailsService
+
+@enduml
