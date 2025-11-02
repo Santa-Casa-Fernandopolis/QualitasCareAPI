@@ -21,7 +21,16 @@ package "com.qualitascare.core.domain" as CORE {
   }
 
   ' --- Estrutura hospitalar e abstrações reutilizáveis ---
-  enum TipoSetor { CME; CC; UTI; ENF; FARM; HOTEL; LAB; ENGC }
+  enum TipoSetor {
+    CME
+    CC
+    UTI
+    ENF
+    FARM
+    HOTEL
+    LAB
+    ENGC
+  }
   class Setor {
     +id: Long
     +nome: String
@@ -76,7 +85,12 @@ package "com.qualitascare.core.domain" as CORE {
   Instrumento "1" -- "0..*" KitItem
 
   ' Movimentação genérica entre setores/usuários
-  enum StatusMov { CRIADA; EM_TRANSITO; ENTREGUE; DEVOLVIDA }
+  enum StatusMov {
+    CRIADA
+    EM_TRANSITO
+    ENTREGUE
+    DEVOLVIDA
+  }
   class Movimentacao {
     +id: Long
     +dataHora: Instant
@@ -131,8 +145,17 @@ package "com.qualitascare.modules.cme.domain" as CME {
   }
   KitEsterilizavel --|> CORE.KitProcedimento
 
-  enum StatusLote { EM_PROCESSO; LIBERADO; VENCIDO; BLOQUEADO }
-  enum StatusCiclo { EM_ANDAMENTO; CONCLUIDO; ABORTADO }
+  enum StatusLote {
+    EM_PROCESSO
+    LIBERADO
+    VENCIDO
+    BLOQUEADO
+  }
+  enum StatusCiclo {
+    EM_ANDAMENTO
+    CONCLUIDO
+    ABORTADO
+  }
   class LoteEtiqueta {
     +id: Long
     +kitId: Long
@@ -178,7 +201,11 @@ package "com.qualitascare.modules.cme.domain" as CME {
   CicloEsterilizacao "1" -- "0..*" LoteEtiqueta : lotesProcessados
   CORE.User "1" -- "0..*" CicloEsterilizacao : operador
 
-  enum ResultadoTeste { OK; FALHA; INCONCLUSIVO }
+  enum ResultadoTeste {
+    OK
+    FALHA
+    INCONCLUSIVO
+  }
   class TesteBowieDick {
     +id: Long
     +autoclaveId: Long
@@ -268,7 +295,11 @@ package "com.qualitascare.modules.cme.domain" as CME {
     Tipo abrange ocorrências como BD, BI, CI, embalagem, sujidade e prazo expirado.
   end note
 
-  enum StatusNaoConformidade { ABERTA; EM_TRATAMENTO; ENCERRADA }
+  enum StatusNaoConformidade {
+    ABERTA
+    EM_TRATAMENTO
+    ENCERRADA
+  }
 
   ' Ligações com o core
   CORE.Tenant "1" -- "0..*" KitEsterilizavel
