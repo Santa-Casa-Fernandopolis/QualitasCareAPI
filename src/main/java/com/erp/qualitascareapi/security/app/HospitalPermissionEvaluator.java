@@ -42,7 +42,7 @@ public class HospitalPermissionEvaluator implements PermissionEvaluator {
     public boolean hasPermission(Authentication auth, Serializable targetId, String targetType, Object permission) {
         AuthContext ctx = currentUserExtractor.from(auth);
         Parsed p = parse(String.valueOf(permission));
-        Object target = targetLoader.load(targetType, targetId);
+        Object target = targetLoader.load(targetType, targetId, ctx);
         return accessDecisionService.isAllowed(ctx, p.res, p.act, p.feature, target);
     }
 
