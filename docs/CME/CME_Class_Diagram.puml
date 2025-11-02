@@ -40,7 +40,7 @@ package "com.qualitascare.core.domain" as CORE {
     +getIdentificadorInspecao(): String
   }
 
-  class Instrumento implements Inspecionavel {
+  class Instrumento {
     +id: Long
     +codigo: String
     +nome: String
@@ -49,9 +49,10 @@ package "com.qualitascare.core.domain" as CORE {
     +tenantId: Long
     +getIdentificadorInspecao()
   }
+  Instrumento ..|> Inspecionavel
 
   ' Kit genérico reutilizável (curativo, parto, procedimento, etc.)
-  class KitProcedimento implements Inspecionavel, Rastreavel, Movimentavel {
+  class KitProcedimento {
     +id: Long
     +nome: String
     +descricao: String
@@ -62,6 +63,9 @@ package "com.qualitascare.core.domain" as CORE {
     +getCodigoRastreio()
     +getIdentificadorMov()
   }
+  KitProcedimento ..|> Inspecionavel
+  KitProcedimento ..|> Rastreavel
+  KitProcedimento ..|> Movimentavel
 
   class KitItem {
     +id: Long
@@ -123,11 +127,13 @@ package "com.qualitascare.core.domain" as CORE {
 package "com.qualitascare.modules.cme.domain" as CME {
 
   ' Especialização do kit para esterilização
-  class KitEsterilizavel extends CORE.KitProcedimento {
+  class KitEsterilizavel {
   }
+  KitEsterilizavel --|> CORE.KitProcedimento
 
   enum StatusLote { EM_PROCESSO; LIBERADO; VENCIDO; BLOQUEADO }
-  class LoteEtiqueta implements CORE.Rastreavel, CORE.Movimentavel {
+  enum StatusCiclo { EM_ANDAMENTO; CONCLUIDO; ABORTADO }
+  class LoteEtiqueta {
     +id: Long
     +kitId: Long
     +codigoQR: String
@@ -143,6 +149,8 @@ package "com.qualitascare.modules.cme.domain" as CME {
     +getCodigoRastreio()
     +getIdentificadorMov()
   }
+  LoteEtiqueta ..|> CORE.Rastreavel
+  LoteEtiqueta ..|> CORE.Movimentavel
 
   class Autoclave {
     +id: Long
@@ -158,11 +166,14 @@ package "com.qualitascare.modules.cme.domain" as CME {
     +autoclaveId: Long
     +inicio: Instant
     +fim: Instant
-    +parametros: String  <<temp, pressão, tempo>>
-    +status: String <<EM_ANDAMENTO, CONCLUIDO, ABORTADO>>
+    +parametros: String
+    +status: StatusCiclo
     +operadorUserId: Long
     +tenantId: Long
   }
+  note right of CicloEsterilizacao
+    Parametros armazenam temperatura, pressão e tempo consolidados do ciclo.
+  end note
   Autoclave "1" -- "0..*" CicloEsterilizacao
   CicloEsterilizacao "1" -- "0..*" LoteEtiqueta : lotesProcessados
   CORE.User "1" -- "0..*" CicloEsterilizacao : operador
@@ -247,12 +258,17 @@ package "com.qualitascare.modules.cme.domain" as CME {
     +autoclaveId: Long
     +cicloId: Long
     +dataAbertura: Instant
-    +tipo: String <<BD, BI, CI, embalagem, sujidade, prazo...>>
+    +tipo: String
     +descricao: String
     +acaoCorretiva: String
-    +status: String <<ABERTA, EM_TRATAMENTO, ENCERRADA>>
+    +status: StatusNaoConformidade
     +tenantId: Long
   }
+  note right of NaoConformidadeCME
+    Tipo abrange ocorrências como BD, BI, CI, embalagem, sujidade e prazo expirado.
+  end note
+
+  enum StatusNaoConformidade { ABERTA; EM_TRATAMENTO; ENCERRADA }
 
   ' Ligações com o core
   CORE.Tenant "1" -- "0..*" KitEsterilizavel
