@@ -292,6 +292,47 @@ package "com.qualitascare.modules.cme.domain" as CME {
     +tenantId: Long
   }
 
+  enum TipoManutencao {
+    PREVENTIVA
+    CORRETIVA
+    CALIBRACAO
+    VALIDACAO_SEGURANCA
+  }
+
+  enum StatusManutencao {
+    PLANEJADA
+    EM_EXECUCAO
+    CONCLUIDA
+    CANCELADA
+  }
+
+  class PlanoPreventivoAutoclave {
+    +id: Long
+    +autoclaveId: Long
+    +nome: String
+    +periodicidadeDias: Integer
+    +limiteCiclos: Integer
+    +antecedenciaAlertasDias: Integer
+    +ativo: boolean
+    +tenantId: Long
+  }
+
+  class ManutencaoAutoclave {
+    +id: Long
+    +autoclaveId: Long
+    +planoPreventivoId: Long
+    +tipo: TipoManutencao
+    +status: StatusManutencao
+    +numeroChamado: String
+    +dataAbertura: Instant
+    +dataInicio: Instant
+    +dataConclusao: Instant
+    +responsavelTecnico: String
+    +contadorCiclosNoMomento: Integer
+    +justificativaLiberacao: String
+    +tenantId: Long
+  }
+
   class CicloEsterilizacao {
     +id: Long
     +autoclaveId: Long
@@ -308,6 +349,12 @@ package "com.qualitascare.modules.cme.domain" as CME {
   Autoclave "1" -- "0..*" CicloEsterilizacao
   CicloEsterilizacao "1" -- "0..*" LoteEtiqueta : lotesProcessados
   CORE.User "1" -- "0..*" CicloEsterilizacao : operador
+  Autoclave "1" -- "0..*" PlanoPreventivoAutoclave
+  Autoclave "1" -- "0..*" ManutencaoAutoclave
+  PlanoPreventivoAutoclave "0..1" -- "0..*" ManutencaoAutoclave
+  ManutencaoAutoclave "0..*" -- "0..*" CORE.EvidenciaArquivo : relatorios/certificados
+  ManutencaoAutoclave "0..*" -- "0..*" QUALITY.NaoConformidadeBase : NC originada
+  PlanoPreventivoAutoclave ..> CicloEsterilizacao : consumoDeCiclos
 
   enum ResultadoTeste {
     OK

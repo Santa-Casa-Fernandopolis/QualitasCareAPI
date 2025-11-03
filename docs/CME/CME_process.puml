@@ -35,6 +35,20 @@ if (Triagem/Condição do Material) then (Apto)
   :Capturar evidências da montagem (fotos/checklist);
   :Armazenar p/ Esterilização;
   :Carregar Autoclave;
+  :Verificar planos preventivos / contagem de ciclos (PlanoPreventivoAutoclave);
+  if (Manutenção crítica pendente?) then (Sim)
+    :Bloquear Autoclave por manutenção;
+    :Abrir OS em ManutencaoAutoclave (tipo=preventiva/corretiva);
+    :Notificar Engenharia Clínica e responsável do setor;
+    :Anexar laudos/justificativas em EvidenciaArquivo;
+    if (Liberação emergencial?) then (Sim)
+      :Registrar justificativa do engenheiro clínico;
+      :Atualizar status da ManutencaoAutoclave;
+    else (Não)
+      :Aguardar execução e conclusão da manutenção;
+      :Encerrar OS com laudo/certificado;
+    endif
+  endif
   repeat
     :Teste Bowie-Dick (antes do 1º ciclo do dia);
     if (Bowie-Dick Conforme?) then (Sim)
