@@ -8,6 +8,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -40,12 +41,12 @@ public class JwsPayloadExtractor {
         }
 
         Long userId = parseLong(jwt.getClaim("user_id"));
-        String username = normalize(jwt.containsClaim("sub") ? jwt.getClaimAsString("sub") : null);
+        String username = normalize(jwt.containsClaim("sub") ? claimAsString(jwt, "sub") : null);
         Long tenantId = parseLong(jwt.getClaim("tenant_id"));
-        String department = normalize(jwt.getClaimAsString("department"));
-        String profession = normalize(jwt.getClaimAsString("profession"));
-        UserStatus status = parseStatus(jwt.getClaimAsString("user_status"));
-        IdentityOrigin origin = parseOrigin(jwt.getClaimAsString("origin"));
+        String department = normalize(claimAsString(jwt, "department"));
+        String profession = normalize(claimAsString(jwt, "profession"));
+        UserStatus status = parseStatus(claimAsString(jwt, "user_status"));
+        IdentityOrigin origin = parseOrigin(claimAsString(jwt, "origin"));
         Map<String, String> attributes = collectAttributes(jwt);
 
         return new Payload(userId, username, tenantId, department, profession, status, origin, attributes);
@@ -67,7 +68,7 @@ public class JwsPayloadExtractor {
     }
 
     private Collection<? extends GrantedAuthority> resolveAuthorities(Jwt jwt, Long tenantId) {
-        List<String> roles = jwt != null ? jwt.getClaimAsStringList("roles") : null;
+        List<String> roles = jwt != null ? claimAsStringList(jwt, "roles") : null;
         LinkedHashSet<GrantedAuthority> authorities = new LinkedHashSet<>();
         if (roles != null) {
             for (String role : roles) {
@@ -117,6 +118,57 @@ public class JwsPayloadExtractor {
         }
 
         return Collections.unmodifiableMap(attributes);
+    }
+
+    private String claimAsString(Jwt jwt, String claimName) {
+        if (jwt == null) {
+            return null;
+        }
+        try {
+            return jwt.getClaimAsString(claimName);
+        } catch (RuntimeException ex) {
+            Object claim = jwt.getClaim(claimName);
+            if (claim instanceof CharSequence || claim instanceof Number || claim instanceof Boolean) {
+                return String.valueOf(claim);
+            }
+            return null;
+        }
+    }
+
+    private List<String> claimAsStringList(Jwt jwt, String claimName) {
+        if (jwt == null) {
+            return null;
+        }
+        try {
+            return jwt.getClaimAsStringList(claimName);
+        } catch (RuntimeException ex) {
+            Object claim = jwt.getClaim(claimName);
+            if (claim instanceof Collection<?> collection) {
+                List<String> values = new ArrayList<>();
+                for (Object value : collection) {
+                    if (value != null) {
+                        values.add(String.valueOf(value));
+                    }
+                }
+                return values.isEmpty() ? List.of() : List.copyOf(values);
+            }
+            if (claim instanceof Object[] array) {
+                List<String> values = new ArrayList<>(array.length);
+                for (Object value : array) {
+                    if (value != null) {
+                        values.add(String.valueOf(value));
+                    }
+                }
+                return values.isEmpty() ? List.of() : List.copyOf(values);
+            }
+            if (claim != null) {
+                String value = normalize(String.valueOf(claim));
+                if (value != null) {
+                    return List.of(value);
+                }
+            }
+            return null;
+        }
     }
 
     private Long parseLong(Object value) {
