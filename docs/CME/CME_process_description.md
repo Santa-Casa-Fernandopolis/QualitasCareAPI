@@ -110,6 +110,14 @@ Cada etapa é registrada digitalmente, com rastreabilidade por **etiqueta e QR C
     - Higienização da autoclave vigente
     - Checklist ultrassônico do dia concluído.
 
+#### g) **Controle de Manutenção das Autoclaves**
+- **Registro centralizado:** todas as ordens de serviço (preventivas, corretivas, calibrações e verificações metrológicas) ficam em `ManutencaoAutoclave`, com vínculo obrigatório à autoclave, tipo, status e responsável técnico.
+- **Planos preventivos parametrizáveis:** `PlanoPreventivoAutoclave` define periodicidades por tempo (dias) e contagem de ciclos (`limiteCiclos`), disparando alertas conforme consumo (`contadorCiclosAtual`) calculado automaticamente a partir de `CicloEsterilizacao`.
+- **Workflow digital:** cada manutenção registra abertura, execução e encerramento, exigindo anexos técnicos (`EvidenciaArquivo`) e, quando aplicável, certificados de calibração e laudos de segurança elétrica.
+- **Bloqueio inteligente:** quando um plano preventivo expira ou o contador excede o limite, a autoclave recebe status `BLOQUEADA_MANUTENCAO`; novos ciclos só são autorizados após manutenção concluída ou liberação justificável do engenheiro clínico, com rastreabilidade do responsável.
+- **Integrações:** manutenções críticas geram `NaoConformidadeCME` automaticamente, permitindo planos de ação corporativos; paradas prolongadas também atualizam a fila de redistribuição de cargas e notificações para equipes assistenciais.
+- **Indicadores:** dashboards mostram disponibilidade por autoclave, tempo médio para conclusão de manutenção e aderência aos planos preventivos.
+
 ---
 
 ### 5️⃣ Armazenamento e Distribuição
@@ -164,6 +172,7 @@ Cada etapa é registrada digitalmente, com rastreabilidade por **etiqueta e QR C
 5. **Auditoria automática** de todas as ações (usuário, data, IP).
 6. **Alertas automáticos** para:
     - Autoclaves sem limpeza profunda mensal;
+    - Autoclaves com manutenção preventiva atrasada;
     - Saneantes com prazo de validade vencendo;
     - Kits prestes a vencer;
     - Falhas de indicadores.
@@ -208,6 +217,7 @@ O módulo CME utiliza a entidade `EvidenciaArquivo` (pacote core) para consolida
 | `LoteEtiqueta` | Identificador único de cada kit, com QR Code e validade. |
 | `KitProcedimento`, `KitVersion`, `KitItem`, `Instrumento` | Estrutura modular e versionada dos materiais. |
 | `HigienizacaoUltrassonica`, `HigienizacaoAutoclaveProfunda` | Controle de limpeza de equipamentos com checklist digital. |
+| `ManutencaoAutoclave`, `PlanoPreventivoAutoclave` | Gestão de ordens de serviço, planos preventivos e calibrações. |
 | `SaneantePeraceticoLote`, `UsoSaneante`, `GeracaoResiduo` | Controle químico, diluição e descarte ambiental. |
 | `Movimentacao`, `Setor` | Rastreabilidade logística. |
 | `ExameCultura`, `EvidenciaArquivo` | Gestão de laudos laboratoriais e anexos. |
