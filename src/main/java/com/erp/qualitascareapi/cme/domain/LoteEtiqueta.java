@@ -1,6 +1,7 @@
 package com.erp.qualitascareapi.cme.domain;
 
 import com.erp.qualitascareapi.cme.enums.LoteStatus;
+import com.erp.qualitascareapi.core.domain.KitVersion;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.domain.User;
 import jakarta.persistence.*;

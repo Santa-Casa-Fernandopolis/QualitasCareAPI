@@ -3,48 +3,757 @@ skinparam packageStyle rectangle
 skinparam classAttributeIconSize 0
 skinparam linetype ortho
 
-package "core" {
-  class Setor { +id: Long, +nome: String, +tipo: TipoSetor }
-  class Instrumento { +id: Long, +nome: String }
-  class KitProcedimento { +id: Long, +nome: String, +ativo: Boolean }
-  class KitVersion { +id: Long, +numeroVersao: Integer, +ativo: Boolean }
-  class KitItem { +id: Long, +quantidade: Integer }
-  class ExameCultura { +id: Long, +resultado: ExameCulturaResultado }
-  enum TipoSetor
-  enum ExameCulturaResultado
+
+' =============================
+' PACKAGE: observability.audit
+' =============================
+package "observability.audit" {
+
+  class AuditRevisionEntity <<Entity, RevisionEntity>> {
+    -id: Long <<@RevisionNumber>>
+    -timestamp: long <<@RevisionTimestamp>>
+    -username: String
+    -clientIp: String
+  }
+
+  class AuditRevisionListener <<Listener>>
 }
 
-package "quality" {
-  interface NaoConformidadeBase
-  class TipoNaoConformidade { +id: Long, +nome: String }
-  enum NaoConformidadeStatus
+' =============================
+' PACKAGE: observability.logging
+' =============================
+package "observability.logging" {
+
+  class RequestLog <<Entity>> {
+    -id: Long
+    -timestamp: Instant
+    -method: String
+    -path: String
+    -status: int
+    -durationMs: long
+    -traceId: String
+    -userId: String
+    -clientIp: String
+    -httpVersion: String
+    -contentLength: Long
+  }
+
+  note right of RequestLog
+    Tabela: request_logs
+    Índices:
+      - idx_request_logs_ts (logged_at)
+      - idx_request_logs_user (user_id)
+      - idx_request_logs_trace (trace_id)
+  end note
 }
 
-package "environmental" {
-  class GeracaoResiduo { +id: Long, +classeResiduo: ClasseResiduo }
-  enum ClasseResiduo
+' =============================
+' PACKAGE: observability.security
+' =============================
+package "observability.security" {
+
+  enum SecurityAuditEventType {
+    AUTHENTICATION_SUCCESS
+    AUTHENTICATION_FAILURE
+    AUTHORIZATION_FAILURE
+  }
+
+  class SecurityAuditEvent <<Entity>> {
+    -id: Long
+    -timestamp: Instant
+    -username: String
+    -eventType: SecurityAuditEventType
+    -clientIp: String
+    -traceId: String
+    -description: String
+  }
+
+  note right of SecurityAuditEvent
+    Tabela: security_audit_events
+    Índices:
+      - idx_sec_audit_ts (occurred_at)
+      - idx_sec_audit_user (username)
+      - idx_sec_audit_type (event_type)
+  end note
 }
 
-package "cme" {
-  class LoteEtiqueta { +id: Long, +status: LoteStatus }
-  class MovimentacaoCME { +id: Long, +tipo: MovimentacaoTipo }
-  class NaoConformidadeCME { +id: Long, +status: NaoConformidadeStatus }
-  class UsoSaneante { +id: Long }
-  class Autoclave { +id: Long }
-  class IndicadorQuimico { +id: Long }
-  class IndicadorBiologico { +id: Long }
-  enum LoteStatus
-  enum MovimentacaoTipo
-  enum NaoConformidadeSeveridade
+
+package "core.enums" {
+
+    enum ExameCulturaResultado {
+        PENDENTE
+        NEGATIVO
+        POSITIVO
+        INVALIDO
+    }
+
+    enum TipoSetor {
+        CME
+        CC
+        UTI
+        ENFERMARIA
+        FARMACIA
+        HOTELARIA
+        MANUTENCAO
+        PS
+    }
 }
+
+package "security.enums" {
+
+  enum UserStatus {
+    PROVISIONED(false)
+    ACTIVE(true)
+    SUSPENDED(false)
+    DISABLED(false)
+    EXPIRED(false)
+
+    --
+    -active: boolean
+    --
+    +isActive(): boolean
+  }
+
+  enum ResourceType {
+      INDICADOR
+      AUDITORIA
+      NC
+      PROTOCOLO
+      CAPACITACAO
+      PGRSS
+      USUARIO
+      DASHBOARD
+    }
+
+    enum IdentityOrigin {
+      LOCAL
+      LDAP
+      SSO
+      IMPORTED
+    }
+
+    note right
+        Indica a origem da identidade do usuário.
+        Mantém a lista curta para simplificar
+        validações e auditorias.
+    end note
+
+    enum Effect {
+      ALLOW
+      DENY
+    }
+
+    enum Action {
+      READ
+      CREATE
+      UPDATE
+      DELETE
+      APPROVE
+      EXPORT
+      CLOSE
+    }
+
+}
+
+package "environmental.enums" {
+
+  enum ClasseResiduo {
+    PERFUROCORTANTE
+    BIOLOGICO
+    QUIMICO
+    RECICLAVEL
+    COMUM
+  }
+}
+
+package "cme.enums" {
+
+  enum UsoSaneanteEtapa {
+    PRE_LIMPEZA
+    LIMPEZA_MANUAL
+    LAVADORA_TERMODESINFECCAO
+    DESINFECCAO_ALTO_NIVEL
+  }
+
+  enum ResultadoConformidade {
+    CONFORME
+    NAO_CONFORME
+    NAO_APLICAVEL
+  }
+
+  enum NaoConformidadeSeveridade {
+    BAIXA
+    MEDIA
+    ALTA
+    CRITICA
+  }
+
+  enum MovimentacaoTipo {
+    ENTRADA_CONTAMINADO
+    ENVIO_ESTERIL
+    RETORNO_CONTAMINADO
+    DESCARTE
+  }
+
+  enum ManutencaoTipo {
+    PREVENTIVA
+    CORRETIVA
+    CALIBRACAO
+    VERIFICACAO_METROLOGICA
+  }
+
+  enum ManutencaoStatus {
+    PLANEJADA
+    ABERTA
+    EM_ANDAMENTO
+    CONCLUIDA
+    CANCELADA
+  }
+
+  enum LoteStatus {
+    MONTADO
+    EM_PROCESSO
+    LIBERADO
+    BLOQUEADO
+    VENCIDO
+  }
+
+  enum CicloStatus {
+    AGENDADO
+    EM_ANDAMENTO
+    CONCLUIDO
+    BLOQUEADO
+  }
+}
+
+package "iam.domain" {
+
+    class Tenant <<Entity, Audited>> {
+        +id: Long,
+        +code: Long,
+        +name: String,
+        +cnpj: String,
+        +active: boolean
+    }
+
+    class User <<Entity, Audited>> {
+        +id: Long,
+        +userName: String,
+        +passwordHash: String,
+        +fullName: String,
+    }
+
+}
+
+package "core.domain" {
+
+  class ExameCultura <<Entity, Audited>> {
+    +id: Long,
+    +origemAmostra: String,
+    +dataColeta: LocalDate,
+    +responsavelColeta: String,
+    +resultado: ExameCulturaResultado,
+    +observacoes: String
+
+  }
+
+  class Setor <<Entity, Audited>> {
+      -id: Long,
+      -tenant: Tenant,
+      -nome: String,
+      -tipo: TipoSetor,
+      -descricao: String,
+  }
+
+  class Instrumento <<Entity, Audited>> {
+      -id: Long,
+      -tenant: Tenant,
+      -nome: String,
+      -codigoHospitalar: String,
+      -descricao: String
+  }
+
+  class KitProcedimento <<Entity, Audited>> {
+      -id: Long,
+      -tenant: Tenant,
+      -nome: String,
+      -codigo: String,
+      -observacoes: String,
+      -ativo: Boolean
+  }
+
+  class KitVersion <<Entity, Audited>> {
+      -id: Long,
+      -kit: KitProcedimento,
+      -numeroVersao: Integer,
+      -vigenciaInicio: LocalDate,
+      -validadeDias: Integer,
+      -ativo: Boolean,
+      -observacoes: String
+  }
+
+  class KitItem <<Entity, Audited>> {
+      -id: Long,
+      -versao: KitVersion,
+      -instrumento: Instrumento,
+      -quantidade: Integer,
+      -observacoes: String
+  }
+
+}
+
+package "environmental.domain" {
+    class GeracaoResiduo <<Entity, Audited>> {
+        -id: Long
+        -tenant: Tenant
+        -dataRegistro: LocalDate
+        -classeResiduo: ClasseResiduo
+        -pesoEstimadoKg: Double
+        -destinoFinal: String
+        -loteRelacionada: LoteEtiqueta
+        -saneanteRelacionado: SaneantePeraceticoLote
+        -observacoes: String
+    }
+}
+
+package "security.domain" {
+
+  class Policy <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -resource: ResourceType
+    -action: Action
+    -feature: String      ' NULL = coringa
+    -effect: Effect
+    -enabled: boolean = true
+    -priority: int = 100
+    -description: String
+  }
+
+  note right of Policy
+    Tabela: policies
+    Index: (tenant_id, resource, action, feature, priority) «idx_policy_scope»
+    Index: (enabled) «idx_policy_enabled»
+  end note
+
+  class PolicyCondition <<Entity, Audited>> {
+    -id: Long
+    -policy: Policy
+    -type: String       ' cond_type (ex.: TARGET_DEPARTMENT)
+    -operator: String   ' cond_operator (EQ, NE, IN, NOT_IN...)
+    -value: String      ' cond_value (ex.: "UTI|CME")
+  }
+
+  class Role <<Entity, Audited>> {
+    -id: Long
+    -name: String       ' unique por tenant
+    -tenant: Tenant
+    -description: String
+  }
+
+  note right of Role
+    Tabela: roles
+    Unique: (tenant_id, name)  «uq_role_tenant_name»
+  end note
+
+  class Permission <<Entity, Audited>> {
+    -id: Long
+    -resource: ResourceType
+    -action: Action
+    -feature: String     ' NULL = coringa
+    -tenant: Tenant
+    -code: String        ' ex.: "NC_READ@LISTA"
+  }
+
+  note right of Permission
+    Tabela: permissions
+    Unique: (tenant_id, resource, action, feature) «uq_perm_scope»
+    Unique: (tenant_id, code) «uq_perm_code_tenant»
+  end note
+
+  class RolePermission <<Entity, Audited>> {
+    -id: Long
+    -role: Role
+    -permission: Permission
+    -tenant: Tenant
+  }
+
+  note right of RolePermission
+    Tabela: role_permissions
+    Unique: (tenant_id, role_id, permission_id) «uq_role_perm»
+  end note
+
+  class UserPermissionOverride <<Entity, Audited>> {
+    -id: Long
+    -user: User
+    -tenant: Tenant
+    -resource: ResourceType
+    -action: Action
+    -feature: String        ' NULL = coringa
+    -effect: Effect
+    -priority: int = 100
+    -reason: String
+    -validFrom: LocalDateTime
+    -validUntil: LocalDateTime
+    -approved: boolean = false
+    -dualApprovalRequired: boolean = false
+    -requestedBy: String
+    -approvedBy: String
+    -approvedAt: LocalDateTime
+  }
+
+    note right of UserPermissionOverride
+      Tabela: user_permission_overrides
+      Index: (tenant_id, user_id, resource, action, feature, priority) «idx_override_lookup»
+    end note
+
+}
+
+package "quality.domain" {
+
+  interface NaoConformidadeBase {
+    +getId(): Long
+    +getTenant(): Tenant
+    +getTitulo(): String
+    +getStatus(): NaoConformidadeStatus
+    +getTipo(): TipoNaoConformidade
+  }
+
+  class TipoNaoConformidade <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -nome: String
+    -descricao: String
+  }
+}
+
+package "quality.enums" {
+  enum NaoConformidadeStatus {
+    ABERTA
+    EM_INVESTIGACAO
+    EM_IMPLEMENTACAO
+    CONCLUIDA
+    CANCELADA
+  }
+}
+
+package "common.domain" {
+
+  class EvidenciaArquivo <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -nomeArquivo: String
+    -uri: String
+    -hashSha256: String
+    -contentType: String
+    -tamanhoBytes: Long
+    -autor: User
+    -criadoEm: LocalDateTime
+    --
+    +prePersist(): void
+  }
+
+  note right of EvidenciaArquivo
+    Tabela: evidencias_arquivo
+    - Garante rastreabilidade documental.
+    - Arquivos evidenciam processos de qualidade,
+      auditorias e conformidades.
+  end note
+}
+
+package "cme.domain" {
+
+  class Autoclave <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -nome: String
+    -fabricante: String
+    -modelo: String
+    -numeroSerie: String
+    -localizacao: String
+    -ultimaHigienizacaoProfunda: LocalDate
+    -ativo: Boolean
+  }
+
+  class CicloEsterilizacao <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -autoclave: Autoclave
+    -loteEtiqueta: LoteEtiqueta
+    -inicio: LocalDateTime
+    -fim: LocalDateTime
+    -duracaoMinutos: Integer
+    -temperaturaMaxima: Double
+    -pressaoMaxima: Double
+    -status: CicloStatus
+    -liberadoPor: User
+    -observacoes: String
+  }
+
+  class LoteEtiqueta <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -codigo: String
+    -kitVersao: KitVersion
+    -dataEmpacotamento: LocalDate
+    -validade: LocalDate
+    -status: LoteStatus
+    -qrCode: String
+    -montadoPor: User
+    -observacoes: String
+    -criadoEm: LocalDateTime
+  }
+
+  class ManutencaoAutoclave <<Entity, Audited>> {
+    -id: Long
+    -autoclave: Autoclave
+    -tipo: ManutencaoTipo
+    -status: ManutencaoStatus
+    -dataAgendamento: LocalDate
+    -dataExecucao: LocalDate
+    -responsavelTecnico: String
+    -observacoes: String
+  }
+
+  class PlanoPreventivoAutoclave <<Entity, Audited>> {
+    -id: Long
+    -autoclave: Autoclave
+    -periodicidadeDias: Integer
+    -limiteCiclos: Integer
+    -proximaExecucaoPrevista: LocalDate
+    -descricao: String
+  }
+
+  class MovimentacaoCME <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -lote: LoteEtiqueta
+    -setorOrigem: Setor
+    -setorDestino: Setor
+    -tipo: MovimentacaoTipo
+    -dataHora: LocalDateTime
+    -responsavel: User
+    -observacoes: String
+  }
+
+  class UsoSaneante <<Entity, Audited>> {
+    -id: Long
+    -loteSaneante: SaneantePeraceticoLote
+    -dataUso: LocalDate
+    -etapa: UsoSaneanteEtapa
+    -volumeUtilizadoMl: Double
+    -diluicao: String
+    -usadoPor: User
+    -observacoes: String
+  }
+
+  class SaneantePeraceticoLote <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -numeroLote: String
+    -fabricante: String
+    -concentracao: String
+    -dataValidade: LocalDate
+    -dataAbertura: LocalDate
+    -volumeInicialMl: Double
+    -observacoes: String
+  }
+
+  class TesteBowieDick <<Entity, Audited>> {
+    -id: Long
+    -autoclave: Autoclave
+    -dataExecucao: LocalDate
+    -resultado: ResultadoConformidade
+    -executadoPor: User
+    -observacoes: String
+  }
+
+  class IndicadorQuimico <<Entity, Audited>> {
+    -id: Long
+    -ciclo: CicloEsterilizacao
+    -tipo: String
+    -resultado: ResultadoConformidade
+    -observacoes: String
+  }
+
+  class IndicadorBiologico <<Entity, Audited>> {
+    -id: Long
+    -ciclo: CicloEsterilizacao
+    -loteIndicador: String
+    -incubadora: String
+    -leituraEm: LocalDate
+    -resultado: ResultadoConformidade
+    -observacoes: String
+  }
+
+  class HigienizacaoUltrassonica <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -dataRealizacao: LocalDate
+    -equipamentoDescricao: String
+    -responsavel: User
+    -observacoes: String
+  }
+
+  class HigienizacaoAutoclaveProfunda <<Entity, Audited>> {
+    -id: Long
+    -autoclave: Autoclave
+    -dataRealizacao: LocalDate
+    -responsavel: User
+    -observacoes: String
+  }
+
+  class NaoConformidadeCME <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -tipo: TipoNaoConformidade
+    -titulo: String
+    -descricao: String
+    -severidade: NaoConformidadeSeveridade
+    -status: NaoConformidadeStatus
+    -dataAbertura: LocalDate
+    -dataEncerramento: LocalDate
+    -responsavel: User
+    -planoAcaoResumo: String
+  }
+
+}
+
+' ===========================
+' Relações conforme JPA
+' ===========================
+ExameCultura --> Tenant : many-to-one
+ExameCultura --> User : registradoPor
+ExameCultura --> ExameCulturaResultado : enum
+ExameCultura --> EvidenciaArquivo : many-to-many
+
+' ManyToOne: muitos Setor -> um Tenant
+Setor " * " --> " 1 " Tenant : tenant
+
+' ManyToOne: muitos Instrumento -> um Tenant
+Instrumento " * " --> " 1 " Tenant : tenant
+
+' ManyToOne: muitos KitProcedimento -> um Tenant
+KitProcedimento " * " --> " 1 " Tenant : tenant
+
+' ManyToOne: muitas KitVersion -> um KitProcedimento
+KitVersion " * " --> " 1 " KitProcedimento : kit
+
+' ManyToOne: muitos KitItem -> uma KitVersion
+KitItem " * " --> " 1 " KitVersion : versao
+
+' ManyToOne: muitos KitItem -> um Instrumento
+KitItem " * " --> " 1 " Instrumento : instrumento
+
+' Enum usado por Setor
+Setor --> TipoSetor : tipo
+
+GeracaoResiduo " * " --> " 1 " Tenant : tenant
+GeracaoResiduo --> ClasseResiduo : classeResiduo
+GeracaoResiduo --> LoteEtiqueta : loteRelacionada
+GeracaoResiduo --> SaneantePeraceticoLote : saneanteRelacionado
+
+' Policy
+Policy " * " --> " 1 " Tenant : tenant
+Policy --> ResourceType
+Policy --> Action
+Policy --> Effect
+Policy " * " -- " * " Role : policy_roles
+Policy "1" o-- " * " PolicyCondition : conditions\n(cascade = ALL, orphanRemoval)
+
+' PolicyCondition
+PolicyCondition " * " --> " 1 " Policy : policy
+
+' Role
+Role " * " --> " 1 " Tenant : tenant
+
+' Permission
+Permission " * " --> " 1 " Tenant : tenant
+Permission --> ResourceType
+Permission --> Action
+
+' RolePermission (tabela de junção explícita)
+RolePermission " * " --> " 1 " Role : role
+RolePermission " * " --> " 1 " Permission : permission
+RolePermission " * " --> " 1 " Tenant : tenant
+
+' UserPermissionOverride (exceções por usuário)
+UserPermissionOverride " * " --> " 1 " User : user
+UserPermissionOverride " * " --> " 1 " Tenant : tenant
+UserPermissionOverride --> ResourceType
+UserPermissionOverride --> Action
+UserPermissionOverride --> Effect
+
+TipoNaoConformidade " * " --> " 1 " Tenant : tenant
+NaoConformidadeBase --> TipoNaoConformidade : tipo
+NaoConformidadeBase --> NaoConformidadeStatus : status
+
+AuditRevisionEntity --> AuditRevisionListener : @RevisionEntity
+SecurityAuditEvent --> SecurityAuditEventType : eventType
+RequestLog --> AuditRevisionEntity : traceId (conceitual)
+
+EvidenciaArquivo " * " --> " 1 " Tenant : tenant
+EvidenciaArquivo " * " --> " 1 " User : autor
+
+' ===================== CME - RELATIONSHIPS =====================
+Autoclave        " * " --> " 1 " Tenant : tenant
+CicloEsterilizacao " * " --> " 1 " Tenant : tenant
+CicloEsterilizacao " * " --> " 1 " Autoclave : autoclave
+CicloEsterilizacao --> LoteEtiqueta : loteEtiqueta
+CicloEsterilizacao --> CicloStatus
+CicloEsterilizacao --> User : liberadoPor
+
+LoteEtiqueta " * " --> " 1 " Tenant : tenant
+LoteEtiqueta --> KitVersion : kitVersao
+LoteEtiqueta --> LoteStatus
+LoteEtiqueta --> User : montadoPor
+
+MovimentacaoCME " * " --> " 1 " Tenant : tenant
+MovimentacaoCME --> LoteEtiqueta : lote
+MovimentacaoCME --> Setor : setorOrigem
+MovimentacaoCME --> Setor : setorDestino
+MovimentacaoCME --> MovimentacaoTipo
+MovimentacaoCME --> User : responsavel
+
+ManutencaoAutoclave " * " --> " 1 " Autoclave : autoclave
+ManutencaoAutoclave --> ManutencaoTipo
+ManutencaoAutoclave --> ManutencaoStatus
+ManutencaoAutoclave " * " -- " * " EvidenciaArquivo : evidencias
+
+PlanoPreventivoAutoclave " * " --> " 1 " Autoclave : autoclave
+
+UsoSaneante " * " --> " 1 " SaneantePeraceticoLote : loteSaneante
+UsoSaneante --> UsoSaneanteEtapa
+UsoSaneante --> User : usadoPor
+
+SaneantePeraceticoLote " * " --> " 1 " Tenant : tenant
+
+TesteBowieDick " * " --> " 1 " Autoclave : autoclave
+TesteBowieDick --> ResultadoConformidade
+TesteBowieDick --> User : executadoPor
+TesteBowieDick " * " -- " * " EvidenciaArquivo : evidencias
+
+IndicadorQuimico " * " --> " 1 " CicloEsterilizacao : ciclo
+IndicadorQuimico --> ResultadoConformidade
+IndicadorQuimico " * " -- " * " EvidenciaArquivo : evidencias
+
+IndicadorBiologico " * " --> " 1 " CicloEsterilizacao : ciclo
+IndicadorBiologico --> ResultadoConformidade
+IndicadorBiologico " * " -- " * " EvidenciaArquivo : evidencias
+
+HigienizacaoUltrassonica " * " --> " 1 " Tenant : tenant
+HigienizacaoUltrassonica --> User : responsavel
+HigienizacaoUltrassonica " * " -- " * " EvidenciaArquivo : evidencias
+
+HigienizacaoAutoclaveProfunda " * " --> " 1 " Autoclave : autoclave
+HigienizacaoAutoclaveProfunda --> User : responsavel
+HigienizacaoAutoclaveProfunda " * " -- " * " EvidenciaArquivo : evidencias
 
 NaoConformidadeCME ..|> NaoConformidadeBase
-NaoConformidadeCME --> TipoNaoConformidade
-GeracaoResiduo --> LoteEtiqueta
-MovimentacaoCME --> Setor
-KitVersion --> KitProcedimento
-KitItem --> KitVersion
-KitItem --> Instrumento
-ExameCultura --> "*" "EvidenciaArquivo" #..#
-
+NaoConformidadeCME " * " --> " 1 " Tenant : tenant
+NaoConformidadeCME --> TipoNaoConformidade : tipo
+NaoConformidadeCME --> NaoConformidadeSeveridade : severidade
+NaoConformidadeCME --> NaoConformidadeStatus : status
+NaoConformidadeCME --> User : responsavel
+NaoConformidadeCME " * " -- " * " EvidenciaArquivo : evidencias
 @enduml

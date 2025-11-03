@@ -290,6 +290,7 @@ package "QualitasCare API" {
       class QualidadeController <<RestController>>
       class SaneanteController <<RestController>>
     }
+
     package "Application" {
       class AutoclaveService <<Service>>
       class LoteService <<Service>>
@@ -297,6 +298,7 @@ package "QualitasCare API" {
       class QualidadeService <<Service>>
       class SaneanteService <<Service>>
     }
+
     package "Domain" {
       class LoteEtiqueta { +id: Long }
       class MovimentacaoCME { +id: Long }
@@ -306,6 +308,7 @@ package "QualitasCare API" {
       class IndicadorQuimico { +id: Long }
       class Autoclave { +id: Long }
     }
+
     package "Repository" {
       interface LoteEtiquetaRepository <<Repository>>
       interface MovimentacaoCMERepository <<Repository>>
