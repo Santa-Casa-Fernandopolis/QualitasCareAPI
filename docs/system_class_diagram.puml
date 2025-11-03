@@ -1,198 +1,286 @@
-@startuml
-skinparam backgroundColor #FFFFFF
-skinparam packageStyle rect
-skinparam classAttributeIconSize 0
-skinparam linetype ortho
+ @startuml
+ skinparam backgroundColor #FFFFFF
+ skinparam packageStyle rect
+ skinparam classAttributeIconSize 0
+ skinparam linetype ortho
 
-package "QualitasCare API" {
-  class QualitasCareApiApplication
+ package "QualitasCare API" {
+   class QualitasCareApiApplication
 
-  package "Configuration" {
-    class SecurityConfig
-    class ObservabilityConfiguration
-    class DevTestDataInitializer
-    class AuthorizationServerConfig
-    class Jwks
-  }
+   package "Configuration" {
+     class SecurityConfig
+     class ObservabilityConfiguration
+     class DevTestDataInitializer
+     class AuthorizationServerConfig
+     class Jwks
+   }
 
-  package "IAM" {
-    package "API" {
-      class TenantController <<RestController>>
-      class UserController <<RestController>>
-    }
-    package "Application" {
-      class TenantService <<Service>>
-      class UserService <<Service>>
-      class LocalUserDetailsService <<Service>>
-      class AuthenticatedUserDetails
-    }
-    package "Repository" {
-      interface TenantRepository <<Repository>>
-      interface UserRepository <<Repository>>
-    }
-    package "Domain" {
-      class Tenant
-      class User
-    }
-  }
+   package "IAM" {
+     package "API" {
+-      class TenantController <<RestController>>
+-      class UserController <<RestController>>
++      class TenantController <<RestController>> {
++        {method} +GET /api/tenants
++        {method} +GET /api/tenants/{id}
++        {method} +POST /api/tenants
++        {method} +PUT /api/tenants/{id}
++        {method} +DELETE /api/tenants/{id}
++      }
++      class UserController <<RestController>> {
++        {method} +GET /api/users
++        {method} +GET /api/users/{id}
++        {method} +POST /api/users
++        {method} +PUT /api/users/{id}
++        {method} +DELETE /api/users/{id}
++      }
+     }
+     package "Application" {
+       class TenantService <<Service>>
+       class UserService <<Service>>
+       class LocalUserDetailsService <<Service>>
+       class AuthenticatedUserDetails
+     }
+     package "Repository" {
+       interface TenantRepository <<Repository>>
+       interface UserRepository <<Repository>>
+     }
+     package "Domain" {
+-      class Tenant
+-      class User
++      class Tenant {
++        +id: Long
++        +code: String
++        +name: String
++        +active: boolean
++      }
++      class User {
++        +id: Long
++        +username: String
++        +passwordHash: String
++        +fullName: String
++        +department: String
++        +status: UserStatus
++        +origin: IdentityOrigin
++        +createdAt: LocalDateTime
++        +activatedAt: LocalDateTime
++        +expiresAt: LocalDateTime
++        +updatedAt: LocalDateTime
++      }
+     }
+   }
 
-  package "Security" {
-    package "API" {
-      class RoleController <<RestController>>
-      class PermissionController <<RestController>>
-      class PolicyController <<RestController>>
-      class RolePermissionController <<RestController>>
-      class UserPermissionOverrideController <<RestController>>
-    }
-    package "Application" {
-      class RoleService <<Service>>
-      class PermissionService <<Service>>
-      class PolicyService <<Service>>
-      class RolePermissionService <<Service>>
-      class UserPermissionOverrideService <<Service>>
-      class AccessDecisionServiceImpl <<Service>>
-      interface AccessDecisionService
-      class PolicyEvaluator
-      class TargetLoader
-      class CurrentUserExtractor
-    }
-    package "Repository" {
-      interface RoleRepository <<Repository>>
-      interface PermissionRepository <<Repository>>
-      interface PolicyRepository <<Repository>>
-      interface RolePermissionRepository <<Repository>>
-      interface UserPermissionOverrideRepository <<Repository>>
-    }
-    package "Domain" {
-      class Role
-      class Permission
-      class Policy
-      class PolicyCondition
-      class RolePermission
-      class UserPermissionOverride
-    }
-  }
+   package "Security" {
+     package "API" {
+-      class RoleController <<RestController>>
+-      class PermissionController <<RestController>>
+-      class PolicyController <<RestController>>
+-      class RolePermissionController <<RestController>>
+-      class UserPermissionOverrideController <<RestController>>
++      class RoleController <<RestController>> {
++        {method} +GET /api/roles
++        {method} +GET /api/roles/{id}
++        {method} +POST /api/roles
++        {method} +PUT /api/roles/{id}
++        {method} +DELETE /api/roles/{id}
++      }
++      class PermissionController <<RestController>> {
++        {method} +GET /api/permissions
++        {method} +GET /api/permissions/{id}
++        {method} +POST /api/permissions
++        {method} +PUT /api/permissions/{id}
++        {method} +DELETE /api/permissions/{id}
++      }
++      class PolicyController <<RestController>> {
++        {method} +GET /api/policies
++        {method} +GET /api/policies/{id}
++        {method} +POST /api/policies
++        {method} +PUT /api/policies/{id}
++        {method} +DELETE /api/policies/{id}
++      }
++      class RolePermissionController <<RestController>> {
++        {method} +GET /api/role-permissions
++        {method} +GET /api/role-permissions/{id}
++        {method} +POST /api/role-permissions
++        {method} +PUT /api/role-permissions/{id}
++        {method} +DELETE /api/role-permissions/{id}
++      }
++      class UserPermissionOverrideController <<RestController>> {
++        {method} +GET /api/user-overrides
++        {method} +GET /api/user-overrides/{id}
++        {method} +POST /api/user-overrides
++        {method} +PUT /api/user-overrides/{id}
++        {method} +DELETE /api/user-overrides/{id}
++      }
+     }
+     package "Application" {
+       class RoleService <<Service>>
+       class PermissionService <<Service>>
+       class PolicyService <<Service>>
+       class RolePermissionService <<Service>>
+       class UserPermissionOverrideService <<Service>>
+       class AccessDecisionServiceImpl <<Service>>
+       interface AccessDecisionService
+       class PolicyEvaluator
+       class TargetLoader
+       class CurrentUserExtractor
+     }
+     package "Repository" {
+       interface RoleRepository <<Repository>>
+       interface PermissionRepository <<Repository>>
+       interface PolicyRepository <<Repository>>
+       interface RolePermissionRepository <<Repository>>
+       interface UserPermissionOverrideRepository <<Repository>>
+     }
+     package "Domain" {
+-      class Role
+-      class Permission
+-      class Policy
+-      class PolicyCondition
+-      class RolePermission
+-      class UserPermissionOverride
++      class Role {
++        +id: Long
++        +name: String
++        +description: String
++      }
++      class Permission {
++        +id: Long
++        +resource: ResourceType
++        +action: Action
++        +feature: String
++        +code: String
++      }
++      class Policy {
++        +id: Long
++        +resource: ResourceType
++        +action: Action
++        +feature: String
++        +effect: Effect
++        +enabled: boolean
++        +priority: int
++        +description: String
++      }
++      class PolicyCondition {
++        +id: Long
++        +type: String
++        +operator: String
++        +value: String
++      }
++      class RolePermission {
++        +id: Long
++      }
++      class UserPermissionOverride {
++        +id: Long
++        +resource: ResourceType
++        +action: Action
++        +feature: String
++        +effect: Effect
++        +priority: int
++        +reason: String
++        +validFrom: LocalDateTime
++        +validUntil: LocalDateTime
++        +approved: boolean
++        +dualApprovalRequired: boolean
++        +requestedBy: String
++        +approvedBy: String
++        +approvedAt: LocalDateTime
++      }
+     }
+   }
 
-  package "Observability" {
-    package "Security Audit" {
-      class SecurityAuditLogController <<RestController>>
-      class SecurityAuditQueryService <<Service>>
-      interface SecurityAuditEventRepository <<Repository>>
-      class SecurityAuditEvent
-      enum SecurityAuditEventType
-      class SecurityAuditEventListener
-      class SecurityAuditEventFilter
-    }
-    package "Data Audit" {
-      class DataAuditLogController <<RestController>>
-      class DataAuditQueryService <<Service>>
-      class AuditRevisionEntity
-      class AuditRevisionListener
-      class DataAuditEntry
-    }
-    package "Logging" {
-      class OperationalLogController <<RestController>>
-      class RequestLogQueryService <<Service>>
-      interface RequestLogRepository <<Repository>>
-      class RequestLog
-      class RequestLoggingFilter
-      class RequestLogFilter
-      class CorrelationFilter
-    }
-  }
-}
+   package "Observability" {
+     package "Security Audit" {
+-      class SecurityAuditLogController <<RestController>>
++      class SecurityAuditLogController <<RestController>> {
++        {method} +GET /api/logs/security
++      }
+       class SecurityAuditQueryService <<Service>>
+       interface SecurityAuditEventRepository <<Repository>>
+-      class SecurityAuditEvent
+-      enum SecurityAuditEventType
++      class SecurityAuditEvent {
++        +id: Long
++        +timestamp: Instant
++        +username: String
++        +eventType: SecurityAuditEventType
++        +clientIp: String
++        +traceId: String
++        +description: String
++      }
++      enum SecurityAuditEventType {
++        AUTHENTICATION_SUCCESS
++        AUTHENTICATION_FAILURE
++        AUTHORIZATION_FAILURE
++      }
+       class SecurityAuditEventListener
+       class SecurityAuditEventFilter
+     }
+     package "Data Audit" {
+-      class DataAuditLogController <<RestController>>
++      class DataAuditLogController <<RestController>> {
++        {method} +GET /api/logs/data/{entityAlias}/{id}
++      }
+       class DataAuditQueryService <<Service>>
+-      class AuditRevisionEntity
++      class AuditRevisionEntity {
++        +id: Long
++        +timestamp: long
++        +username: String
++        +clientIp: String
++      }
+       class AuditRevisionListener
+-      class DataAuditEntry
++      class DataAuditEntry {
++        +revisionId: Long
++        +timestamp: Instant
++        +username: String
++        +clientIp: String
++        +state: Map<String,Object>
++      }
+     }
+     package "Logging" {
+-      class OperationalLogController <<RestController>>
++      class OperationalLogController <<RestController>> {
++        {method} +GET /api/logs/operational
++      }
+       class RequestLogQueryService <<Service>>
+       interface RequestLogRepository <<Repository>>
+-      class RequestLog
++      class RequestLog {
++        +id: Long
++        +timestamp: Instant
++        +method: String
++        +path: String
++        +status: int
++        +durationMs: long
++        +traceId: String
++        +userId: String
++        +clientIp: String
++        +httpVersion: String
++        +contentLength: Long
++      }
+       class RequestLoggingFilter
+       class RequestLogFilter
+       class CorrelationFilter
+     }
+   }
+ }
 
-QualitasCareApiApplication --> SecurityConfig
-QualitasCareApiApplication --> ObservabilityConfiguration
-QualitasCareApiApplication --> AuthorizationServerConfig
-DevTestDataInitializer --> TenantService
-DevTestDataInitializer --> RoleService
-DevTestDataInitializer --> PermissionService
-DevTestDataInitializer --> PolicyService
-DevTestDataInitializer --> UserService
+ QualitasCareApiApplication --> SecurityConfig
+ QualitasCareApiApplication --> ObservabilityConfiguration
+ QualitasCareApiApplication --> AuthorizationServerConfig
+ DevTestDataInitializer --> TenantService
+ DevTestDataInitializer --> RoleService
+ DevTestDataInitializer --> PermissionService
+ DevTestDataInitializer --> PolicyService
+ DevTestDataInitializer --> UserService
 
-TenantController --> TenantService
-TenantService --> TenantRepository
-TenantService --> Tenant
-UserController --> UserService
-UserService --> UserRepository
-UserService --> TenantRepository
-UserService --> RoleRepository
-UserService --> User
-UserService --> Tenant
-UserService --> Role
-LocalUserDetailsService --> UserRepository
-LocalUserDetailsService --> AuthenticatedUserDetails
-AuthenticatedUserDetails --> User
-AuthenticatedUserDetails --> Tenant
-AuthenticatedUserDetails --> Role
-
-RoleController --> RoleService
-PermissionController --> PermissionService
-PolicyController --> PolicyService
-RolePermissionController --> RolePermissionService
-UserPermissionOverrideController --> UserPermissionOverrideService
-
-RoleService --> RoleRepository
-RolePermissionService --> RolePermissionRepository
-RolePermissionService --> Role
-RolePermissionService --> Permission
-RolePermissionService --> Tenant
-PermissionService --> PermissionRepository
-PolicyService --> PolicyRepository
-PolicyService --> RoleRepository
-PolicyService --> Policy
-PolicyService --> PolicyCondition
-UserPermissionOverrideService --> UserPermissionOverrideRepository
-UserPermissionOverrideService --> UserRepository
-UserPermissionOverrideService --> UserPermissionOverride
-UserPermissionOverrideService --> User
-
-Role --> Tenant
-Permission --> Tenant
-RolePermission --> Role
-RolePermission --> Permission
-RolePermission --> Tenant
-Policy --> Tenant
-Policy --> Role
-Policy --> PolicyCondition
-UserPermissionOverride --> User
-UserPermissionOverride --> Tenant
-User --> Tenant
-User "*" -- "*" Role : roles
-
-AccessDecisionServiceImpl ..|> AccessDecisionService
-AccessDecisionServiceImpl --> PolicyEvaluator
-AccessDecisionServiceImpl --> TargetLoader
-AccessDecisionServiceImpl --> CurrentUserExtractor
-PolicyEvaluator --> PolicyService
-PolicyEvaluator --> UserPermissionOverrideService
-TargetLoader --> UserRepository
-CurrentUserExtractor --> AuthenticatedUserDetails
-
-SecurityAuditLogController --> SecurityAuditQueryService
-SecurityAuditQueryService --> SecurityAuditEventRepository
-SecurityAuditQueryService --> SecurityAuditEventFilter
-SecurityAuditEventRepository --> SecurityAuditEvent
-SecurityAuditEventListener --> SecurityAuditEventRepository
-SecurityAuditEventListener --> SecurityAuditEvent
-
-DataAuditLogController --> DataAuditQueryService
-DataAuditQueryService --> AuditRevisionEntity
-DataAuditQueryService --> DataAuditEntry
-AuditRevisionListener --> AuditRevisionEntity
-AuditRevisionEntity --> Tenant
-
-OperationalLogController --> RequestLogQueryService
-RequestLogQueryService --> RequestLogRepository
-RequestLogRepository --> RequestLog
-RequestLoggingFilter --> RequestLogRepository
-RequestLogFilter --> RequestLogRepository
-CorrelationFilter --> RequestLoggingFilter
-
-AuthorizationServerConfig --> AuthenticatedUserDetails
-AuthorizationServerConfig --> LocalUserDetailsService
-AuthorizationServerConfig --> Jwks
-SecurityConfig --> LocalUserDetailsService
-
-@enduml
+ TenantController --> TenantService
+ TenantService --> TenantRepository
+ TenantService --> Tenant
+ UserController --> UserService
+ UserService --> UserRepository
+ UserService --> TenantRepository
+ UserService --> RoleRepository
+ UserService --> User
+ UserService --> Tenant
