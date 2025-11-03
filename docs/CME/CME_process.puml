@@ -1,6 +1,11 @@
 @startuml
 title Fluxo Macro de Processos – CME (QualitasCare)
 
+' Paginação para impressão em folhas A4
+page 1x3
+skinparam pageMargin 10
+skinparam dpi 150
+
 start
 :Recebimento de Material Contaminado;
 note right
