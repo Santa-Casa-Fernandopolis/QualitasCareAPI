@@ -10,7 +10,8 @@ import org.springframework.core.annotation.Order;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -27,13 +28,14 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
     private static final Set<String> SKIPPED_PATH_PREFIXES = Set.of("/actuator", "/error");
 
     private final RequestLogRepository repository;
+    private final TransactionTemplate transactionTemplate;
 
-    public RequestLoggingFilter(RequestLogRepository repository) {
+    public RequestLoggingFilter(RequestLogRepository repository, PlatformTransactionManager transactionManager) {
         this.repository = repository;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
     @Override
-    @Transactional
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         long start = System.currentTimeMillis();
@@ -67,7 +69,7 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
 
             RequestLog log = new RequestLog(timestamp, method, path, status, durationMs, traceId, userId, clientIp,
                     httpVersion, contentLength);
-            repository.save(log);
+            transactionTemplate.executeWithoutResult(status -> repository.save(log));
         }
     }
 
