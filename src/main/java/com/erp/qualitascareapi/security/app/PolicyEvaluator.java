@@ -1,7 +1,7 @@
 package com.erp.qualitascareapi.security.app;
 
-import com.erp.qualitascareapi.security.domains.Policy;
-import com.erp.qualitascareapi.security.domains.PolicyCondition;
+import com.erp.qualitascareapi.security.domain.Policy;
+import com.erp.qualitascareapi.security.domain.PolicyCondition;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;

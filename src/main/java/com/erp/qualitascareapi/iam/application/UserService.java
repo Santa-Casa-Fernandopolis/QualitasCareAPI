@@ -10,7 +10,7 @@ import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.domain.User;
 import com.erp.qualitascareapi.iam.repo.TenantRepository;
 import com.erp.qualitascareapi.iam.repo.UserRepository;
-import com.erp.qualitascareapi.security.domains.Role;
+import com.erp.qualitascareapi.security.domain.Role;
 import com.erp.qualitascareapi.security.enums.IdentityOrigin;
 import com.erp.qualitascareapi.security.enums.UserStatus;
 import com.erp.qualitascareapi.security.repo.RoleRepository;

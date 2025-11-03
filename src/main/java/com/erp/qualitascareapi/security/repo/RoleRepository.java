@@ -1,6 +1,6 @@
 package com.erp.qualitascareapi.security.repo;
 
-import com.erp.qualitascareapi.security.domains.Role;
+import com.erp.qualitascareapi.security.domain.Role;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

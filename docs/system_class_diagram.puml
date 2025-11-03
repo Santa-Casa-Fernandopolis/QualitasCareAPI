@@ -240,6 +240,80 @@ package "QualitasCare API" {
       class RequestLogFilter
       class CorrelationFilter
     }
+  package "Core" {
+    package "Domain" {
+      class Setor { +id: Long }
+      class Instrumento { +id: Long }
+      class KitProcedimento { +id: Long }
+      class KitVersion { +id: Long }
+      class KitItem { +id: Long }
+      class ExameCultura { +id: Long }
+      enum TipoSetor
+      enum ExameCulturaResultado
+    }
+    package "Repository" {
+      interface SetorRepository <<Repository>>
+      interface InstrumentoRepository <<Repository>>
+      interface KitProcedimentoRepository <<Repository>>
+      interface KitVersionRepository <<Repository>>
+      interface KitItemRepository <<Repository>>
+      interface ExameCulturaRepository <<Repository>>
+    }
+  }
+
+  package "Quality" {
+    package "Domain" {
+      interface NaoConformidadeBase
+      class TipoNaoConformidade { +id: Long }
+      enum NaoConformidadeStatus
+    }
+    package "Repository" {
+      interface TipoNaoConformidadeRepository <<Repository>>
+    }
+  }
+
+  package "Environmental" {
+    package "Domain" {
+      class GeracaoResiduo { +id: Long }
+      enum ClasseResiduo
+    }
+    package "Repository" {
+      interface GeracaoResiduoRepository <<Repository>>
+    }
+  }
+
+  package "CME" {
+    package "API" {
+      class AutoclaveController <<RestController>>
+      class LoteController <<RestController>>
+      class KitController <<RestController>>
+      class QualidadeController <<RestController>>
+      class SaneanteController <<RestController>>
+    }
+    package "Application" {
+      class AutoclaveService <<Service>>
+      class LoteService <<Service>>
+      class KitService <<Service>>
+      class QualidadeService <<Service>>
+      class SaneanteService <<Service>>
+    }
+    package "Domain" {
+      class LoteEtiqueta { +id: Long }
+      class MovimentacaoCME { +id: Long }
+      class NaoConformidadeCME { +id: Long }
+      class UsoSaneante { +id: Long }
+      class IndicadorBiologico { +id: Long }
+      class IndicadorQuimico { +id: Long }
+      class Autoclave { +id: Long }
+    }
+    package "Repository" {
+      interface LoteEtiquetaRepository <<Repository>>
+      interface MovimentacaoCMERepository <<Repository>>
+      interface NaoConformidadeCMERepository <<Repository>>
+      interface SaneantePeraceticoLoteRepository <<Repository>>
+    }
+  }
+
   }
 }
 
@@ -288,5 +362,28 @@ RequestLogQueryService --> RequestLogRepository
 RequestLoggingFilter --> RequestLogRepository
 RequestLogFilter --> RequestLogRepository
 CorrelationFilter --> RequestLogRepository
+
+KitController --> KitService
+KitService --> KitProcedimentoRepository
+KitService --> KitVersionRepository
+KitService --> KitItemRepository
+KitService --> InstrumentoRepository
+KitService --> TenantRepository
+
+LoteController --> LoteService
+LoteService --> SetorRepository
+LoteService --> LoteEtiquetaRepository
+LoteService --> KitVersionRepository
+LoteService --> MovimentacaoCMERepository
+LoteService --> UserRepository
+
+QualidadeController --> QualidadeService
+QualidadeService --> ExameCulturaRepository
+QualidadeService --> NaoConformidadeCMERepository
+QualidadeService --> TipoNaoConformidadeRepository
+QualidadeService --> GeracaoResiduoRepository
+QualidadeService --> LoteEtiquetaRepository
+QualidadeService --> SaneantePeraceticoLoteRepository
+QualidadeService --> EvidenciaArquivoRepository
 
 @enduml

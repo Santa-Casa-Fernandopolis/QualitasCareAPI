@@ -1,14 +1,24 @@
 package com.erp.qualitascareapi.cme.application;
 
 import com.erp.qualitascareapi.cme.api.dto.*;
-import com.erp.qualitascareapi.cme.domain.*;
-import com.erp.qualitascareapi.cme.repo.*;
+import com.erp.qualitascareapi.cme.domain.LoteEtiqueta;
+import com.erp.qualitascareapi.cme.domain.NaoConformidadeCME;
+import com.erp.qualitascareapi.cme.domain.SaneantePeraceticoLote;
+import com.erp.qualitascareapi.cme.repo.LoteEtiquetaRepository;
+import com.erp.qualitascareapi.cme.repo.NaoConformidadeCMERepository;
+import com.erp.qualitascareapi.cme.repo.SaneantePeraceticoLoteRepository;
 import com.erp.qualitascareapi.common.domain.EvidenciaArquivo;
 import com.erp.qualitascareapi.common.repo.EvidenciaArquivoRepository;
+import com.erp.qualitascareapi.core.domain.ExameCultura;
+import com.erp.qualitascareapi.core.repo.ExameCulturaRepository;
+import com.erp.qualitascareapi.environmental.domain.GeracaoResiduo;
+import com.erp.qualitascareapi.environmental.repo.GeracaoResiduoRepository;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.domain.User;
 import com.erp.qualitascareapi.iam.repo.TenantRepository;
 import com.erp.qualitascareapi.iam.repo.UserRepository;
+import com.erp.qualitascareapi.quality.domain.TipoNaoConformidade;
+import com.erp.qualitascareapi.quality.repo.TipoNaoConformidadeRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,6 +38,7 @@ public class QualidadeService {
     private final UserRepository userRepository;
     private final ExameCulturaRepository exameCulturaRepository;
     private final NaoConformidadeCMERepository naoConformidadeRepository;
+    private final TipoNaoConformidadeRepository tipoNaoConformidadeRepository;
     private final GeracaoResiduoRepository geracaoResiduoRepository;
     private final LoteEtiquetaRepository loteEtiquetaRepository;
     private final SaneantePeraceticoLoteRepository saneanteRepository;
@@ -37,6 +48,7 @@ public class QualidadeService {
                             UserRepository userRepository,
                             ExameCulturaRepository exameCulturaRepository,
                             NaoConformidadeCMERepository naoConformidadeRepository,
+                            TipoNaoConformidadeRepository tipoNaoConformidadeRepository,
                             GeracaoResiduoRepository geracaoResiduoRepository,
                             LoteEtiquetaRepository loteEtiquetaRepository,
                             SaneantePeraceticoLoteRepository saneanteRepository,
@@ -45,6 +57,7 @@ public class QualidadeService {
         this.userRepository = userRepository;
         this.exameCulturaRepository = exameCulturaRepository;
         this.naoConformidadeRepository = naoConformidadeRepository;
+        this.tipoNaoConformidadeRepository = tipoNaoConformidadeRepository;
         this.geracaoResiduoRepository = geracaoResiduoRepository;
         this.loteEtiquetaRepository = loteEtiquetaRepository;
         this.saneanteRepository = saneanteRepository;
@@ -88,8 +101,11 @@ public class QualidadeService {
     public NaoConformidadeDto registrarNaoConformidade(NaoConformidadeRequest request) {
         Tenant tenant = tenantRepository.findById(request.tenantId())
                 .orElseThrow(() -> new EntityNotFoundException("Tenant não encontrado"));
+        TipoNaoConformidade tipo = tipoNaoConformidadeRepository.findById(request.tipoId())
+                .orElseThrow(() -> new EntityNotFoundException("Tipo de não conformidade não encontrado"));
         NaoConformidadeCME naoConformidade = new NaoConformidadeCME();
         naoConformidade.setTenant(tenant);
+        naoConformidade.setTipo(tipo);
         naoConformidade.setTitulo(request.titulo());
         naoConformidade.setDescricao(request.descricao());
         naoConformidade.setSeveridade(request.severidade());
@@ -109,7 +125,7 @@ public class QualidadeService {
         return new NaoConformidadeDto(saved.getId(), tenant.getId(), saved.getTitulo(), saved.getDescricao(),
                 saved.getSeveridade(), saved.getStatus(), saved.getDataAbertura(), saved.getDataEncerramento(),
                 saved.getResponsavel() != null ? saved.getResponsavel().getId() : null,
-                saved.getPlanoAcaoResumo(), toIdSet(saved.getEvidencias()));
+                saved.getPlanoAcaoResumo(), toIdSet(saved.getEvidencias()), saved.getTipo().getId());
     }
 
     public Page<NaoConformidadeDto> listNaoConformidades(Pageable pageable) {
@@ -117,7 +133,8 @@ public class QualidadeService {
                 .map(nc -> new NaoConformidadeDto(nc.getId(), nc.getTenant().getId(), nc.getTitulo(), nc.getDescricao(),
                         nc.getSeveridade(), nc.getStatus(), nc.getDataAbertura(), nc.getDataEncerramento(),
                         nc.getResponsavel() != null ? nc.getResponsavel().getId() : null,
-                        nc.getPlanoAcaoResumo(), toIdSet(nc.getEvidencias())));
+                        nc.getPlanoAcaoResumo(), toIdSet(nc.getEvidencias()),
+                        nc.getTipo() != null ? nc.getTipo().getId() : null));
     }
 
     public GeracaoResiduoDto registrarGeracaoResiduo(GeracaoResiduoRequest request) {
@@ -126,7 +143,7 @@ public class QualidadeService {
         GeracaoResiduo residuo = new GeracaoResiduo();
         residuo.setTenant(tenant);
         residuo.setDataRegistro(request.dataRegistro());
-        residuo.setTipoResiduo(request.tipoResiduo());
+        residuo.setClasseResiduo(request.classeResiduo());
         residuo.setPesoEstimadoKg(request.pesoEstimadoKg());
         residuo.setDestinoFinal(request.destinoFinal());
         if (request.loteId() != null) {
@@ -141,7 +158,7 @@ public class QualidadeService {
         }
         residuo.setObservacoes(request.observacoes());
         GeracaoResiduo saved = geracaoResiduoRepository.save(residuo);
-        return new GeracaoResiduoDto(saved.getId(), tenant.getId(), saved.getDataRegistro(), saved.getTipoResiduo(),
+        return new GeracaoResiduoDto(saved.getId(), tenant.getId(), saved.getDataRegistro(), saved.getClasseResiduo(),
                 saved.getPesoEstimadoKg(), saved.getDestinoFinal(),
                 saved.getLoteRelacionada() != null ? saved.getLoteRelacionada().getId() : null,
                 saved.getSaneanteRelacionado() != null ? saved.getSaneanteRelacionado().getId() : null,
@@ -150,7 +167,7 @@ public class QualidadeService {
 
     public Page<GeracaoResiduoDto> listGeracoesResiduo(Pageable pageable) {
         return geracaoResiduoRepository.findAll(pageable)
-                .map(g -> new GeracaoResiduoDto(g.getId(), g.getTenant().getId(), g.getDataRegistro(), g.getTipoResiduo(),
+                .map(g -> new GeracaoResiduoDto(g.getId(), g.getTenant().getId(), g.getDataRegistro(), g.getClasseResiduo(),
                         g.getPesoEstimadoKg(), g.getDestinoFinal(),
                         g.getLoteRelacionada() != null ? g.getLoteRelacionada().getId() : null,
                         g.getSaneanteRelacionado() != null ? g.getSaneanteRelacionado().getId() : null,

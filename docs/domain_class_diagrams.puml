@@ -1,0 +1,50 @@
+@startuml
+skinparam packageStyle rectangle
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+package "core" {
+  class Setor { +id: Long, +nome: String, +tipo: TipoSetor }
+  class Instrumento { +id: Long, +nome: String }
+  class KitProcedimento { +id: Long, +nome: String, +ativo: Boolean }
+  class KitVersion { +id: Long, +numeroVersao: Integer, +ativo: Boolean }
+  class KitItem { +id: Long, +quantidade: Integer }
+  class ExameCultura { +id: Long, +resultado: ExameCulturaResultado }
+  enum TipoSetor
+  enum ExameCulturaResultado
+}
+
+package "quality" {
+  interface NaoConformidadeBase
+  class TipoNaoConformidade { +id: Long, +nome: String }
+  enum NaoConformidadeStatus
+}
+
+package "environmental" {
+  class GeracaoResiduo { +id: Long, +classeResiduo: ClasseResiduo }
+  enum ClasseResiduo
+}
+
+package "cme" {
+  class LoteEtiqueta { +id: Long, +status: LoteStatus }
+  class MovimentacaoCME { +id: Long, +tipo: MovimentacaoTipo }
+  class NaoConformidadeCME { +id: Long, +status: NaoConformidadeStatus }
+  class UsoSaneante { +id: Long }
+  class Autoclave { +id: Long }
+  class IndicadorQuimico { +id: Long }
+  class IndicadorBiologico { +id: Long }
+  enum LoteStatus
+  enum MovimentacaoTipo
+  enum NaoConformidadeSeveridade
+}
+
+NaoConformidadeCME ..|> NaoConformidadeBase
+NaoConformidadeCME --> TipoNaoConformidade
+GeracaoResiduo --> LoteEtiqueta
+MovimentacaoCME --> Setor
+KitVersion --> KitProcedimento
+KitItem --> KitVersion
+KitItem --> Instrumento
+ExameCultura --> "*" "EvidenciaArquivo" #..#
+
+@enduml

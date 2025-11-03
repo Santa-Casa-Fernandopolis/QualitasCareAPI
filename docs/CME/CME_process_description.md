@@ -32,10 +32,10 @@ Cada etapa é registrada digitalmente, com rastreabilidade por **etiqueta e QR C
     - Data/hora da entrada;
     - Responsável pelo recebimento (`User`);
     - Condição do material.
-- **Entidades envolvidas:** `Movimentacao`, `Setor`, `GeracaoResiduo` (quando há descarte imediato).
+- **Entidades envolvidas:** `MovimentacaoCME`, `core.domain.Setor`, `environmental.domain.GeracaoResiduo` (quando há descarte imediato).
 
 **Validação:**
-→ Caso o material apresente irregularidades (ex.: ausência de identificação ou danos), é aberto um registro de **não conformidade** (`NaoConformidadeCME`).
+→ Caso o material apresente irregularidades (ex.: ausência de identificação ou danos), é aberto um registro de **não conformidade** (`NaoConformidadeCME`), vinculada a um `TipoNaoConformidade` corporativo.
 
 ---
 
@@ -125,7 +125,7 @@ Cada etapa é registrada digitalmente, com rastreabilidade por **etiqueta e QR C
 **Objetivo:** garantir conservação e rastreabilidade dos materiais até o uso.
 
 - **Armazenamento:** área limpa, identificada e controlada.
-- **Distribuição:** feita mediante **movimentação registrada** (`Movimentacao`):
+- **Distribuição:** feita mediante **movimentação registrada** (`MovimentacaoCME`):
     - Setor de destino;
     - Data e hora;
     - Responsável pela entrega e recebimento.
@@ -139,7 +139,7 @@ Cada etapa é registrada digitalmente, com rastreabilidade por **etiqueta e QR C
 **Objetivo:** fechar o ciclo do material.
 
 - Após o uso, o material retorna à CME como **“contaminado”**.
-- Evento registrado como nova `Movimentacao` com tipo `RETORNO_CONTAMINADO`.
+- Evento registrado como nova `MovimentacaoCME` com tipo `RETORNO_CONTAMINADO`.
 - Esse registro vincula o mesmo **QR Code** do lote original, garantindo **rastreabilidade reversa** (CME → Setor → CME).
 
 ---
@@ -151,8 +151,8 @@ Cada etapa é registrada digitalmente, com rastreabilidade por **etiqueta e QR C
 - **Inspeções diárias:** `InspecaoMaterial` (nº de caixas, peças e avulsos conferidos).
 - **Culturas:** `ExameCultura` — coleta e resultado de amostras de kits, autoclaves ou superfícies.
 - **Laudos laboratoriais:** anexados ao `ExameCultura` por meio de `EvidenciaArquivo` (PDF, imagens, documentos estruturados).
-- **Não Conformidades:** `NaoConformidadeCME` — abertura automática quando falhas são registradas.
-- **Planos de ação corporativos:** a `NaoConformidadeCME` herda `NaoConformidadeBase` (Qualidade) e gera/atualiza `PlanoAcaoQualidade`, com anexação de relatórios de investigação, atas e evidências de conclusão.
+- **Não Conformidades:** `NaoConformidadeCME` — abertura automática quando falhas são registradas, sempre referenciando `TipoNaoConformidade`.
+- **Planos de ação corporativos:** a `NaoConformidadeCME` herda `NaoConformidadeBase` (Qualidade) e depende de `TipoNaoConformidade` e gera/atualiza `PlanoAcaoQualidade`, com anexação de relatórios de investigação, atas e evidências de conclusão.
 - **Gestão ambiental:** falhas com descarte de materiais ou saneantes geram vínculos com `GeracaoResiduo` para rastrear manifestos e destino final.
 - **Indicadores de Desempenho:**
     - % de ciclos com BD/BI/CI conformes
@@ -189,7 +189,7 @@ O módulo CME utiliza a entidade `EvidenciaArquivo` (pacote core) para consolida
 
 ## 🌱 **Integração com PGRSS e Qualidade Corporativa**
 
-- **GeracaoResiduo (ambiental):** vincula descartes oriundos de usos de saneantes, perdas de material ou reprovações de kits, permitindo acompanhar peso estimado, classe de resíduo e manifesto de coleta.
+- **GeracaoResiduo (ambiental):** vincula descartes oriundos de usos de saneantes, perdas de material ou reprovações de kits, permitindo acompanhar peso estimado, a `ClasseResiduo` escolhida e o manifesto de coleta.
 - **NaoConformidadeBase / PlanoAcaoQualidade:** padronizam investigação, tratativas, responsáveis e prazos, com indicadores corporativos compartilhados com outros módulos (Farmácia, CC, Hotelaria).
 - **Evidências compartilhadas:** relatórios ambientais, comprovantes de destinação, atas de reunião e fotos de correções ficam anexadas ao mesmo repositório digital.
 
@@ -219,7 +219,7 @@ O módulo CME utiliza a entidade `EvidenciaArquivo` (pacote core) para consolida
 | `HigienizacaoUltrassonica`, `HigienizacaoAutoclaveProfunda` | Controle de limpeza de equipamentos com checklist digital. |
 | `ManutencaoAutoclave`, `PlanoPreventivoAutoclave` | Gestão de ordens de serviço, planos preventivos e calibrações. |
 | `SaneantePeraceticoLote`, `UsoSaneante`, `GeracaoResiduo` | Controle químico, diluição e descarte ambiental. |
-| `Movimentacao`, `Setor` | Rastreabilidade logística. |
+| `MovimentacaoCME`, `core.domain.Setor` | Rastreabilidade logística. |
 | `ExameCultura`, `EvidenciaArquivo` | Gestão de laudos laboratoriais e anexos. |
 | `NaoConformidadeCME`, `NaoConformidadeBase`, `PlanoAcaoQualidade` | Gestão corporativa de não conformidades e planos de ação. |
 

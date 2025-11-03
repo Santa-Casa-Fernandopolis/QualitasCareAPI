@@ -1,9 +1,15 @@
 package com.erp.qualitascareapi.cme.application;
 
 import com.erp.qualitascareapi.cme.api.dto.*;
-import com.erp.qualitascareapi.cme.domain.*;
+import com.erp.qualitascareapi.cme.domain.LoteEtiqueta;
+import com.erp.qualitascareapi.cme.domain.MovimentacaoCME;
 import com.erp.qualitascareapi.cme.enums.LoteStatus;
-import com.erp.qualitascareapi.cme.repo.*;
+import com.erp.qualitascareapi.cme.repo.LoteEtiquetaRepository;
+import com.erp.qualitascareapi.cme.repo.MovimentacaoCMERepository;
+import com.erp.qualitascareapi.core.domain.KitVersion;
+import com.erp.qualitascareapi.core.domain.Setor;
+import com.erp.qualitascareapi.core.repo.KitVersionRepository;
+import com.erp.qualitascareapi.core.repo.SetorRepository;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.domain.User;
 import com.erp.qualitascareapi.iam.repo.TenantRepository;
@@ -23,14 +29,14 @@ public class LoteService {
     private final SetorRepository setorRepository;
     private final LoteEtiquetaRepository loteEtiquetaRepository;
     private final KitVersionRepository kitVersionRepository;
-    private final MovimentacaoRepository movimentacaoRepository;
+    private final MovimentacaoCMERepository movimentacaoRepository;
 
     public LoteService(TenantRepository tenantRepository,
                        UserRepository userRepository,
                        SetorRepository setorRepository,
                        LoteEtiquetaRepository loteEtiquetaRepository,
                        KitVersionRepository kitVersionRepository,
-                       MovimentacaoRepository movimentacaoRepository) {
+                       MovimentacaoCMERepository movimentacaoRepository) {
         this.tenantRepository = tenantRepository;
         this.userRepository = userRepository;
         this.setorRepository = setorRepository;
@@ -45,14 +51,15 @@ public class LoteService {
         Setor setor = new Setor();
         setor.setTenant(tenant);
         setor.setNome(request.nome());
+        setor.setTipo(request.tipo());
         setor.setDescricao(request.descricao());
         Setor saved = setorRepository.save(setor);
-        return new SetorDto(saved.getId(), tenant.getId(), saved.getNome(), saved.getDescricao());
+        return new SetorDto(saved.getId(), tenant.getId(), saved.getNome(), saved.getTipo(), saved.getDescricao());
     }
 
     public Page<SetorDto> listSetores(Pageable pageable) {
         return setorRepository.findAll(pageable)
-                .map(s -> new SetorDto(s.getId(), s.getTenant().getId(), s.getNome(), s.getDescricao()));
+                .map(s -> new SetorDto(s.getId(), s.getTenant().getId(), s.getNome(), s.getTipo(), s.getDescricao()));
     }
 
     public LoteEtiquetaDto createLote(LoteEtiquetaRequest request) {
@@ -96,7 +103,7 @@ public class LoteService {
     public MovimentacaoDto registrarMovimentacao(MovimentacaoRequest request) {
         Tenant tenant = tenantRepository.findById(request.tenantId())
                 .orElseThrow(() -> new EntityNotFoundException("Tenant não encontrado"));
-        Movimentacao movimentacao = new Movimentacao();
+        MovimentacaoCME movimentacao = new MovimentacaoCME();
         movimentacao.setTenant(tenant);
         if (request.loteId() != null) {
             LoteEtiqueta lote = loteEtiquetaRepository.findById(request.loteId())
@@ -121,7 +128,7 @@ public class LoteService {
             movimentacao.setResponsavel(responsavel);
         }
         movimentacao.setObservacoes(request.observacoes());
-        Movimentacao saved = movimentacaoRepository.save(movimentacao);
+        MovimentacaoCME saved = movimentacaoRepository.save(movimentacao);
         return new MovimentacaoDto(saved.getId(), tenant.getId(),
                 saved.getLote() != null ? saved.getLote().getId() : null,
                 saved.getSetorOrigem() != null ? saved.getSetorOrigem().getId() : null,

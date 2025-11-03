@@ -8,7 +8,7 @@ import com.erp.qualitascareapi.iam.repo.TenantRepository;
 import com.erp.qualitascareapi.iam.repo.UserRepository;
 import com.erp.qualitascareapi.security.api.dto.UserPermissionOverrideDto;
 import com.erp.qualitascareapi.security.api.dto.UserPermissionOverrideRequest;
-import com.erp.qualitascareapi.security.domains.UserPermissionOverride;
+import com.erp.qualitascareapi.security.domain.UserPermissionOverride;
 import com.erp.qualitascareapi.security.repo.UserPermissionOverrideRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

@@ -6,7 +6,7 @@ import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.repo.TenantRepository;
 import com.erp.qualitascareapi.security.api.dto.RoleDto;
 import com.erp.qualitascareapi.security.api.dto.RoleRequest;
-import com.erp.qualitascareapi.security.domains.Role;
+import com.erp.qualitascareapi.security.domain.Role;
 import com.erp.qualitascareapi.security.repo.RoleRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

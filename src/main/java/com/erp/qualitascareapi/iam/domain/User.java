@@ -1,6 +1,6 @@
 package com.erp.qualitascareapi.iam.domain;
 
-import com.erp.qualitascareapi.security.domains.Role;
+import com.erp.qualitascareapi.security.domain.Role;
 import com.erp.qualitascareapi.security.enums.IdentityOrigin;
 import com.erp.qualitascareapi.security.enums.UserStatus;
 import jakarta.persistence.*;
