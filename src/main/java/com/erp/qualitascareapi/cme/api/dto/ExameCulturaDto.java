@@ -1,6 +1,6 @@
 package com.erp.qualitascareapi.cme.api.dto;
 
-import com.erp.qualitascareapi.cme.enums.ExameCulturaResultado;
+import com.erp.qualitascareapi.core.enums.ExameCulturaResultado;
 
 import java.time.LocalDate;
 import java.util.Set;

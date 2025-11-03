@@ -6,7 +6,7 @@ import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.repo.TenantRepository;
 import com.erp.qualitascareapi.security.api.dto.PermissionDto;
 import com.erp.qualitascareapi.security.api.dto.PermissionRequest;
-import com.erp.qualitascareapi.security.domains.Permission;
+import com.erp.qualitascareapi.security.domain.Permission;
 import com.erp.qualitascareapi.security.repo.PermissionRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

@@ -1,6 +1,6 @@
 package com.erp.qualitascareapi.cme.api.dto;
 
-import com.erp.qualitascareapi.cme.enums.ExameCulturaResultado;
+import com.erp.qualitascareapi.core.enums.ExameCulturaResultado;
 import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDate;

@@ -59,7 +59,7 @@ Lista itens de kit cadastrados.
 ## Gestão de Setores, Lotes e Movimentações
 
 ### `POST /api/cme/setores`
-Registra um setor assistencial para rastreabilidade logística.
+Registra um setor assistencial para rastreabilidade logística. O corpo deve informar o campo `tipo` (enum `core.enums.TipoSetor`) para classificar o setor hospitalar.
 
 ### `GET /api/cme/setores`
 Lista setores cadastrados.
@@ -71,7 +71,7 @@ Cria um lote/etiqueta para rastreio de kits esterilizados.
 Lista lotes existentes.
 
 ### `POST /api/cme/movimentacoes`
-Registra uma movimentação de lote entre setores (entrada contaminada, envio estéril, retorno etc.).
+Registra uma movimentação de lote entre setores (entrada contaminada, envio estéril, retorno etc.) utilizando a entidade `MovimentacaoCME`.
 
 ### `GET /api/cme/movimentacoes`
 Lista movimentações registradas.
@@ -155,13 +155,13 @@ Registra exame de cultura com evidências anexas.
 Lista exames cadastrados.
 
 ### `POST /api/cme/nao-conformidades`
-Abre uma não conformidade específica da CME.
+Abre uma não conformidade específica da CME. É obrigatório informar `tipoId`, apontando para `quality.domain.TipoNaoConformidade`.
 
 ### `GET /api/cme/nao-conformidades`
 Lista não conformidades.
 
 ### `POST /api/cme/geracoes-residuo`
-Registra geração de resíduo associada a lote ou saneante.
+Registra geração de resíduo associada a lote ou saneante. Utilize o campo `classeResiduo` (enum `environmental.enums.ClasseResiduo`).
 
 ### `GET /api/cme/geracoes-residuo`
 Lista registros de geração de resíduos.

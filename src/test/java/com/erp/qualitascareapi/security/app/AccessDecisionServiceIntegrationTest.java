@@ -2,10 +2,10 @@ package com.erp.qualitascareapi.security.app;
 
 import com.erp.qualitascareapi.iam.domain.User;
 import com.erp.qualitascareapi.iam.repo.UserRepository;
-import com.erp.qualitascareapi.security.domains.Policy;
-import com.erp.qualitascareapi.security.domains.PolicyCondition;
-import com.erp.qualitascareapi.security.domains.Role;
-import com.erp.qualitascareapi.security.domains.UserPermissionOverride;
+import com.erp.qualitascareapi.security.domain.Policy;
+import com.erp.qualitascareapi.security.domain.PolicyCondition;
+import com.erp.qualitascareapi.security.domain.Role;
+import com.erp.qualitascareapi.security.domain.UserPermissionOverride;
 import com.erp.qualitascareapi.security.enums.Action;
 import com.erp.qualitascareapi.security.enums.Effect;
 import com.erp.qualitascareapi.security.enums.ResourceType;

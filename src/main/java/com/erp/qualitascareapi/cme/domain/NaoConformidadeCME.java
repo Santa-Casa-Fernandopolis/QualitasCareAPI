@@ -1,10 +1,12 @@
 package com.erp.qualitascareapi.cme.domain;
 
 import com.erp.qualitascareapi.cme.enums.NaoConformidadeSeveridade;
-import com.erp.qualitascareapi.cme.enums.NaoConformidadeStatus;
 import com.erp.qualitascareapi.common.domain.EvidenciaArquivo;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.domain.User;
+import com.erp.qualitascareapi.quality.domain.NaoConformidadeBase;
+import com.erp.qualitascareapi.quality.domain.TipoNaoConformidade;
+import com.erp.qualitascareapi.quality.enums.NaoConformidadeStatus;
 import jakarta.persistence.*;
 import org.hibernate.envers.Audited;
 
@@ -15,7 +17,7 @@ import java.util.Set;
 @Audited
 @Entity
 @Table(name = "cme_nao_conformidades")
-public class NaoConformidadeCME {
+public class NaoConformidadeCME implements NaoConformidadeBase {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,6 +26,10 @@ public class NaoConformidadeCME {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "tenant_id", nullable = false)
     private Tenant tenant;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "tipo_id", nullable = false)
+    private TipoNaoConformidade tipo;
 
     @Column(nullable = false, length = 150)
     private String titulo;
@@ -61,6 +67,7 @@ public class NaoConformidadeCME {
     public NaoConformidadeCME() {
     }
 
+    @Override
     public Long getId() {
         return id;
     }
@@ -69,6 +76,7 @@ public class NaoConformidadeCME {
         this.id = id;
     }
 
+    @Override
     public Tenant getTenant() {
         return tenant;
     }
@@ -77,6 +85,16 @@ public class NaoConformidadeCME {
         this.tenant = tenant;
     }
 
+    @Override
+    public TipoNaoConformidade getTipo() {
+        return tipo;
+    }
+
+    public void setTipo(TipoNaoConformidade tipo) {
+        this.tipo = tipo;
+    }
+
+    @Override
     public String getTitulo() {
         return titulo;
     }
@@ -101,6 +119,7 @@ public class NaoConformidadeCME {
         this.severidade = severidade;
     }
 
+    @Override
     public NaoConformidadeStatus getStatus() {
         return status;
     }

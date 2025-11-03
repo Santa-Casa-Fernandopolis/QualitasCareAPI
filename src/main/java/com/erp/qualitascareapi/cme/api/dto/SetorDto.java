@@ -1,4 +1,6 @@
 package com.erp.qualitascareapi.cme.api.dto;
 
-public record SetorDto(Long id, Long tenantId, String nome, String descricao) {
+import com.erp.qualitascareapi.core.enums.TipoSetor;
+
+public record SetorDto(Long id, Long tenantId, String nome, TipoSetor tipo, String descricao) {
 }

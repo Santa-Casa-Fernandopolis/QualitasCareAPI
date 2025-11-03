@@ -1,7 +1,7 @@
 package com.erp.qualitascareapi.security.app;
 
-import com.erp.qualitascareapi.security.domains.Policy;
-import com.erp.qualitascareapi.security.domains.PolicyCondition;
+import com.erp.qualitascareapi.security.domain.Policy;
+import com.erp.qualitascareapi.security.domain.PolicyCondition;
 import com.erp.qualitascareapi.security.enums.IdentityOrigin;
 import com.erp.qualitascareapi.security.enums.UserStatus;
 import org.junit.jupiter.api.BeforeEach;

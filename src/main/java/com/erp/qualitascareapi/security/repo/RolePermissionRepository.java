@@ -1,8 +1,8 @@
 package com.erp.qualitascareapi.security.repo;
 
-import com.erp.qualitascareapi.security.domains.Role;
-import com.erp.qualitascareapi.security.domains.RolePermission;
-import com.erp.qualitascareapi.security.domains.Permission;
+import com.erp.qualitascareapi.security.domain.Role;
+import com.erp.qualitascareapi.security.domain.RolePermission;
+import com.erp.qualitascareapi.security.domain.Permission;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.security.enums.Action;
 import com.erp.qualitascareapi.security.enums.ResourceType;

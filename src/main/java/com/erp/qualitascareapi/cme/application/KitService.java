@@ -1,14 +1,14 @@
 package com.erp.qualitascareapi.cme.application;
 
 import com.erp.qualitascareapi.cme.api.dto.*;
-import com.erp.qualitascareapi.cme.domain.Instrumento;
-import com.erp.qualitascareapi.cme.domain.KitItem;
-import com.erp.qualitascareapi.cme.domain.KitProcedimento;
-import com.erp.qualitascareapi.cme.domain.KitVersion;
-import com.erp.qualitascareapi.cme.repo.InstrumentoRepository;
-import com.erp.qualitascareapi.cme.repo.KitItemRepository;
-import com.erp.qualitascareapi.cme.repo.KitProcedimentoRepository;
-import com.erp.qualitascareapi.cme.repo.KitVersionRepository;
+import com.erp.qualitascareapi.core.domain.Instrumento;
+import com.erp.qualitascareapi.core.domain.KitItem;
+import com.erp.qualitascareapi.core.domain.KitProcedimento;
+import com.erp.qualitascareapi.core.domain.KitVersion;
+import com.erp.qualitascareapi.core.repo.InstrumentoRepository;
+import com.erp.qualitascareapi.core.repo.KitItemRepository;
+import com.erp.qualitascareapi.core.repo.KitProcedimentoRepository;
+import com.erp.qualitascareapi.core.repo.KitVersionRepository;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.repo.TenantRepository;
 import jakarta.persistence.EntityNotFoundException;

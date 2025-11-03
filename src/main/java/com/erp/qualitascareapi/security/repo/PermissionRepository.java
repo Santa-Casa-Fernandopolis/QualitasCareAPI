@@ -1,6 +1,6 @@
 package com.erp.qualitascareapi.security.repo;
 
-import com.erp.qualitascareapi.security.domains.Permission;
+import com.erp.qualitascareapi.security.domain.Permission;
 import com.erp.qualitascareapi.security.enums.Action;
 import com.erp.qualitascareapi.security.enums.ResourceType;
 import org.springframework.data.jpa.repository.*;

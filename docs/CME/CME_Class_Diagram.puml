@@ -1,226 +1,100 @@
 @startuml
-title QualitasCare – Domínio Compartilhado (core) x Módulo CME
+skinparam packageStyle rectangle
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
 
-
-' =========================
-' CORE COMPARTILHADO
-' =========================
-package "com.qualitascare.iam.domain" as IAM {
-
-  class Tenant {
-    +id: Long
-    +code: String
-    +name: String
-    +active: boolean
-  }
-
-  class User {
-    +id: Long
-    +username: String
-    +fullName: String
-    +department: String
-  }
-
-}
-' =========================
-' CORE COMPARTILHADO
-' =========================
-package "com.qualitascare.core.domain" as CORE {
-
-  ' --- Estrutura hospitalar e abstrações reutilizáveis ---
+package "core.domain" {
   enum TipoSetor {
     CME
     CC
     UTI
-    ENF
-    FARM
-    HOTEL
-    LAB
-    ENGC
+    ENFERMARIA
+    FARMACIA
+    HOTELARIA
+    MANUTENCAO
+    PS
   }
+
+  enum ExameCulturaResultado {
+    PENDENTE
+    NEGATIVO
+    POSITIVO
+    INVALIDO
+  }
+
   class Setor {
     +id: Long
     +nome: String
     +tipo: TipoSetor
-    +ativo: boolean
-    +tenantId: Long
-  }
-
-  interface Rastreavel {
-    +getCodigoRastreio(): String
-  }
-  interface Movimentavel {
-    +getIdentificadorMov(): String
-  }
-  interface Inspecionavel {
-    +getIdentificadorInspecao(): String
+    +descricao: String
   }
 
   class Instrumento {
     +id: Long
-    +codigo: String
     +nome: String
-    +fabricante: String
-    +critico: boolean
-    +tenantId: Long
-    +getIdentificadorInspecao()
+    +codigoHospitalar: String
+    +descricao: String
   }
-  Instrumento ..|> Inspecionavel
 
-  ' Kit genérico reutilizável (curativo, parto, procedimento, etc.)
   class KitProcedimento {
     +id: Long
     +nome: String
-    +descricao: String
-    +tempoValidadeDias: Integer
-    +ativo: boolean
-    +tenantId: Long
-    +getIdentificadorInspecao()
-    +getCodigoRastreio()
-    +getIdentificadorMov()
+    +codigo: String
+    +observacoes: String
+    +ativo: Boolean
   }
-  KitProcedimento ..|> Inspecionavel
-  KitProcedimento ..|> Rastreavel
-  KitProcedimento ..|> Movimentavel
 
   class KitVersion {
     +id: Long
-    +kitProcedimentoId: Long
     +numeroVersao: Integer
     +vigenciaInicio: LocalDate
-    +vigenciaFim: LocalDate
-    +observacao: String
-    +ativo: boolean
+    +validadeDias: Integer
+    +ativo: Boolean
+    +observacoes: String
   }
 
   class KitItem {
     +id: Long
-    +qtdPrevista: Integer
-    +sentinela: boolean
-  }
-  KitProcedimento "1" -- "1..*" KitVersion
-  KitVersion "1" -- "1..*" KitItem
-  Instrumento "1" -- "0..*" KitItem
-
-  ' Movimentação genérica entre setores/usuários
-  enum StatusMov {
-    CRIADA
-    EM_TRANSITO
-    ENTREGUE
-    DEVOLVIDA
-  }
-  class Movimentacao {
-    +id: Long
-    +dataHora: Instant
-    +status: StatusMov
-    +observacao: String
-    +setorOrigemId: Long
-    +setorDestinoId: Long
-    +executadoPorUserId: Long
-    +tenantId: Long
+    +quantidade: Integer
+    +observacoes: String
   }
 
-  ' Inspeção genérica de materiais
-  class InspecaoMaterial {
-    +id: Long
-    +data: LocalDate
-    +totalItens: Integer
-    +conformes: Integer
-    +naoConformes: Integer
-    +observacao: String
-    +tenantId: Long
-  }
-
-  ' Cultura (genérica: coleta, origem, resultado)
   class ExameCultura {
     +id: Long
-    +amostra: String
-    +origem: String
-    +dataColeta: Instant
-    +resultado: String
-    +laboratorio: String
-    +laudoResumo: String
-    +tenantId: Long
+    +origemAmostra: String
+    +dataColeta: LocalDate
+    +responsavelColeta: String
+    +resultado: ExameCulturaResultado
   }
 
-  enum TipoEvidencia {
-    LAUDO_LABORATORIO
-    IMAGEM_PROCESSO
-    CHECKLIST_ASSINADO
-    RELATORIO_MANUTENCAO
-    OUTROS
-  }
-
-  class EvidenciaArquivo {
-    +id: Long
-    +tipo: TipoEvidencia
-    +nomeOriginal: String
-    +mimeType: String
-    +uri: String
-    +hash: String
-    +createdAt: Instant
-    +uploadedByUserId: Long
-    +tenantId: Long
-  }
-
-  ' Ligações core
-  Tenant "1" -- "0..*" Setor
-  Tenant "1" -- "0..*" Instrumento
-  Tenant "1" -- "0..*" KitProcedimento
-  Tenant "1" -- "0..*" KitVersion
-  Tenant "1" -- "0..*" Movimentacao
-  Tenant "1" -- "0..*" InspecaoMaterial
-  Tenant "1" -- "0..*" ExameCultura
-  Tenant "1" -- "0..*" EvidenciaArquivo
-
-  Setor "1" -- "0..*" Movimentacao : origem/destino
-  User "1" -- "0..*" Movimentacao : executadoPor
-  ExameCultura "0..*" -- "0..*" EvidenciaArquivo : laudos/anexos
+  KitProcedimento "1" -- "0..*" KitVersion
+  KitVersion "1" -- "0..*" KitItem
+  Instrumento "1" -- "0..*" KitItem
 }
 
-' =========================
-' QUALIDADE CORPORATIVA
-' =========================
-package "com.qualitascare.quality.domain" as QUALITY {
-
-  enum StatusNaoConformidade {
+package "quality.domain" {
+  enum NaoConformidadeStatus {
     ABERTA
-    EM_TRATAMENTO
-    ENCERRADA
+    EM_INVESTIGACAO
+    EM_IMPLEMENTACAO
+    CONCLUIDA
+    CANCELADA
   }
 
-  class NaoConformidadeBase {
+  interface NaoConformidadeBase {
+    +getId(): Long
+    +getTitulo(): String
+    +getStatus(): NaoConformidadeStatus
+  }
+
+  class TipoNaoConformidade {
     +id: Long
-    +origemModulo: String
-    +categoria: String
+    +nome: String
     +descricao: String
-    +status: StatusNaoConformidade
-    +gravidade: String
-    +dataAbertura: Instant
-    +dataEncerramento: Instant
-    +openedByUserId: Long
-    +tenantId: Long
   }
-
-  class PlanoAcaoQualidade {
-    +id: Long
-    +naoConformidadeId: Long
-    +titulo: String
-    +responsavelUserId: Long
-    +prazoConclusao: LocalDate
-    +status: String
-    +dataConclusao: LocalDate
-  }
-
-  NaoConformidadeBase "1" -- "0..1" PlanoAcaoQualidade
-  PlanoAcaoQualidade "0..1" -- "0..*" CORE.EvidenciaArquivo : comprovantes
 }
 
-' =========================
-' GESTÃO AMBIENTAL (PGRSS)
-' =========================
-package "com.qualitascare.environmental.domain" as ENV {
-
+package "environmental.domain" {
   enum ClasseResiduo {
     PERFUROCORTANTE
     BIOLOGICO
@@ -231,267 +105,47 @@ package "com.qualitascare.environmental.domain" as ENV {
 
   class GeracaoResiduo {
     +id: Long
-    +origemProcesso: String
-    +classe: ClasseResiduo
-    +pesoEstimadoKg: BigDecimal
-    +manifesto: String
-    +destinacao: String
-    +dataEnvio: Instant
-    +tenantId: Long
+    +dataRegistro: LocalDate
+    +classeResiduo: ClasseResiduo
+    +pesoEstimadoKg: Double
+    +destinoFinal: String
   }
-
-  CORE.Tenant "1" -- "0..*" GeracaoResiduo
 }
 
-' =========================
-' MÓDULO CME (específico)
-' =========================
-package "com.qualitascare.modules.cme.domain" as CME {
-
-  ' Especialização do kit para esterilização
-  class KitEsterilizavel {
-  }
-  KitEsterilizavel --|> CORE.KitProcedimento
-
-  enum StatusLote {
-    EM_PROCESSO
-    LIBERADO
-    VENCIDO
-    BLOQUEADO
-  }
-  enum StatusCiclo {
-    EM_ANDAMENTO
-    CONCLUIDO
-    ABORTADO
-  }
+package "cme.domain" {
   class LoteEtiqueta {
     +id: Long
-    +kitId: Long
-    +codigoQR: String
-    +dataEmbalo: Instant
-    +validade: Instant
-    +montadoPorNome: String
-    +montadoPorCoren: String
-    +lote: String
-    +conferenciaPerfuroOk: boolean
-    +status: StatusLote
-    +tenantId: Long
-    +createdBy: Long
-    +getCodigoRastreio()
-    +getIdentificadorMov()
-  }
-  LoteEtiqueta ..|> CORE.Rastreavel
-  LoteEtiqueta ..|> CORE.Movimentavel
-
-  class Autoclave {
-    +id: Long
     +codigo: String
-    +modelo: String
-    +localizacao: String
-    +ativo: boolean
-    +tenantId: Long
+    +status: LoteStatus
   }
 
-  enum TipoManutencao {
-    PREVENTIVA
-    CORRETIVA
-    CALIBRACAO
-    VALIDACAO_SEGURANCA
-  }
-
-  enum StatusManutencao {
-    PLANEJADA
-    EM_EXECUCAO
-    CONCLUIDA
-    CANCELADA
-  }
-
-  class PlanoPreventivoAutoclave {
+  class MovimentacaoCME {
     +id: Long
-    +autoclaveId: Long
-    +nome: String
-    +periodicidadeDias: Integer
-    +limiteCiclos: Integer
-    +antecedenciaAlertasDias: Integer
-    +ativo: boolean
-    +tenantId: Long
+    +tipo: MovimentacaoTipo
+    +dataHora: LocalDateTime
+    +observacoes: String
   }
-
-  class ManutencaoAutoclave {
-    +id: Long
-    +autoclaveId: Long
-    +planoPreventivoId: Long
-    +tipo: TipoManutencao
-    +status: StatusManutencao
-    +numeroChamado: String
-    +dataAbertura: Instant
-    +dataInicio: Instant
-    +dataConclusao: Instant
-    +responsavelTecnico: String
-    +contadorCiclosNoMomento: Integer
-    +justificativaLiberacao: String
-    +tenantId: Long
-  }
-
-  class CicloEsterilizacao {
-    +id: Long
-    +autoclaveId: Long
-    +inicio: Instant
-    +fim: Instant
-    +parametros: String
-    +status: StatusCiclo
-    +operadorUserId: Long
-    +tenantId: Long
-  }
-  note right of CicloEsterilizacao
-    Parametros armazenam temperatura, pressão e tempo consolidados do ciclo.
-  end note
-  Autoclave "1" -- "0..*" CicloEsterilizacao
-  CicloEsterilizacao "1" -- "0..*" LoteEtiqueta : lotesProcessados
-  CORE.User "1" -- "0..*" CicloEsterilizacao : operador
-  Autoclave "1" -- "0..*" PlanoPreventivoAutoclave
-  Autoclave "1" -- "0..*" ManutencaoAutoclave
-  PlanoPreventivoAutoclave "0..1" -- "0..*" ManutencaoAutoclave
-  ManutencaoAutoclave "0..*" -- "0..*" CORE.EvidenciaArquivo : relatorios/certificados
-  ManutencaoAutoclave "0..*" -- "0..*" QUALITY.NaoConformidadeBase : NC originada
-  PlanoPreventivoAutoclave ..> CicloEsterilizacao : consumoDeCiclos
-
-  enum ResultadoTeste {
-    OK
-    FALHA
-    INCONCLUSIVO
-  }
-  class TesteBowieDick {
-    +id: Long
-    +autoclaveId: Long
-    +cicloId: Long
-    +data: Instant
-    +resultado: ResultadoTeste
-    +observacao: String
-    +tenantId: Long
-  }
-  Autoclave "1" -- "0..*" TesteBowieDick
-  CicloEsterilizacao "0..1" -- "0..*" TesteBowieDick
-  TesteBowieDick "0..*" -- "0..*" CORE.EvidenciaArquivo : anexos
-
-  class IndicadorQuimico {
-    +id: Long
-    +cicloId: Long
-    +loteInsumo: String
-    +tipo: String
-    +resultado: ResultadoTeste
-    +observacao: String
-    +tenantId: Long
-  }
-  class IndicadorBiologico {
-    +id: Long
-    +cicloId: Long
-    +loteInsumo: String
-    +incubacaoInicio: Instant
-    +leitura: Instant
-    +resultado: ResultadoTeste
-    +observacao: String
-    +tenantId: Long
-  }
-  CicloEsterilizacao "1" -- "0..*" IndicadorQuimico
-  CicloEsterilizacao "1" -- "0..*" IndicadorBiologico
-  IndicadorQuimico "0..*" -- "0..*" CORE.EvidenciaArquivo : registros
-  IndicadorBiologico "0..*" -- "0..*" CORE.EvidenciaArquivo : incubacao
-
-  class HigienizacaoUltrassonica {
-    +id: Long
-    +data: LocalDate
-    +turno: String
-    +responsavelUserId: Long
-    +enfermeiraUserId: Long
-    +tenantId: Long
-  }
-  class HigienizacaoAutoclaveProfunda {
-    +id: Long
-    +autoclaveId: Long
-    +data: LocalDate
-    +observacao: String
-    +responsavelUserId: Long
-    +enfermeiraUserId: Long
-    +tenantId: Long
-  }
-  Autoclave "1" -- "0..*" HigienizacaoAutoclaveProfunda
-  HigienizacaoUltrassonica "0..*" -- "0..*" CORE.EvidenciaArquivo : checklist assinados
-  HigienizacaoAutoclaveProfunda "0..*" -- "0..*" CORE.EvidenciaArquivo : fotos/relatorios
-
-  class SaneantePeraceticoLote {
-    +id: Long
-    +dataDiluicao: Instant
-    +validade: Instant
-    +responsavelUserId: Long
-    +enfermeiraUserId: Long
-    +concentracao: String
-    +tenantId: Long
-  }
-  class UsoSaneante {
-    +id: Long
-    +lotePeraceticoId: Long
-    +dataHora: Instant
-    +quantidade: BigDecimal
-    +finalidade: String
-    +residuoGeradoKg: BigDecimal
-    +tenantId: Long
-  }
-  SaneantePeraceticoLote "1" -- "0..*" UsoSaneante
-  UsoSaneante "0..*" -- "0..1" ENV.GeracaoResiduo : vincula descarte
 
   class NaoConformidadeCME {
     +id: Long
-    +loteEtiquetaId: Long
-    +autoclaveId: Long
-    +cicloId: Long
-    +dataAbertura: Instant
-    +tipoOcorrencia: String
-    +descricaoTecnica: String
-    +acaoImediata: String
-    +acompanhamentoPlanoAcao: boolean
-    +tenantId: Long
+    +titulo: String
+    +descricao: String
+    +severidade: NaoConformidadeSeveridade
+    +status: NaoConformidadeStatus
   }
-  note right of NaoConformidadeCME
-    Tipo abrange ocorrências como BD, BI, CI, embalagem, sujidade e prazo expirado.
-  end note
-  NaoConformidadeCME --|> QUALITY.NaoConformidadeBase
-  NaoConformidadeCME "0..1" -- "0..*" CORE.EvidenciaArquivo : fotos/relatorios
-  NaoConformidadeCME "0..1" -- "0..1" ENV.GeracaoResiduo : descarte associado
 
-  ' Ligações com o core
-  CORE.Tenant "1" -- "0..*" KitEsterilizavel
-  CORE.Tenant "1" -- "0..*" LoteEtiqueta
-  CORE.Tenant "1" -- "0..*" Autoclave
-  CORE.Tenant "1" -- "0..*" CicloEsterilizacao
-  CORE.Tenant "1" -- "0..*" TesteBowieDick
-  CORE.Tenant "1" -- "0..*" IndicadorQuimico
-  CORE.Tenant "1" -- "0..*" IndicadorBiologico
-  CORE.Tenant "1" -- "0..*" HigienizacaoUltrassonica
-  CORE.Tenant "1" -- "0..*" HigienizacaoAutoclaveProfunda
-  CORE.Tenant "1" -- "0..*" SaneantePeraceticoLote
-  CORE.Tenant "1" -- "0..*" UsoSaneante
-  CORE.Tenant "1" -- "0..*" NaoConformidadeCME
-  CORE.Tenant "1" -- "0..*" QUALITY.NaoConformidadeBase
-  CORE.Tenant "1" -- "0..*" QUALITY.PlanoAcaoQualidade
-
-  ' Reuso das abstrações do core
-  CME.LoteEtiqueta ..> CORE.Rastreavel
-  CME.LoteEtiqueta ..> CORE.Movimentavel
-
-  ' Exame de cultura e inspeções genéricas referenciam objetos rastreáveis/inspecionáveis
-  CORE.ExameCultura "0..*" -left- "0..1" CME.LoteEtiqueta : refere-se a
-  CORE.InspecaoMaterial "0..*" -left- "1" CME.KitEsterilizavel : inspeciona
-  CORE.Movimentacao "0..*" -left- "1" CME.LoteEtiqueta : movimenta
-  QUALITY.NaoConformidadeBase "0..1" -left- "0..1" CORE.ExameCultura : origem laboratorial
-  QUALITY.PlanoAcaoQualidade "0..1" -left- "0..1" CORE.User : responsavel
+  enum MovimentacaoTipo
+  enum LoteStatus
+  enum NaoConformidadeSeveridade
 }
 
-note bottom
-Guideline:
-- Tudo que for “estrutural/abstrato” fica em CORE (reuso hospitalar).
-- Tudo que for “processo de esterilização” fica em CME.
-- Interfaces do CORE (Rastreavel/Movimentavel/Inspecionavel) permitem componibilidade.
-- IDs Long e vínculo explícito a Tenant/User mantêm aderência ao projeto atual.
-end note
+MovimentacaoCME "*" --> "0..1" LoteEtiqueta : lote
+MovimentacaoCME "*" --> "0..1" Setor : origem
+MovimentacaoCME "*" --> "0..1" Setor : destino
+
+NaoConformidadeCME ..|> NaoConformidadeBase
+NaoConformidadeCME --> TipoNaoConformidade
+ExameCultura "*" -- "*" "EvidenciaArquivo" #..#
+GeracaoResiduo --> LoteEtiqueta
+
 @enduml
