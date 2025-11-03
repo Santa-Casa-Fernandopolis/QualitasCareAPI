@@ -233,6 +233,13 @@ end note
 
 package "com.erp.qualitascareapi.security.api" as security.api {
 
+  class AuthController <<RestController>> {
+      +login(request: LoginRequest): LoginResponse
+      --
+      {static} @RequestMapping("/api/auth")
+      POST /api/auth/login
+    }
+
   class UserPermissionOverrideController <<RestController>> {
     +list(pageable: Pageable): Page<UserPermissionOverrideDto>
     +get(id: Long): UserPermissionOverrideDto
@@ -295,6 +302,9 @@ package "com.erp.qualitascareapi.security.application" as security.app {
   class RoleService <<Service>>
   class PolicyService <<Service>>
   class PermissionService <<Service>>
+  class TokenService <<Service>> {
+      +generateToken(auth: Authentication): LoginResponse
+    }
 }
 
 package "com.erp.qualitascareapi.security.api.dto" as security.dto {
@@ -312,9 +322,59 @@ package "com.erp.qualitascareapi.security.api.dto" as security.dto {
 
   class PermissionDto <<DTO>>
   class PermissionRequest <<Request>>
+
+  class LoginRequest <<DTO>> {
+      +username(): String
+      +password(): String
+      +tenantCode(): String
+    }
+
+    class LoginResponse <<DTO>> {
+      +token: String
+      +expiresAt: Instant
+      +roles: List<String>
+    }
+}
+
+' ================== PACOTE: Spring Security ==================
+package "org.springframework.security.authentication" as spring_auth {
+  class AuthenticationManager {
+    +authenticate(auth: Authentication): Authentication
+  }
+
+  class UsernamePasswordAuthenticationToken {
+    +unauthenticated(username: String, password: String)
+  }
+}
+
+package "org.springframework.security.core" as spring_core {
+  interface Authentication
 }
 
 ' ============ dependências controller -> service ============
+api.AuthController --> spring_auth.AuthenticationManager : uses
+api.AuthController --> app.TokenService : uses
+api.AuthController --> dto.LoginRequest : consumes
+api.AuthController --> dto.LoginResponse : returns
+app.TokenService --> dto.LoginResponse
+spring_auth.AuthenticationManager --> spring_core.Authentication
+spring_auth.UsernamePasswordAuthenticationToken --> spring_core.Authentication
+
+' ================== NOTAS ==================
+note right of api.AuthController
+  🔐 Fluxo de autenticação JWT:
+  1️⃣ Recebe LoginRequest (username, password, tenantCode)
+  2️⃣ Concatena tenantCode ao username (ex: joao@HOSP001)
+  3️⃣ Autentica via AuthenticationManager
+  4️⃣ Gera token JWT via TokenService
+  5️⃣ Retorna LoginResponse (token + expiração + roles)
+end note
+
+note right of app.TokenService
+  Implementa a geração e assinatura de tokens JWT
+  (ex: usando secret ou chave pública/privada RSA)
+end note
+
 security.api.UserPermissionOverrideController --> security.app.UserPermissionOverrideService : uses
 security.api.RolePermissionController        --> security.app.RolePermissionService        : uses
 security.api.RoleController                  --> security.app.RoleService                  : uses
