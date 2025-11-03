@@ -1,10 +1,11 @@
 @startuml
 title QualitasCare – Domínio Compartilhado (core) x Módulo CME
 
+
 ' =========================
 ' CORE COMPARTILHADO
 ' =========================
-package "com.qualitascare.core.domain" as CORE {
+package "com.qualitascare.iam.domain" as IAM {
 
   class Tenant {
     +id: Long
@@ -19,6 +20,12 @@ package "com.qualitascare.core.domain" as CORE {
     +fullName: String
     +department: String
   }
+
+}
+' =========================
+' CORE COMPARTILHADO
+' =========================
+package "com.qualitascare.core.domain" as CORE {
 
   ' --- Estrutura hospitalar e abstrações reutilizáveis ---
   enum TipoSetor {
