@@ -1,5 +1,7 @@
 package com.erp.qualitascareapi.security.app;
 
+import com.erp.qualitascareapi.security.auth.jose.jws.JwsPayloadExtractor;
+import com.erp.qualitascareapi.security.auth.jose.jws.JwsPayloadExtractor.Payload;
 import com.erp.qualitascareapi.security.enums.IdentityOrigin;
 import com.erp.qualitascareapi.security.enums.UserStatus;
 import org.springframework.security.core.Authentication;
@@ -9,11 +11,17 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Component
 public class CurrentUserExtractor {
+
+    private final JwsPayloadExtractor jwsPayloadExtractor = new JwsPayloadExtractor();
 
     public AuthContext from(Authentication auth) {
         if (auth == null || !auth.isAuthenticated()) {
@@ -34,7 +42,7 @@ public class CurrentUserExtractor {
                 .map(GrantedAuthority::getAuthority)
                 .map(a -> a.replace("ROLE_", ""))
                 .map(String::toUpperCase)
-                .collect(Collectors.toCollection(java.util.LinkedHashSet::new));
+                .collect(Collectors.toCollection(LinkedHashSet::new));
 
         Jwt jwt = null;
         if (auth instanceof JwtAuthenticationToken jwtToken) {
@@ -44,22 +52,29 @@ public class CurrentUserExtractor {
         }
 
         if (jwt != null) {
-            userId = parseLongClaim(jwt.getClaim("user_id"));
-            if (jwt.getClaims().containsKey("sub")) {
-                username = jwt.getClaimAsString("sub");
+            Payload payload = jwsPayloadExtractor.extract(jwt);
+            if (payload.userId() != null) {
+                userId = payload.userId();
             }
-            tenantId = parseLongClaim(jwt.getClaim("tenant_id"));
-            department = jwt.getClaimAsString("department");
-            profession = jwt.getClaimAsString("profession");
-            status = parseStatus(jwt.getClaimAsString("user_status"));
-            origin = parseOrigin(jwt.getClaimAsString("origin"));
-
-            Map<String, Object> claimAttributes = resolveAttributes(jwt);
-            claimAttributes.forEach((k, v) -> {
-                if (v != null) {
-                    attributes.put(k, String.valueOf(v));
-                }
-            });
+            if (payload.username() != null) {
+                username = payload.username();
+            }
+            if (payload.tenantId() != null) {
+                tenantId = payload.tenantId();
+            }
+            if (payload.department() != null) {
+                department = payload.department();
+            }
+            if (payload.profession() != null) {
+                profession = payload.profession();
+            }
+            if (payload.status() != null) {
+                status = payload.status();
+            }
+            if (payload.origin() != null) {
+                origin = payload.origin();
+            }
+            attributes.putAll(payload.attributes());
         } else if (principal instanceof UserDetails details) {
             username = details.getUsername();
             attributes.put("principalClass", principal.getClass().getSimpleName());
@@ -77,82 +92,6 @@ public class CurrentUserExtractor {
 
         return new AuthContext(userId, username, tenantId, roles, department, profession, status, origin, attributes);
     }
-
-    private Long parseLongClaim(Object value) {
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof Number number) {
-            return number.longValue();
-        }
-        try {
-            return Long.parseLong(String.valueOf(value));
-        } catch (NumberFormatException ex) {
-            return null;
-        }
-    }
-
-    private Map<String, Object> resolveAttributes(Jwt jwt) {
-        if (jwt == null) {
-            return Map.of();
-        }
-
-        Object direct = jwt.getClaim("attributes");
-        if (direct instanceof Map<?, ?> map) {
-            Map<String, Object> converted = new HashMap<>();
-            map.forEach((k, v) -> {
-                if (k != null) {
-                    converted.put(String.valueOf(k), v);
-                }
-            });
-            return converted;
-        }
-
-        Object clinical = jwt.getClaim("clinical_attributes");
-        if (clinical instanceof Map<?, ?> map) {
-            Map<String, Object> converted = new HashMap<>();
-            map.forEach((k, v) -> {
-                if (k != null) {
-                    converted.put(String.valueOf(k), v);
-                }
-            });
-            return converted;
-        }
-
-        if (clinical instanceof Iterable<?> iterable) {
-            Map<String, Object> converted = new HashMap<>();
-            int index = 0;
-            for (Object o : iterable) {
-                converted.put("attr_" + index++, o);
-            }
-            return converted;
-        }
-
-        return Map.of();
-    }
-
-    private UserStatus parseStatus(String status) {
-        if (status == null || status.isBlank()) {
-            return null;
-        }
-        try {
-            return UserStatus.valueOf(status.toUpperCase());
-        } catch (IllegalArgumentException ex) {
-            return null;
-        }
-    }
-
-    private IdentityOrigin parseOrigin(String origin) {
-        if (origin == null || origin.isBlank()) {
-            return null;
-        }
-        try {
-            return IdentityOrigin.valueOf(origin.toUpperCase());
-        } catch (IllegalArgumentException ex) {
-            return null;
-        }
-    }
-
     private Long extractTenantFromAuthorities(Set<String> roles) {
         if (roles == null) {
             return null;
@@ -164,6 +103,17 @@ public class CurrentUserExtractor {
                 .filter(Objects::nonNull)
                 .findFirst()
                 .orElse(null);
+    }
+
+    private Long parseLongClaim(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return Long.parseLong(value);
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
     }
 }
 
