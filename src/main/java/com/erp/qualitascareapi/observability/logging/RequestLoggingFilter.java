@@ -69,7 +69,7 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
 
             RequestLog log = new RequestLog(timestamp, method, path, status, durationMs, traceId, userId, clientIp,
                     httpVersion, contentLength);
-            transactionTemplate.executeWithoutResult(status -> repository.save(log));
+            transactionTemplate.executeWithoutResult(transactionStatus -> repository.save(log));
         }
     }
 
