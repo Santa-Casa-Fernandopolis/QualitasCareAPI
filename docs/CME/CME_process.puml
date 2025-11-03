@@ -24,6 +24,7 @@ if (Triagem/Condição do Material) then (Apto)
     else (Não)
       :Bloquear Produção;
       :Abrir NC (Checklist não realizado);
+      :Anexar checklist digital em EvidenciaArquivo;
       :Executar checklist e reinspecionar;
     endif
   repeat while (Checklist do dia OK?) is (Não)
@@ -31,15 +32,19 @@ if (Triagem/Condição do Material) then (Apto)
   :Montagem do Kit/Bandeja;
   :Conferência de itens críticos;
   :Gerar Etiqueta + QR (lote, data, validade, COREn);
+  :Capturar evidências da montagem (fotos/checklist);
   :Armazenar p/ Esterilização;
   :Carregar Autoclave;
   repeat
     :Teste Bowie-Dick (antes do 1º ciclo do dia);
     if (Bowie-Dick Conforme?) then (Sim)
+      :Anexar foto/relatório do BD;
       ' Autoclave liberada
     else (Não)
       :Bloquear Autoclave;
       :Abrir Não Conformidade (BD);
+      :Acionar Plano de Ação quando severo;
+      :Adicionar evidências (foto, relatório técnico);
       :Ação corretiva/manutenção;
       :Repetir BD;
     endif
@@ -47,11 +52,14 @@ if (Triagem/Condição do Material) then (Apto)
   repeat
     :Executar Ciclo de Esterilização;
     :Aplicar CI (por pacote) e BI (por carga conforme POP);
+    :Digitalizar resultados CI/BI e anexar evidências;
     if (Resultados CI/BI OK?) then (Sim)
       ' Liberação autorizada
     else (Não)
       :Bloquear Liberação;
       :Abrir Não Conformidade (falha CI/BI);
+      :Associar Plano de Ação e GeracaoResiduo (se aplicável);
+      :Registrar evidências adicionais;
       :Ação Corretiva (manutenção/verificação);
       :Encaminhar para Reprocesso;
     endif
@@ -61,6 +69,8 @@ if (Triagem/Condição do Material) then (Apto)
   :Distribuição/Entrega ao Setor (scan QR);
   :Uso no Paciente (setor lança evento opcional);
   :Retorno Contaminado (scan QR);
+  :Registrar culturas/laboratório + anexar laudos;
+  :Atualizar rastreabilidade ambiental (GeracaoResiduo quando necessário);
   :Rastreabilidade Reversa → Expurgo;
   stop
 

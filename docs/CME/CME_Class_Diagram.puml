@@ -83,12 +83,23 @@ package "com.qualitascare.core.domain" as CORE {
   KitProcedimento ..|> Rastreavel
   KitProcedimento ..|> Movimentavel
 
+  class KitVersion {
+    +id: Long
+    +kitProcedimentoId: Long
+    +numeroVersao: Integer
+    +vigenciaInicio: LocalDate
+    +vigenciaFim: LocalDate
+    +observacao: String
+    +ativo: boolean
+  }
+
   class KitItem {
     +id: Long
     +qtdPrevista: Integer
     +sentinela: boolean
   }
-  KitProcedimento "1" -- "1..*" KitItem
+  KitProcedimento "1" -- "1..*" KitVersion
+  KitVersion "1" -- "1..*" KitItem
   Instrumento "1" -- "0..*" KitItem
 
   ' Movimentação genérica entre setores/usuários
@@ -127,6 +138,28 @@ package "com.qualitascare.core.domain" as CORE {
     +origem: String
     +dataColeta: Instant
     +resultado: String
+    +laboratorio: String
+    +laudoResumo: String
+    +tenantId: Long
+  }
+
+  enum TipoEvidencia {
+    LAUDO_LABORATORIO
+    IMAGEM_PROCESSO
+    CHECKLIST_ASSINADO
+    RELATORIO_MANUTENCAO
+    OUTROS
+  }
+
+  class EvidenciaArquivo {
+    +id: Long
+    +tipo: TipoEvidencia
+    +nomeOriginal: String
+    +mimeType: String
+    +uri: String
+    +hash: String
+    +createdAt: Instant
+    +uploadedByUserId: Long
     +tenantId: Long
   }
 
@@ -134,12 +167,80 @@ package "com.qualitascare.core.domain" as CORE {
   Tenant "1" -- "0..*" Setor
   Tenant "1" -- "0..*" Instrumento
   Tenant "1" -- "0..*" KitProcedimento
+  Tenant "1" -- "0..*" KitVersion
   Tenant "1" -- "0..*" Movimentacao
   Tenant "1" -- "0..*" InspecaoMaterial
   Tenant "1" -- "0..*" ExameCultura
+  Tenant "1" -- "0..*" EvidenciaArquivo
 
   Setor "1" -- "0..*" Movimentacao : origem/destino
   User "1" -- "0..*" Movimentacao : executadoPor
+  ExameCultura "0..*" -- "0..*" EvidenciaArquivo : laudos/anexos
+}
+
+' =========================
+' QUALIDADE CORPORATIVA
+' =========================
+package "com.qualitascare.quality.domain" as QUALITY {
+
+  enum StatusNaoConformidade {
+    ABERTA
+    EM_TRATAMENTO
+    ENCERRADA
+  }
+
+  class NaoConformidadeBase {
+    +id: Long
+    +origemModulo: String
+    +categoria: String
+    +descricao: String
+    +status: StatusNaoConformidade
+    +gravidade: String
+    +dataAbertura: Instant
+    +dataEncerramento: Instant
+    +openedByUserId: Long
+    +tenantId: Long
+  }
+
+  class PlanoAcaoQualidade {
+    +id: Long
+    +naoConformidadeId: Long
+    +titulo: String
+    +responsavelUserId: Long
+    +prazoConclusao: LocalDate
+    +status: String
+    +dataConclusao: LocalDate
+  }
+
+  NaoConformidadeBase "1" -- "0..1" PlanoAcaoQualidade
+  PlanoAcaoQualidade "0..1" -- "0..*" CORE.EvidenciaArquivo : comprovantes
+}
+
+' =========================
+' GESTÃO AMBIENTAL (PGRSS)
+' =========================
+package "com.qualitascare.environmental.domain" as ENV {
+
+  enum ClasseResiduo {
+    PERFUROCORTANTE
+    BIOLOGICO
+    QUIMICO
+    RECICLAVEL
+    COMUM
+  }
+
+  class GeracaoResiduo {
+    +id: Long
+    +origemProcesso: String
+    +classe: ClasseResiduo
+    +pesoEstimadoKg: BigDecimal
+    +manifesto: String
+    +destinacao: String
+    +dataEnvio: Instant
+    +tenantId: Long
+  }
+
+  CORE.Tenant "1" -- "0..*" GeracaoResiduo
 }
 
 ' =========================
@@ -220,11 +321,11 @@ package "com.qualitascare.modules.cme.domain" as CME {
     +data: Instant
     +resultado: ResultadoTeste
     +observacao: String
-    +evidenciaPath: String
     +tenantId: Long
   }
   Autoclave "1" -- "0..*" TesteBowieDick
   CicloEsterilizacao "0..1" -- "0..*" TesteBowieDick
+  TesteBowieDick "0..*" -- "0..*" CORE.EvidenciaArquivo : anexos
 
   class IndicadorQuimico {
     +id: Long
@@ -247,6 +348,8 @@ package "com.qualitascare.modules.cme.domain" as CME {
   }
   CicloEsterilizacao "1" -- "0..*" IndicadorQuimico
   CicloEsterilizacao "1" -- "0..*" IndicadorBiologico
+  IndicadorQuimico "0..*" -- "0..*" CORE.EvidenciaArquivo : registros
+  IndicadorBiologico "0..*" -- "0..*" CORE.EvidenciaArquivo : incubacao
 
   class HigienizacaoUltrassonica {
     +id: Long
@@ -266,6 +369,8 @@ package "com.qualitascare.modules.cme.domain" as CME {
     +tenantId: Long
   }
   Autoclave "1" -- "0..*" HigienizacaoAutoclaveProfunda
+  HigienizacaoUltrassonica "0..*" -- "0..*" CORE.EvidenciaArquivo : checklist assinados
+  HigienizacaoAutoclaveProfunda "0..*" -- "0..*" CORE.EvidenciaArquivo : fotos/relatorios
 
   class SaneantePeraceticoLote {
     +id: Long
@@ -282,9 +387,11 @@ package "com.qualitascare.modules.cme.domain" as CME {
     +dataHora: Instant
     +quantidade: BigDecimal
     +finalidade: String
+    +residuoGeradoKg: BigDecimal
     +tenantId: Long
   }
   SaneantePeraceticoLote "1" -- "0..*" UsoSaneante
+  UsoSaneante "0..*" -- "0..1" ENV.GeracaoResiduo : vincula descarte
 
   class NaoConformidadeCME {
     +id: Long
@@ -292,21 +399,18 @@ package "com.qualitascare.modules.cme.domain" as CME {
     +autoclaveId: Long
     +cicloId: Long
     +dataAbertura: Instant
-    +tipo: String
-    +descricao: String
-    +acaoCorretiva: String
-    +status: StatusNaoConformidade
+    +tipoOcorrencia: String
+    +descricaoTecnica: String
+    +acaoImediata: String
+    +acompanhamentoPlanoAcao: boolean
     +tenantId: Long
   }
   note right of NaoConformidadeCME
     Tipo abrange ocorrências como BD, BI, CI, embalagem, sujidade e prazo expirado.
   end note
-
-  enum StatusNaoConformidade {
-    ABERTA
-    EM_TRATAMENTO
-    ENCERRADA
-  }
+  NaoConformidadeCME --|> QUALITY.NaoConformidadeBase
+  NaoConformidadeCME "0..1" -- "0..*" CORE.EvidenciaArquivo : fotos/relatorios
+  NaoConformidadeCME "0..1" -- "0..1" ENV.GeracaoResiduo : descarte associado
 
   ' Ligações com o core
   CORE.Tenant "1" -- "0..*" KitEsterilizavel
@@ -321,6 +425,8 @@ package "com.qualitascare.modules.cme.domain" as CME {
   CORE.Tenant "1" -- "0..*" SaneantePeraceticoLote
   CORE.Tenant "1" -- "0..*" UsoSaneante
   CORE.Tenant "1" -- "0..*" NaoConformidadeCME
+  CORE.Tenant "1" -- "0..*" QUALITY.NaoConformidadeBase
+  CORE.Tenant "1" -- "0..*" QUALITY.PlanoAcaoQualidade
 
   ' Reuso das abstrações do core
   CME.LoteEtiqueta ..> CORE.Rastreavel
@@ -330,6 +436,8 @@ package "com.qualitascare.modules.cme.domain" as CME {
   CORE.ExameCultura "0..*" -left- "0..1" CME.LoteEtiqueta : refere-se a
   CORE.InspecaoMaterial "0..*" -left- "1" CME.KitEsterilizavel : inspeciona
   CORE.Movimentacao "0..*" -left- "1" CME.LoteEtiqueta : movimenta
+  QUALITY.NaoConformidadeBase "0..1" -left- "0..1" CORE.ExameCultura : origem laboratorial
+  QUALITY.PlanoAcaoQualidade "0..1" -left- "0..1" CORE.User : responsavel
 }
 
 note bottom
