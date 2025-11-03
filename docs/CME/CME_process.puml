@@ -1,0 +1,66 @@
+@startuml
+title Fluxo Macro de Processos – CME (QualitasCare)
+
+start
+:Recebimento de Material Contaminado;
+note right
+Registrar origem (setor/sala),
+profissional que entrega, volume,
+classe de resíduo associada ao PGRSS.
+end note
+
+if (Triagem/Condição do Material) then (Apto)
+  :Pré-limpeza / Desmontagem;
+  :Limpeza e Descontaminação;
+  :Checklist Lavadora Ultrassônica (DIÁRIO);
+  if (Checklist do dia OK?) then (Sim)
+    :Secagem e Inspeção de integridade;
+    :Montagem do Kit/Bandeja;
+    :Conferência de itens críticos;
+    :Gerar Etiqueta + QR (lote, data, validade, COREn);
+    :Armazenar p/ Esterilização;
+    :Carregar Autoclave;
+    :Teste Bowie-Dick (antes do 1º ciclo do dia);
+
+    if (Bowie-Dick Conforme?) then (Sim)
+      :Executar Ciclo de Esterilização;
+      :Aplicar CI (por pacote) e BI (por carga conforme POP);
+
+      if (Resultados CI/BI OK?) then (Sim)
+        :Registrar "Liberação de Lote";
+        :Armazenamento em área estéril;
+        :Distribuição/Entrega ao Setor (scan QR);
+        :Uso no Paciente (setor lança evento opcional);
+        :Retorno Contaminado (scan QR);
+        :Rastreabilidade Reversa → Expurgo;
+        stop
+      else (Não)
+        :Bloquear Liberação;
+        :Abrir Não Conformidade (falha CI/BI);
+        :Ação Corretiva (manutenção/verificação);
+        :Encaminhar para Reprocesso;
+        back to :Executar Ciclo de Esterilização;
+      endif
+
+    else (Não)
+      :Bloquear Autoclave;
+      :Abrir Não Conformidade (BD);
+      :Ação corretiva/manutenção;
+      :Repetir BD;
+      back to :Teste Bowie-Dick (antes do 1º ciclo do dia);
+    endif
+
+  else (Não)
+    :Bloquear Produção;
+    :Abrir NC (Checklist não realizado);
+    :Executar checklist e reinspecionar;
+    back to :Checklist Lavadora Ultrassônica (DIÁRIO);
+  endif
+
+else (Inapto)
+  :Registrar Perda/Separar para manutenção;
+  :Rastrear como resíduo conforme PGRSS;
+  stop
+endif
+
+@enduml

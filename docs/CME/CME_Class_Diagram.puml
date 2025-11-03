@@ -1,0 +1,266 @@
+@startuml
+title CME Module (integrado ao core atual de IAM/Logs/Auditoria)
+
+' ==== Referências ao core existente (não redefinir) ====
+class Tenant {
+  +id: Long
+  +code: String
+  +name: String
+  +active: boolean
+}
+class User {
+  +id: Long
+  +username: String
+  +fullName: String
+  +department: String
+}
+
+' ==== Pacote CME ====
+package "CME" {
+
+  ' ---- Catálogo / Setor ----
+  class Setor {
+    +id: Long
+    +nome: String
+    +tipo: String <<CME, CC, UTI, Enfermaria...>>
+    +ativo: boolean
+    +tenantId: Long
+  }
+
+  class Instrumento {
+    +id: Long
+    +codigo: String
+    +nome: String
+    +fabricante: String
+    +critico: boolean
+    +tenantId: Long
+  }
+
+  class KitCirurgico {
+    +id: Long
+    +nome: String
+    +descricao: String
+    +tempoValidadeDias: Integer
+    +ativo: boolean
+    +tenantId: Long
+  }
+
+  class KitItem {
+    +id: Long
+    +qtdPrevista: Integer
+    +sentinela: boolean
+  }
+  KitCirurgico "1" -- "1..*" KitItem
+  Instrumento "1" -- "0..*" KitItem
+
+  ' ---- Etiqueta/Lote e Movimentações ----
+  enum StatusLote { EM_PROCESSO; LIBERADO; VENCIDO; BLOQUEADO }
+
+  class LoteEtiqueta {
+    +id: Long
+    +kitId: Long
+    +codigoQR: String
+    +dataEmbalo: Instant
+    +validade: Instant
+    +montadoPorNome: String
+    +montadoPorCoren: String
+    +lote: String
+    +conferenciaPerfuroOk: boolean
+    +status: StatusLote
+    +tenantId: Long
+    +createdBy: Long
+  }
+  KitCirurgico "1" -- "0..*" LoteEtiqueta
+
+  enum MovTipo { SAIDA_CME; RECEBIDO_NO_SETOR; USO; RETORNO_CONTAMINADO }
+
+  class MovimentacaoKit {
+    +id: Long
+    +loteEtiquetaId: Long
+    +dataHora: Instant
+    +tipo: MovTipo
+    +observacao: String
+    +setorOrigemId: Long
+    +setorDestinoId: Long
+    +executadoPorUserId: Long
+    +tenantId: Long
+  }
+  LoteEtiqueta "1" -- "1..*" MovimentacaoKit
+  Setor "1" -- "0..*" MovimentacaoKit : origem/destino
+  User "1" -- "0..*" MovimentacaoKit : executadoPor
+
+  ' ---- Autoclaves / Ciclos / Testes ----
+  class Autoclave {
+    +id: Long
+    +codigo: String
+    +modelo: String
+    +localizacao: String
+    +ativo: boolean
+    +tenantId: Long
+  }
+
+  class CicloEsterilizacao {
+    +id: Long
+    +autoclaveId: Long
+    +inicio: Instant
+    +fim: Instant
+    +parametros: String  <<temp, pressão, tempo>>
+    +status: String <<EM_ANDAMENTO, CONCLUIDO, ABORTADO>>
+    +operadorUserId: Long
+    +tenantId: Long
+  }
+  Autoclave "1" -- "0..*" CicloEsterilizacao
+  CicloEsterilizacao "1" -- "0..*" LoteEtiqueta : lotesProcessados
+
+  enum ResultadoTeste { OK; FALHA; INCONCLUSIVO }
+
+  class TesteBowieDick {
+    +id: Long
+    +autoclaveId: Long
+    +cicloId: Long
+    +data: Instant
+    +resultado: ResultadoTeste
+    +observacao: String
+    +evidenciaPath: String
+    +tenantId: Long
+  }
+  Autoclave "1" -- "0..*" TesteBowieDick
+  CicloEsterilizacao "0..1" -- "0..*" TesteBowieDick
+
+  class IndicadorQuimico {
+    +id: Long
+    +cicloId: Long
+    +loteInsumo: String
+    +tipo: String  <<classe>>
+    +resultado: ResultadoTeste
+    +observacao: String
+    +tenantId: Long
+  }
+  class IndicadorBiologico {
+    +id: Long
+    +cicloId: Long
+    +loteInsumo: String
+    +incubacaoInicio: Instant
+    +leitura: Instant
+    +resultado: ResultadoTeste
+    +observacao: String
+    +tenantId: Long
+  }
+  CicloEsterilizacao "1" -- "0..*" IndicadorQuimico
+  CicloEsterilizacao "1" -- "0..*" IndicadorBiologico
+
+  ' ---- Higienizações / Saneantes ----
+  class HigienizacaoUltrassonica {
+    +id: Long
+    +data: LocalDate
+    +turno: String
+    +responsavelUserId: Long
+    +enfermeiraUserId: Long
+    +tenantId: Long
+  }
+
+  class HigienizacaoAutoclaveProfunda {
+    +id: Long
+    +autoclaveId: Long
+    +data: LocalDate
+    +observacao: String
+    +responsavelUserId: Long
+    +enfermeiraUserId: Long
+    +tenantId: Long
+  }
+  Autoclave "1" -- "0..*" HigienizacaoAutoclaveProfunda
+
+  class SaneantePeraceticoLote {
+    +id: Long
+    +dataDiluicao: Instant
+    +validade: Instant
+    +responsavelUserId: Long
+    +enfermeiraUserId: Long
+    +concentracao: String
+    +tenantId: Long
+  }
+
+  class UsoSaneante {
+    +id: Long
+    +lotePeraceticoId: Long
+    +dataHora: Instant
+    +quantidade: BigDecimal
+    +finalidade: String <<desinfecção alta, termodesinfectora...>>
+    +tenantId: Long
+  }
+  SaneantePeraceticoLote "1" -- "0..*" UsoSaneante
+
+  ' ---- Qualidade / Resultados ----
+  class InspecaoPecas {
+    +id: Long
+    +data: LocalDate
+    +nCaixas: Integer
+    +nAvulsos: Integer
+    +nPecas: Integer
+    +nProfissionais: Integer
+    +observacao: String
+    +tenantId: Long
+  }
+
+  class ExameCultura {
+    +id: Long
+    +loteEtiquetaId: Long
+    +amostra: String
+    +origem: String
+    +dataColeta: Instant
+    +resultado: String
+    +tenantId: Long
+  }
+  LoteEtiqueta "0..1" -- "0..*" ExameCultura
+
+  class NaoConformidade {
+    +id: Long
+    +loteEtiquetaId: Long
+    +autoclaveId: Long
+    +cicloId: Long
+    +dataAbertura: Instant
+    +tipo: String <<BD, BI, CI, embalagem, sujidade, prazo...>>
+    +descricao: String
+    +acaoCorretiva: String
+    +status: String <<ABERTA, EM_TRATAMENTO, ENCERRADA>>
+    +tenantId: Long
+  }
+  LoteEtiqueta "0..1" -- "0..*" NaoConformidade
+  Autoclave "0..1" -- "0..*" NaoConformidade
+  CicloEsterilizacao "0..1" -- "0..*" NaoConformidade
+}
+
+' ==== Ligações ao core (multi-tenant e autoria) ====
+Tenant "1" -- "0..*" CME.Setor
+Tenant "1" -- "0..*" CME.Instrumento
+Tenant "1" -- "0..*" CME.KitCirurgico
+Tenant "1" -- "0..*" CME.LoteEtiqueta
+Tenant "1" -- "0..*" CME.Autoclave
+Tenant "1" -- "0..*" CME.CicloEsterilizacao
+Tenant "1" -- "0..*" CME.TesteBowieDick
+Tenant "1" -- "0..*" CME.IndicadorQuimico
+Tenant "1" -- "0..*" CME.IndicadorBiologico
+Tenant "1" -- "0..*" CME.HigienizacaoUltrassonica
+Tenant "1" -- "0..*" CME.HigienizacaoAutoclaveProfunda
+Tenant "1" -- "0..*" CME.SaneantePeraceticoLote
+Tenant "1" -- "0..*" CME.UsoSaneante
+Tenant "1" -- "0..*" CME.InspecaoPecas
+Tenant "1" -- "0..*" CME.ExameCultura
+Tenant "1" -- "0..*" CME.NaoConformidade
+
+User "1" -- "0..*" CME.LoteEtiqueta : createdBy/montadoPor
+User "1" -- "0..*" CME.CicloEsterilizacao : operador
+User "1" -- "0..*" CME.MovimentacaoKit : executadoPor
+User "1" -- "0..*" CME.HigienizacaoUltrassonica : responsavel/enfermeira
+User "1" -- "0..*" CME.HigienizacaoAutoclaveProfunda : responsavel/enfermeira
+User "1" -- "0..*" CME.SaneantePeraceticoLote : responsavel/enfermeira
+
+note right of CME.LoteEtiqueta
+Liberação condicionada a:
+- BD do dia = OK (autoclave)
+- CI/BI do ciclo = OK
+- Validade vigente
+- Checklist ultrassônica do dia = OK
+end note
+
+@enduml
