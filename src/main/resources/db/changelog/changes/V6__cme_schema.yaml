@@ -1,0 +1,1323 @@
+databaseChangeLog:
+  - changeSet:
+      id: V6-1
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: evidencias_arquivo
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: nome_arquivo
+                  type: VARCHAR(180)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: uri
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: hash_sha256
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: content_type
+                  type: VARCHAR(120)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: tamanho_bytes
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: autor_id
+                  type: BIGINT
+              - column:
+                  name: criado_em
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: evidencias_arquivo
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_evidencia_tenant
+        - addForeignKeyConstraint:
+            baseTableName: evidencias_arquivo
+            baseColumnNames: autor_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_evidencia_autor
+  - changeSet:
+      id: V6-2
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: cme_setores
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: nome
+                  type: VARCHAR(120)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: descricao
+                  type: VARCHAR(255)
+        - addForeignKeyConstraint:
+            baseTableName: cme_setores
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_cme_setor_tenant
+  - changeSet:
+      id: V6-3
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: cme_instrumentos
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: nome
+                  type: VARCHAR(150)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: codigo_hospitalar
+                  type: VARCHAR(150)
+              - column:
+                  name: descricao
+                  type: VARCHAR(255)
+        - addForeignKeyConstraint:
+            baseTableName: cme_instrumentos
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_cme_instrumento_tenant
+  - changeSet:
+      id: V6-4
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: cme_kits_procedimento
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: nome
+                  type: VARCHAR(150)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: codigo
+                  type: VARCHAR(60)
+              - column:
+                  name: observacoes
+                  type: VARCHAR(255)
+              - column:
+                  name: ativo
+                  type: BOOLEAN
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: cme_kits_procedimento
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_cme_kit_tenant
+  - changeSet:
+      id: V6-5
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: cme_kits_versao
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: kit_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: numero_versao
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: vigencia_inicio
+                  type: DATE
+              - column:
+                  name: validade_dias
+                  type: INTEGER
+              - column:
+                  name: ativo
+                  type: BOOLEAN
+                  constraints:
+                    nullable: false
+              - column:
+                  name: observacoes
+                  type: VARCHAR(255)
+        - addForeignKeyConstraint:
+            baseTableName: cme_kits_versao
+            baseColumnNames: kit_id
+            referencedTableName: cme_kits_procedimento
+            referencedColumnNames: id
+            constraintName: fk_cme_kits_versao_kit
+  - changeSet:
+      id: V6-6
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: cme_kits_itens
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: versao_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: instrumento_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: quantidade
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: observacoes
+                  type: VARCHAR(255)
+        - addForeignKeyConstraint:
+            baseTableName: cme_kits_itens
+            baseColumnNames: versao_id
+            referencedTableName: cme_kits_versao
+            referencedColumnNames: id
+            constraintName: fk_cme_kits_itens_versao
+        - addForeignKeyConstraint:
+            baseTableName: cme_kits_itens
+            baseColumnNames: instrumento_id
+            referencedTableName: cme_instrumentos
+            referencedColumnNames: id
+            constraintName: fk_cme_kits_itens_instrumento
+  - changeSet:
+      id: V6-7
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: cme_lotes_etiqueta
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: codigo
+                  type: VARCHAR(60)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: kit_versao_id
+                  type: BIGINT
+              - column:
+                  name: data_empacotamento
+                  type: DATE
+              - column:
+                  name: validade
+                  type: DATE
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: qr_code
+                  type: VARCHAR(120)
+              - column:
+                  name: montado_por_id
+                  type: BIGINT
+              - column:
+                  name: observacoes
+                  type: VARCHAR(255)
+              - column:
+                  name: criado_em
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: cme_lotes_etiqueta
+            columnNames: tenant_id, codigo
+            constraintName: uq_cme_lote_codigo
+        - addForeignKeyConstraint:
+            baseTableName: cme_lotes_etiqueta
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_cme_lote_tenant
+        - addForeignKeyConstraint:
+            baseTableName: cme_lotes_etiqueta
+            baseColumnNames: kit_versao_id
+            referencedTableName: cme_kits_versao
+            referencedColumnNames: id
+            constraintName: fk_cme_lote_kit_versao
+        - addForeignKeyConstraint:
+            baseTableName: cme_lotes_etiqueta
+            baseColumnNames: montado_por_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_cme_lote_montado_por
+  - changeSet:
+      id: V6-8
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: cme_autoclaves
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: nome
+                  type: VARCHAR(120)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: fabricante
+                  type: VARCHAR(120)
+              - column:
+                  name: modelo
+                  type: VARCHAR(120)
+              - column:
+                  name: numero_serie
+                  type: VARCHAR(120)
+              - column:
+                  name: localizacao
+                  type: VARCHAR(120)
+              - column:
+                  name: ultima_higienizacao_profunda
+                  type: DATE
+              - column:
+                  name: ativo
+                  type: BOOLEAN
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: cme_autoclaves
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_cme_autoclave_tenant
+  - changeSet:
+      id: V6-9
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: cme_planos_preventivo_autoclave
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: autoclave_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: periodicidade_dias
+                  type: INTEGER
+              - column:
+                  name: limite_ciclos
+                  type: INTEGER
+              - column:
+                  name: proxima_execucao_prevista
+                  type: DATE
+              - column:
+                  name: descricao
+                  type: VARCHAR(255)
+        - addForeignKeyConstraint:
+            baseTableName: cme_planos_preventivo_autoclave
+            baseColumnNames: autoclave_id
+            referencedTableName: cme_autoclaves
+            referencedColumnNames: id
+            constraintName: fk_cme_plano_autoclave
+  - changeSet:
+      id: V6-10
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: cme_manutencoes_autoclave
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: autoclave_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: tipo
+                  type: VARCHAR(30)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(30)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: data_agendamento
+                  type: DATE
+              - column:
+                  name: data_execucao
+                  type: DATE
+              - column:
+                  name: responsavel_tecnico
+                  type: VARCHAR(150)
+              - column:
+                  name: observacoes
+                  type: VARCHAR(255)
+        - addForeignKeyConstraint:
+            baseTableName: cme_manutencoes_autoclave
+            baseColumnNames: autoclave_id
+            referencedTableName: cme_autoclaves
+            referencedColumnNames: id
+            constraintName: fk_cme_manutencao_autoclave
+        - createTable:
+            tableName: cme_manutencao_evidencias
+            columns:
+              - column:
+                  name: manutencao_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: evidencia_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: cme_manutencao_evidencias
+            columnNames: manutencao_id, evidencia_id
+            constraintName: pk_cme_manutencao_evidencia
+        - addForeignKeyConstraint:
+            baseTableName: cme_manutencao_evidencias
+            baseColumnNames: manutencao_id
+            referencedTableName: cme_manutencoes_autoclave
+            referencedColumnNames: id
+            constraintName: fk_cme_manutencao_evidencia_manutencao
+        - addForeignKeyConstraint:
+            baseTableName: cme_manutencao_evidencias
+            baseColumnNames: evidencia_id
+            referencedTableName: evidencias_arquivo
+            referencedColumnNames: id
+            constraintName: fk_cme_manutencao_evidencia_evidencia
+  - changeSet:
+      id: V6-11
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: cme_higienizacoes_autoclave_profunda
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: autoclave_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: data_realizacao
+                  type: DATE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: responsavel_id
+                  type: BIGINT
+              - column:
+                  name: observacoes
+                  type: VARCHAR(255)
+        - addForeignKeyConstraint:
+            baseTableName: cme_higienizacoes_autoclave_profunda
+            baseColumnNames: autoclave_id
+            referencedTableName: cme_autoclaves
+            referencedColumnNames: id
+            constraintName: fk_cme_hig_autoclave
+        - addForeignKeyConstraint:
+            baseTableName: cme_higienizacoes_autoclave_profunda
+            baseColumnNames: responsavel_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_cme_hig_autoclave_responsavel
+        - createTable:
+            tableName: cme_hig_autoclave_evidencias
+            columns:
+              - column:
+                  name: higienizacao_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: evidencia_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: cme_hig_autoclave_evidencias
+            columnNames: higienizacao_id, evidencia_id
+            constraintName: pk_cme_hig_autoclave_evidencias
+        - addForeignKeyConstraint:
+            baseTableName: cme_hig_autoclave_evidencias
+            baseColumnNames: higienizacao_id
+            referencedTableName: cme_higienizacoes_autoclave_profunda
+            referencedColumnNames: id
+            constraintName: fk_cme_hig_autoclave_evidencia
+        - addForeignKeyConstraint:
+            baseTableName: cme_hig_autoclave_evidencias
+            baseColumnNames: evidencia_id
+            referencedTableName: evidencias_arquivo
+            referencedColumnNames: id
+            constraintName: fk_cme_hig_autoclave_evidencia_file
+  - changeSet:
+      id: V6-12
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: cme_higienizacoes_ultrassonica
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: data_realizacao
+                  type: DATE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: equipamento_descricao
+                  type: VARCHAR(255)
+              - column:
+                  name: responsavel_id
+                  type: BIGINT
+              - column:
+                  name: observacoes
+                  type: VARCHAR(255)
+        - addForeignKeyConstraint:
+            baseTableName: cme_higienizacoes_ultrassonica
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_cme_hig_ultra_tenant
+        - addForeignKeyConstraint:
+            baseTableName: cme_higienizacoes_ultrassonica
+            baseColumnNames: responsavel_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_cme_hig_ultra_responsavel
+        - createTable:
+            tableName: cme_hig_ultrassonica_evidencias
+            columns:
+              - column:
+                  name: higienizacao_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: evidencia_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: cme_hig_ultrassonica_evidencias
+            columnNames: higienizacao_id, evidencia_id
+            constraintName: pk_cme_hig_ultra_evidencias
+        - addForeignKeyConstraint:
+            baseTableName: cme_hig_ultrassonica_evidencias
+            baseColumnNames: higienizacao_id
+            referencedTableName: cme_higienizacoes_ultrassonica
+            referencedColumnNames: id
+            constraintName: fk_cme_hig_ultra_evidencia_higienizacao
+        - addForeignKeyConstraint:
+            baseTableName: cme_hig_ultrassonica_evidencias
+            baseColumnNames: evidencia_id
+            referencedTableName: evidencias_arquivo
+            referencedColumnNames: id
+            constraintName: fk_cme_hig_ultra_evidencia
+  - changeSet:
+      id: V6-13
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: cme_testes_bowie_dick
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: autoclave_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: data_execucao
+                  type: DATE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: resultado
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: executado_por_id
+                  type: BIGINT
+              - column:
+                  name: observacoes
+                  type: VARCHAR(255)
+        - addForeignKeyConstraint:
+            baseTableName: cme_testes_bowie_dick
+            baseColumnNames: autoclave_id
+            referencedTableName: cme_autoclaves
+            referencedColumnNames: id
+            constraintName: fk_cme_bowiedick_autoclave
+        - addForeignKeyConstraint:
+            baseTableName: cme_testes_bowie_dick
+            baseColumnNames: executado_por_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_cme_bowiedick_executor
+        - createTable:
+            tableName: cme_bowiedick_evidencias
+            columns:
+              - column:
+                  name: teste_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: evidencia_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: cme_bowiedick_evidencias
+            columnNames: teste_id, evidencia_id
+            constraintName: pk_cme_bowiedick_evidencias
+        - addForeignKeyConstraint:
+            baseTableName: cme_bowiedick_evidencias
+            baseColumnNames: teste_id
+            referencedTableName: cme_testes_bowie_dick
+            referencedColumnNames: id
+            constraintName: fk_cme_bowiedick_evidencia_teste
+        - addForeignKeyConstraint:
+            baseTableName: cme_bowiedick_evidencias
+            baseColumnNames: evidencia_id
+            referencedTableName: evidencias_arquivo
+            referencedColumnNames: id
+            constraintName: fk_cme_bowiedick_evidencia_file
+  - changeSet:
+      id: V6-14
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: cme_ciclos_esterilizacao
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: autoclave_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: lote_id
+                  type: BIGINT
+              - column:
+                  name: inicio
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: fim
+                  type: TIMESTAMP
+              - column:
+                  name: duracao_minutos
+                  type: INTEGER
+              - column:
+                  name: temperatura_maxima
+                  type: DOUBLE
+              - column:
+                  name: pressao_maxima
+                  type: DOUBLE
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: liberado_por_id
+                  type: BIGINT
+              - column:
+                  name: observacoes
+                  type: VARCHAR(255)
+        - addForeignKeyConstraint:
+            baseTableName: cme_ciclos_esterilizacao
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_cme_ciclo_tenant
+        - addForeignKeyConstraint:
+            baseTableName: cme_ciclos_esterilizacao
+            baseColumnNames: autoclave_id
+            referencedTableName: cme_autoclaves
+            referencedColumnNames: id
+            constraintName: fk_cme_ciclo_autoclave
+        - addForeignKeyConstraint:
+            baseTableName: cme_ciclos_esterilizacao
+            baseColumnNames: lote_id
+            referencedTableName: cme_lotes_etiqueta
+            referencedColumnNames: id
+            constraintName: fk_cme_ciclo_lote
+        - addForeignKeyConstraint:
+            baseTableName: cme_ciclos_esterilizacao
+            baseColumnNames: liberado_por_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_cme_ciclo_liberado_por
+  - changeSet:
+      id: V6-15
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: cme_indicadores_quimicos
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: ciclo_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: tipo
+                  type: VARCHAR(120)
+              - column:
+                  name: resultado
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: observacoes
+                  type: VARCHAR(255)
+        - addForeignKeyConstraint:
+            baseTableName: cme_indicadores_quimicos
+            baseColumnNames: ciclo_id
+            referencedTableName: cme_ciclos_esterilizacao
+            referencedColumnNames: id
+            constraintName: fk_cme_indicador_quimico_ciclo
+        - createTable:
+            tableName: cme_indicador_quimico_evidencias
+            columns:
+              - column:
+                  name: indicador_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: evidencia_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: cme_indicador_quimico_evidencias
+            columnNames: indicador_id, evidencia_id
+            constraintName: pk_cme_indicador_quimico_evidencias
+        - addForeignKeyConstraint:
+            baseTableName: cme_indicador_quimico_evidencias
+            baseColumnNames: indicador_id
+            referencedTableName: cme_indicadores_quimicos
+            referencedColumnNames: id
+            constraintName: fk_cme_indicador_quimico_evidencia
+        - addForeignKeyConstraint:
+            baseTableName: cme_indicador_quimico_evidencias
+            baseColumnNames: evidencia_id
+            referencedTableName: evidencias_arquivo
+            referencedColumnNames: id
+            constraintName: fk_cme_indicador_quimico_evidencia_file
+  - changeSet:
+      id: V6-16
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: cme_indicadores_biologicos
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: ciclo_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: lote_indicador
+                  type: VARCHAR(120)
+              - column:
+                  name: incubadora
+                  type: VARCHAR(120)
+              - column:
+                  name: leitura_em
+                  type: DATE
+              - column:
+                  name: resultado
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: observacoes
+                  type: VARCHAR(255)
+        - addForeignKeyConstraint:
+            baseTableName: cme_indicadores_biologicos
+            baseColumnNames: ciclo_id
+            referencedTableName: cme_ciclos_esterilizacao
+            referencedColumnNames: id
+            constraintName: fk_cme_indicador_biologico_ciclo
+        - createTable:
+            tableName: cme_indicador_biologico_evidencias
+            columns:
+              - column:
+                  name: indicador_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: evidencia_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: cme_indicador_biologico_evidencias
+            columnNames: indicador_id, evidencia_id
+            constraintName: pk_cme_indicador_biologico_evidencias
+        - addForeignKeyConstraint:
+            baseTableName: cme_indicador_biologico_evidencias
+            baseColumnNames: indicador_id
+            referencedTableName: cme_indicadores_biologicos
+            referencedColumnNames: id
+            constraintName: fk_cme_indicador_biologico_evidencia
+        - addForeignKeyConstraint:
+            baseTableName: cme_indicador_biologico_evidencias
+            baseColumnNames: evidencia_id
+            referencedTableName: evidencias_arquivo
+            referencedColumnNames: id
+            constraintName: fk_cme_indicador_biologico_evidencia_file
+  - changeSet:
+      id: V6-17
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: cme_movimentacoes
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: lote_id
+                  type: BIGINT
+              - column:
+                  name: setor_origem_id
+                  type: BIGINT
+              - column:
+                  name: setor_destino_id
+                  type: BIGINT
+              - column:
+                  name: tipo
+                  type: VARCHAR(30)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: data_hora
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: responsavel_id
+                  type: BIGINT
+              - column:
+                  name: observacoes
+                  type: VARCHAR(255)
+        - addForeignKeyConstraint:
+            baseTableName: cme_movimentacoes
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_cme_movimentacao_tenant
+        - addForeignKeyConstraint:
+            baseTableName: cme_movimentacoes
+            baseColumnNames: lote_id
+            referencedTableName: cme_lotes_etiqueta
+            referencedColumnNames: id
+            constraintName: fk_cme_movimentacao_lote
+        - addForeignKeyConstraint:
+            baseTableName: cme_movimentacoes
+            baseColumnNames: setor_origem_id
+            referencedTableName: cme_setores
+            referencedColumnNames: id
+            constraintName: fk_cme_movimentacao_setor_origem
+        - addForeignKeyConstraint:
+            baseTableName: cme_movimentacoes
+            baseColumnNames: setor_destino_id
+            referencedTableName: cme_setores
+            referencedColumnNames: id
+            constraintName: fk_cme_movimentacao_setor_destino
+        - addForeignKeyConstraint:
+            baseTableName: cme_movimentacoes
+            baseColumnNames: responsavel_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_cme_movimentacao_responsavel
+  - changeSet:
+      id: V6-18
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: cme_saneantes_peracetico_lote
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: numero_lote
+                  type: VARCHAR(120)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: fabricante
+                  type: VARCHAR(120)
+              - column:
+                  name: concentracao
+                  type: VARCHAR(60)
+              - column:
+                  name: data_validade
+                  type: DATE
+              - column:
+                  name: data_abertura
+                  type: DATE
+              - column:
+                  name: volume_inicial_ml
+                  type: DOUBLE
+              - column:
+                  name: observacoes
+                  type: VARCHAR(255)
+        - addForeignKeyConstraint:
+            baseTableName: cme_saneantes_peracetico_lote
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_cme_saneante_tenant
+  - changeSet:
+      id: V6-19
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: cme_usos_saneante
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: lote_saneante_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: data_uso
+                  type: DATE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: etapa
+                  type: VARCHAR(40)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: volume_utilizado_ml
+                  type: DOUBLE
+              - column:
+                  name: diluicao
+                  type: VARCHAR(120)
+              - column:
+                  name: usado_por_id
+                  type: BIGINT
+              - column:
+                  name: observacoes
+                  type: VARCHAR(255)
+        - addForeignKeyConstraint:
+            baseTableName: cme_usos_saneante
+            baseColumnNames: lote_saneante_id
+            referencedTableName: cme_saneantes_peracetico_lote
+            referencedColumnNames: id
+            constraintName: fk_cme_uso_saneante_lote
+        - addForeignKeyConstraint:
+            baseTableName: cme_usos_saneante
+            baseColumnNames: usado_por_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_cme_uso_saneante_usuario
+  - changeSet:
+      id: V6-20
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: cme_exames_cultura
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: origem_amostra
+                  type: VARCHAR(120)
+              - column:
+                  name: data_coleta
+                  type: DATE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: responsavel_coleta
+                  type: VARCHAR(150)
+              - column:
+                  name: resultado
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: registrado_por_id
+                  type: BIGINT
+              - column:
+                  name: observacoes
+                  type: VARCHAR(255)
+        - addForeignKeyConstraint:
+            baseTableName: cme_exames_cultura
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_cme_exame_tenant
+        - addForeignKeyConstraint:
+            baseTableName: cme_exames_cultura
+            baseColumnNames: registrado_por_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_cme_exame_registrado_por
+        - createTable:
+            tableName: cme_exame_cultura_evidencias
+            columns:
+              - column:
+                  name: exame_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: evidencia_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: cme_exame_cultura_evidencias
+            columnNames: exame_id, evidencia_id
+            constraintName: pk_cme_exame_cultura_evidencias
+        - addForeignKeyConstraint:
+            baseTableName: cme_exame_cultura_evidencias
+            baseColumnNames: exame_id
+            referencedTableName: cme_exames_cultura
+            referencedColumnNames: id
+            constraintName: fk_cme_exame_evidencia_exame
+        - addForeignKeyConstraint:
+            baseTableName: cme_exame_cultura_evidencias
+            baseColumnNames: evidencia_id
+            referencedTableName: evidencias_arquivo
+            referencedColumnNames: id
+            constraintName: fk_cme_exame_evidencia_file
+  - changeSet:
+      id: V6-21
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: cme_nao_conformidades
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: titulo
+                  type: VARCHAR(150)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: descricao
+                  type: VARCHAR(255)
+              - column:
+                  name: severidade
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(30)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: data_abertura
+                  type: DATE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: data_encerramento
+                  type: DATE
+              - column:
+                  name: responsavel_id
+                  type: BIGINT
+              - column:
+                  name: plano_acao_resumo
+                  type: VARCHAR(255)
+        - addForeignKeyConstraint:
+            baseTableName: cme_nao_conformidades
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_cme_nao_conformidade_tenant
+        - addForeignKeyConstraint:
+            baseTableName: cme_nao_conformidades
+            baseColumnNames: responsavel_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_cme_nao_conformidade_responsavel
+        - createTable:
+            tableName: cme_nao_conformidade_evidencias
+            columns:
+              - column:
+                  name: nao_conformidade_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: evidencia_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: cme_nao_conformidade_evidencias
+            columnNames: nao_conformidade_id, evidencia_id
+            constraintName: pk_cme_nao_conformidade_evidencias
+        - addForeignKeyConstraint:
+            baseTableName: cme_nao_conformidade_evidencias
+            baseColumnNames: nao_conformidade_id
+            referencedTableName: cme_nao_conformidades
+            referencedColumnNames: id
+            constraintName: fk_cme_nao_conformidade_evidencia
+        - addForeignKeyConstraint:
+            baseTableName: cme_nao_conformidade_evidencias
+            baseColumnNames: evidencia_id
+            referencedTableName: evidencias_arquivo
+            referencedColumnNames: id
+            constraintName: fk_cme_nao_conformidade_evidencia_file
+  - changeSet:
+      id: V6-22
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: cme_geracoes_residuo
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: data_registro
+                  type: DATE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: tipo_residuo
+                  type: VARCHAR(120)
+              - column:
+                  name: peso_estimado_kg
+                  type: DOUBLE
+              - column:
+                  name: destino_final
+                  type: VARCHAR(255)
+              - column:
+                  name: lote_id
+                  type: BIGINT
+              - column:
+                  name: saneante_id
+                  type: BIGINT
+              - column:
+                  name: observacoes
+                  type: VARCHAR(255)
+        - addForeignKeyConstraint:
+            baseTableName: cme_geracoes_residuo
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_cme_residuo_tenant
+        - addForeignKeyConstraint:
+            baseTableName: cme_geracoes_residuo
+            baseColumnNames: lote_id
+            referencedTableName: cme_lotes_etiqueta
+            referencedColumnNames: id
+            constraintName: fk_cme_residuo_lote
+        - addForeignKeyConstraint:
+            baseTableName: cme_geracoes_residuo
+            baseColumnNames: saneante_id
+            referencedTableName: cme_saneantes_peracetico_lote
+            referencedColumnNames: id
+            constraintName: fk_cme_residuo_saneante
