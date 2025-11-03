@@ -32,9 +32,9 @@ Cada etapa é registrada digitalmente, com rastreabilidade por **etiqueta e QR C
     - Data/hora da entrada;
     - Responsável pelo recebimento (`User`);
     - Condição do material.
-- **Entidades envolvidas:** `MovimentacaoKit`, `Setor`.
+- **Entidades envolvidas:** `Movimentacao`, `Setor`, `GeracaoResiduo` (quando há descarte imediato).
 
-**Validação:**  
+**Validação:**
 → Caso o material apresente irregularidades (ex.: ausência de identificação ou danos), é aberto um registro de **não conformidade** (`NaoConformidadeCME`).
 
 ---
@@ -49,6 +49,7 @@ Cada etapa é registrada digitalmente, com rastreabilidade por **etiqueta e QR C
     - Enxágue e secagem.
 - **Checklist obrigatório:**
     - Registro diário da **Higienização da Lavadora Ultrassônica** (`HigienizacaoUltrassonica`).
+    - Upload do checklist assinado/fotografado como **evidência digital** (`EvidenciaArquivo`).
 
 **Regras de sistema:**
 - A liberação de ciclos de esterilização é **bloqueada** caso o checklist do dia **não esteja registrado**.
@@ -59,7 +60,7 @@ Cada etapa é registrada digitalmente, com rastreabilidade por **etiqueta e QR C
 
 **Objetivo:** reorganizar os instrumentais conforme os kits cirúrgicos padronizados.
 
-- **Referência:** `KitCirurgico` (lista de peças e quantidades esperadas).
+- **Referência:** `KitProcedimento` e suas versões vigentes (`KitVersion`) – permitem rastrear alterações na composição.
 - **Campos obrigatórios na montagem (`LoteEtiqueta`):**
     - Data e hora do empacotamento;
     - Nome e COREN do colaborador;
@@ -67,6 +68,8 @@ Cada etapa é registrada digitalmente, com rastreabilidade por **etiqueta e QR C
     - Geração automática do **QR Code de rastreabilidade**.
 - **Controle de validade:**
     - Cada lote recebe uma **data de validade** (conforme tipo de embalagem e POP vigente).
+- **Evidências anexas:**
+    - Fotos do kit montado, checklist de conferência e registros de conferência anexados em `EvidenciaArquivo`.
 
 ---
 
@@ -81,7 +84,7 @@ Cada etapa é registrada digitalmente, com rastreabilidade por **etiqueta e QR C
 #### b) **Teste Bowie-Dick (BD)**
 - Verifica a **remoção do ar** e a **penetração de vapor saturado**.
 - Executado **no primeiro ciclo do dia**.
-- Resultado registrado em `TesteBowieDick`.
+- Resultado registrado em `TesteBowieDick`, com anexos digitais (foto do indicador, relatório do equipamento) via `EvidenciaArquivo`.
 - Se **falhar**, bloqueia a execução de novos ciclos.
 
 #### c) **Ciclo de Esterilização**
@@ -92,11 +95,11 @@ Cada etapa é registrada digitalmente, com rastreabilidade por **etiqueta e QR C
     - Operador responsável (`User`).
 
 #### d) **Indicadores Químicos (CI)**
-- Registrados em `IndicadorQuimico`.
+- Registrados em `IndicadorQuimico`, com anexação das tiras digitalizadas (`EvidenciaArquivo`).
 - Verificam exposição às condições adequadas do ciclo (mudança de cor).
 
 #### e) **Indicadores Biológicos (BI)**
-- Registrados em `IndicadorBiologico`.
+- Registrados em `IndicadorBiologico`, incluindo leitura fotográfica e relatório do incubador anexados (`EvidenciaArquivo`).
 - Confirmam a **eficácia do processo** (ausência de crescimento microbiano).
 
 #### f) **Critério de Liberação**
@@ -114,7 +117,7 @@ Cada etapa é registrada digitalmente, com rastreabilidade por **etiqueta e QR C
 **Objetivo:** garantir conservação e rastreabilidade dos materiais até o uso.
 
 - **Armazenamento:** área limpa, identificada e controlada.
-- **Distribuição:** feita mediante **movimentação registrada** (`MovimentacaoKit`):
+- **Distribuição:** feita mediante **movimentação registrada** (`Movimentacao`):
     - Setor de destino;
     - Data e hora;
     - Responsável pela entrega e recebimento.
@@ -128,7 +131,7 @@ Cada etapa é registrada digitalmente, com rastreabilidade por **etiqueta e QR C
 **Objetivo:** fechar o ciclo do material.
 
 - Após o uso, o material retorna à CME como **“contaminado”**.
-- Evento registrado como nova `MovimentacaoKit` com tipo `RETORNO_CONTAMINADO`.
+- Evento registrado como nova `Movimentacao` com tipo `RETORNO_CONTAMINADO`.
 - Esse registro vincula o mesmo **QR Code** do lote original, garantindo **rastreabilidade reversa** (CME → Setor → CME).
 
 ---
@@ -137,9 +140,12 @@ Cada etapa é registrada digitalmente, com rastreabilidade por **etiqueta e QR C
 
 **Objetivo:** monitorar desempenho, segurança e conformidade.
 
-- **Inspeções diárias:** `InspecaoPecas` (nº de caixas, peças e avulsos conferidos).
+- **Inspeções diárias:** `InspecaoMaterial` (nº de caixas, peças e avulsos conferidos).
 - **Culturas:** `ExameCultura` — coleta e resultado de amostras de kits, autoclaves ou superfícies.
+- **Laudos laboratoriais:** anexados ao `ExameCultura` por meio de `EvidenciaArquivo` (PDF, imagens, documentos estruturados).
 - **Não Conformidades:** `NaoConformidadeCME` — abertura automática quando falhas são registradas.
+- **Planos de ação corporativos:** a `NaoConformidadeCME` herda `NaoConformidadeBase` (Qualidade) e gera/atualiza `PlanoAcaoQualidade`, com anexação de relatórios de investigação, atas e evidências de conclusão.
+- **Gestão ambiental:** falhas com descarte de materiais ou saneantes geram vínculos com `GeracaoResiduo` para rastrear manifestos e destino final.
 - **Indicadores de Desempenho:**
     - % de ciclos com BD/BI/CI conformes
     - % de kits rastreados completos
@@ -161,6 +167,22 @@ Cada etapa é registrada digitalmente, com rastreabilidade por **etiqueta e QR C
     - Saneantes com prazo de validade vencendo;
     - Kits prestes a vencer;
     - Falhas de indicadores.
+7. **Acionamento automático de planos de ação** (Qualidade) sempre que a severidade da não conformidade exigir investigação formal.
+8. **Registro centralizado de evidências** (imagens, PDFs, laudos) obrigatório para liberações críticas e auditorias.
+
+---
+
+## 📁 **Repositório central de evidências**
+
+O módulo CME utiliza a entidade `EvidenciaArquivo` (pacote core) para consolidar **imagens, PDFs e documentos laboratoriais**. Os anexos ficam relacionados a testes (BD/CI/BI), checklists, higienizações, não conformidades, planos de ação e exames de cultura. Cada evidência guarda tipo, autor, hash e URI do arquivo, garantindo autenticidade e rastreabilidade para auditorias internas, ONA e vigilância sanitária.
+
+---
+
+## 🌱 **Integração com PGRSS e Qualidade Corporativa**
+
+- **GeracaoResiduo (ambiental):** vincula descartes oriundos de usos de saneantes, perdas de material ou reprovações de kits, permitindo acompanhar peso estimado, classe de resíduo e manifesto de coleta.
+- **NaoConformidadeBase / PlanoAcaoQualidade:** padronizam investigação, tratativas, responsáveis e prazos, com indicadores corporativos compartilhados com outros módulos (Farmácia, CC, Hotelaria).
+- **Evidências compartilhadas:** relatórios ambientais, comprovantes de destinação, atas de reunião e fotos de correções ficam anexadas ao mesmo repositório digital.
 
 ---
 
@@ -182,13 +204,14 @@ Cada etapa é registrada digitalmente, com rastreabilidade por **etiqueta e QR C
 |-----------|-----------------|
 | `Autoclave` | Equipamento de esterilização. |
 | `CicloEsterilizacao` | Registro técnico do processo de esterilização. |
-| `TesteBowieDick`, `IndicadorBiologico`, `IndicadorQuimico` | Evidências de eficácia. |
+| `TesteBowieDick`, `IndicadorBiologico`, `IndicadorQuimico` | Evidências de eficácia com anexos digitais. |
 | `LoteEtiqueta` | Identificador único de cada kit, com QR Code e validade. |
-| `KitCirurgico`, `Instrumento`, `KitItem` | Estrutura e composição dos materiais. |
-| `HigienizacaoUltrassonica`, `HigienizacaoAutoclaveProfunda` | Controle de limpeza de equipamentos. |
-| `SaneantePeraceticoLote`, `UsoSaneante` | Controle químico e diluição. |
-| `MovimentacaoKit`, `Setor` | Rastreabilidade logística. |
-| `ExameCultura`, `NaoConformidadeCME` | Controle de qualidade e segurança. |
+| `KitProcedimento`, `KitVersion`, `KitItem`, `Instrumento` | Estrutura modular e versionada dos materiais. |
+| `HigienizacaoUltrassonica`, `HigienizacaoAutoclaveProfunda` | Controle de limpeza de equipamentos com checklist digital. |
+| `SaneantePeraceticoLote`, `UsoSaneante`, `GeracaoResiduo` | Controle químico, diluição e descarte ambiental. |
+| `Movimentacao`, `Setor` | Rastreabilidade logística. |
+| `ExameCultura`, `EvidenciaArquivo` | Gestão de laudos laboratoriais e anexos. |
+| `NaoConformidadeCME`, `NaoConformidadeBase`, `PlanoAcaoQualidade` | Gestão corporativa de não conformidades e planos de ação. |
 
 ---
 
