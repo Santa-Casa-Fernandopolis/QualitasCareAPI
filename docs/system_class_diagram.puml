@@ -3,390 +3,356 @@ skinparam backgroundColor #FFFFFF
 skinparam packageStyle rect
 skinparam classAttributeIconSize 0
 skinparam linetype ortho
+hide empty members
 
-package "QualitasCare API" {
-  class QualitasCareApiApplication
+' ============ pacotes ============
+' ================== Pacote: observability.security ==================
+package "com.erp.qualitascareapi.observability.security" as observability.security.obs_sec {
 
-  package "Configuration" {
-    class SecurityConfig
-    class ObservabilityConfiguration
-    class DevTestDataInitializer
-    class AuthorizationServerConfig
-    class Jwks
+  class SecurityAuditLogController <<RestController>> {
+    +search(from: Instant, to: Instant, username: String,
+            eventType: SecurityAuditEventType, traceId: String,
+            page: int = 0, size: int = 20)
+      : Page<SecurityAuditLogResponse>
+    --
+    {static} @RequestMapping("/api/logs/security")
+    GET /api/logs/security
   }
 
-  package "IAM" {
-    package "API" {
-      class TenantController <<RestController>> {
-        +listTenants()
-        +getTenant(id)
-        +createTenant()
-        +updateTenant(id)
-        +deleteTenant(id)
-      }
-      class UserController <<RestController>> {
-        +listUsers()
-        +getUser(id)
-        +createUser()
-        +updateUser(id)
-        +deleteUser(id)
-      }
-    }
-    package "Application" {
-      class TenantService <<Service>>
-      class UserService <<Service>>
-      class LocalUserDetailsService <<Service>>
-      class AuthenticatedUserDetails
-    }
-    package "Repository" {
-      interface TenantRepository <<Repository>>
-      interface UserRepository <<Repository>>
-    }
-    package "Domain" {
-      class Tenant {
-        +id: Long
-        +code: String
-        +name: String
-        +active: boolean
-      }
-      class User {
-        +id: Long
-        +username: String
-        +passwordHash: String
-        +fullName: String
-        +department: String
-        +status: UserStatus
-        +origin: IdentityOrigin
-        +createdAt: LocalDateTime
-        +activatedAt: LocalDateTime
-        +expiresAt: LocalDateTime
-        +updatedAt: LocalDateTime
-      }
-    }
+  class SecurityAuditQueryService <<Service>>
+
+  class SecurityAuditEventFilter <<Filter>> {
+    -from: Instant
+    -to: Instant
+    -username: String
+    -eventType: SecurityAuditEventType
+    -traceId: String
   }
 
-  package "Security" {
-    package "API" {
-      class RoleController <<RestController>> {
-        +listRoles()
-        +getRole(id)
-        +createRole()
-        +updateRole(id)
-        +deleteRole(id)
-      }
-      class PermissionController <<RestController>> {
-        +listPermissions()
-        +getPermission(id)
-        +createPermission()
-        +updatePermission(id)
-        +deletePermission(id)
-      }
-      class PolicyController <<RestController>> {
-        +listPolicies()
-        +getPolicy(id)
-        +createPolicy()
-        +updatePolicy(id)
-        +deletePolicy(id)
-      }
-      class RolePermissionController <<RestController>> {
-        +listRolePermissions()
-        +getRolePermission(id)
-        +createRolePermission()
-        +updateRolePermission(id)
-        +deleteRolePermission(id)
-      }
-      class UserPermissionOverrideController <<RestController>> {
-        +listUserOverrides()
-        +getUserOverride(id)
-        +createUserOverride()
-        +updateUserOverride(id)
-        +deleteUserOverride(id)
-      }
-    }
-    package "Application" {
-      class RoleService <<Service>>
-      class PermissionService <<Service>>
-      class PolicyService <<Service>>
-      class RolePermissionService <<Service>>
-      class UserPermissionOverrideService <<Service>>
-      class AccessDecisionServiceImpl <<Service>>
-      interface AccessDecisionService
-      class PolicyEvaluator
-      class TargetLoader
-      class CurrentUserExtractor
-    }
-    package "Repository" {
-      interface RoleRepository <<Repository>>
-      interface PermissionRepository <<Repository>>
-      interface PolicyRepository <<Repository>>
-      interface RolePermissionRepository <<Repository>>
-      interface UserPermissionOverrideRepository <<Repository>>
-    }
-    package "Domain" {
-      class Role {
-        +id: Long
-        +name: String
-        +description: String
-      }
-      class Permission {
-        +id: Long
-        +resource: ResourceType
-        +action: Action
-        +feature: String
-        +code: String
-      }
-      class Policy {
-        +id: Long
-        +resource: ResourceType
-        +action: Action
-        +feature: String
-        +effect: Effect
-        +enabled: boolean
-        +priority: int
-        +description: String
-      }
-      class PolicyCondition {
-        +id: Long
-        +type: String
-        +operator: String
-        +value: String
-      }
-      class RolePermission {
-        +id: Long
-      }
-      class UserPermissionOverride {
-        +id: Long
-        +resource: ResourceType
-        +action: Action
-        +feature: String
-        +effect: Effect
-        +priority: int
-        +reason: String
-        +validFrom: LocalDateTime
-        +validUntil: LocalDateTime
-        +approved: boolean
-        +dualApprovalRequired: boolean
-        +requestedBy: String
-        +approvedBy: String
-        +approvedAt: LocalDateTime
-      }
-    }
+  class SecurityAuditLogResponse <<DTO>> {
+    -id: Long
+    -timestamp: Instant
+    -username: String
+    -eventType: SecurityAuditEventType
+    -clientIp: String
+    -traceId: String
+    -description: String
   }
 
-  package "Observability" {
-    package "Security Audit" {
-      class SecurityAuditLogController <<RestController>> {
-        +getSecurityLogs()
-      }
-      class SecurityAuditQueryService <<Service>>
-      interface SecurityAuditEventRepository <<Repository>>
-      class SecurityAuditEvent {
-        +id: Long
-        +timestamp: Instant
-        +username: String
-        +eventType: SecurityAuditEventType
-        +clientIp: String
-        +traceId: String
-        +description: String
-      }
-      enum SecurityAuditEventType {
-        AUTHENTICATION_SUCCESS
-        AUTHENTICATION_FAILURE
-        AUTHORIZATION_FAILURE
-      }
-      class SecurityAuditEventListener
-      class SecurityAuditEventFilter
-    }
-    package "Data Audit" {
-      class DataAuditLogController <<RestController>> {
-        +getDataLog(entityAlias, id)
-      }
-      class DataAuditQueryService <<Service>>
-      class AuditRevisionEntity {
-        +id: Long
-        +timestamp: long
-        +username: String
-        +clientIp: String
-      }
-      class AuditRevisionListener
-      class DataAuditEntry {
-        +revisionId: Long
-        +timestamp: Instant
-        +username: String
-        +clientIp: String
-        +state: Map<String, Object>
-      }
-    }
-    package "Logging" {
-      class OperationalLogController <<RestController>> {
-        +getOperationalLogs()
-      }
-      class RequestLogQueryService <<Service>>
-      interface RequestLogRepository <<Repository>>
-      class RequestLog {
-        +id: Long
-        +timestamp: Instant
-        +method: String
-        +path: String
-        +status: int
-        +durationMs: long
-        +traceId: String
-        +userId: String
-        +clientIp: String
-        +httpVersion: String
-        +contentLength: Long
-      }
-      class RequestLoggingFilter
-      class RequestLogFilter
-      class CorrelationFilter
-    }
-  package "Core" {
-    package "Domain" {
-      class Setor { +id: Long }
-      class Instrumento { +id: Long }
-      class KitProcedimento { +id: Long }
-      class KitVersion { +id: Long }
-      class KitItem { +id: Long }
-      class ExameCultura { +id: Long }
-      enum TipoSetor
-      enum ExameCulturaResultado
-    }
-    package "Repository" {
-      interface SetorRepository <<Repository>>
-      interface InstrumentoRepository <<Repository>>
-      interface KitProcedimentoRepository <<Repository>>
-      interface KitVersionRepository <<Repository>>
-      interface KitItemRepository <<Repository>>
-      interface ExameCulturaRepository <<Repository>>
-    }
+  class SecurityAuditEvent <<Entity>> {
+    -id: Long
+    -timestamp: Instant
+    -username: String
+    -eventType: SecurityAuditEventType
+    -clientIp: String
+    -traceId: String
+    -description: String
   }
 
-  package "Quality" {
-    package "Domain" {
-      interface NaoConformidadeBase
-      class TipoNaoConformidade { +id: Long }
-      enum NaoConformidadeStatus
-    }
-    package "Repository" {
-      interface TipoNaoConformidadeRepository <<Repository>>
-    }
+  enum SecurityAuditEventType {
+    AUTHENTICATION_SUCCESS
+    AUTHENTICATION_FAILURE
+    AUTHORIZATION_FAILURE
   }
 
-  package "Environmental" {
-    package "Domain" {
-      class GeracaoResiduo { +id: Long }
-      enum ClasseResiduo
-    }
-    package "Repository" {
-      interface GeracaoResiduoRepository <<Repository>>
-    }
+  ' Relações
+  observability.security.SecurityAuditLogController --> observability.security.SecurityAuditQueryService : uses
+  observability.security.SecurityAuditLogController --> observability.security.SecurityAuditLogResponse
+  observability.security.SecurityAuditLogController --> observability.security.SecurityAuditEventFilter
+  observability.security.SecurityAuditLogResponse --> observability.security.SecurityAuditEventType
+  observability.security.SecurityAuditEvent --> observability.security.SecurityAuditEventType
+  observability.security.SecurityAuditQueryService --> observability.security.SecurityAuditEvent : returns Page<>
+}
+
+' ================== Pacote: observability.logging ==================
+package "com.erp.qualitascareapi.observability.logging" as observability.logging.obs_log {
+
+  class OperationalLogController <<RestController>> {
+    +search(from: Instant, to: Instant, method: String,
+            status: Integer, userId: String, traceId: String, path: String,
+            page: int = 0, size: int = 20)
+      : Page<RequestLogResponse>
+    --
+    {static} @RequestMapping("/api/logs/operational")
+    GET /api/logs/operational
   }
 
-  package "CME" {
-    package "API" {
-      class AutoclaveController <<RestController>>
-      class LoteController <<RestController>>
-      class KitController <<RestController>>
-      class QualidadeController <<RestController>>
-      class SaneanteController <<RestController>>
-    }
+  class RequestLogQueryService <<Service>>
 
-    package "Application" {
-      class AutoclaveService <<Service>>
-      class LoteService <<Service>>
-      class KitService <<Service>>
-      class QualidadeService <<Service>>
-      class SaneanteService <<Service>>
-    }
-
-    package "Domain" {
-      class LoteEtiqueta { +id: Long }
-      class MovimentacaoCME { +id: Long }
-      class NaoConformidadeCME { +id: Long }
-      class UsoSaneante { +id: Long }
-      class IndicadorBiologico { +id: Long }
-      class IndicadorQuimico { +id: Long }
-      class Autoclave { +id: Long }
-    }
-
-    package "Repository" {
-      interface LoteEtiquetaRepository <<Repository>>
-      interface MovimentacaoCMERepository <<Repository>>
-      interface NaoConformidadeCMERepository <<Repository>>
-      interface SaneantePeraceticoLoteRepository <<Repository>>
-    }
+  class RequestLogFilter <<Filter>> {
+    -from: Instant
+    -to: Instant
+    -method: String
+    -status: Integer
+    -userId: String
+    -traceId: String
+    -path: String
   }
 
+  class RequestLogResponse <<DTO>> {
+    -id: Long
+    -timestamp: Instant
+    -method: String
+    -path: String
+    -status: int
+    -durationMs: long
+    -traceId: String
+    -userId: String
+    -clientIp: String
+    -httpVersion: String
+    -contentLength: Long
+  }
+
+  class RequestLog <<Entity>> {
+    -id: Long
+    -timestamp: Instant
+    -method: String
+    -path: String
+    -status: int
+    -durationMs: long
+    -traceId: String
+    -userId: String
+    -clientIp: String
+    -httpVersion: String
+    -contentLength: Long
+  }
+
+  ' Relações
+  observability.logging.OperationalLogController --> observability.logging.RequestLogQueryService : uses
+  observability.logging.OperationalLogController --> observability.logging.RequestLogResponse
+  observability.logging.OperationalLogController --> observability.logging.RequestLogFilter
+  observability.logging.RequestLogQueryService --> observability.logging.RequestLog : returns Page<>
+}
+
+' ================== Pacote: observability.audit (data/envers) ==================
+package "com.erp.qualitascareapi.observability.audit" as observability.audit.obs_audit {
+
+  class DataAuditLogController <<RestController>> {
+    +getRevisions(entityAlias: String, id: String) : List<DataAuditEntry>
+    --
+    {static} @RequestMapping("/api/logs/data")
+    GET /api/logs/data/{entityAlias}/{id}
+  }
+
+  class DataAuditQueryService <<Service>>
+
+  class DataAuditEntry <<DTO>> {
+    -revId: Long
+    -revTimestamp: Instant
+    -username: String
+    -clientIp: String
+    -changeType: String    ' INSERT/UPDATE/DELETE
+    -payloadDiff: String   ' opcional: JSON diff/patch
+  }
+
+  ' Relações
+  observability.audit.DataAuditLogController --> observability.audit.DataAuditQueryService : uses
+  observability.audit.DataAuditLogController --> observability.audit.DataAuditEntry
+  observability.audit.DataAuditQueryService --> observability.audit.DataAuditEntry : returns List<>
+}
+
+' ================== Notas ==================
+note right of observability.security.obs_sec.SecurityAuditLogController
+Ordernação por timestamp DESC (PageRequest).
+Filtra por período, usuário, tipo e traceId.
+end note
+
+note right of observability.logging.obs_log.OperationalLogController
+Consulta logs de acesso/operacionais (RequestLog).
+Suporta filtro por método, status, userId, traceId e path.
+end note
+
+note right of observability.audit.obs_audit.DataAuditLogController
+Exibe revisões (Envers) por entidade e ID lógico.
+Útil para auditoria de dados regulatória (ONA/Anvisa).
+end note
+
+package "com.erp.qualitascareapi.iam.api" as iam.api {
+
+  class UserController <<RestController>> {
+    +list(pageable: Pageable): Page<UserDto>
+    +get(id: Long): UserDto
+    +create(request: UserCreateRequest): UserDto
+    +update(id: Long, request: UserUpdateRequest): UserDto
+    +delete(id: Long): void
+    --
+    {static} @RequestMapping("/api/users")
+    {static} @PreAuthorize("hasRole('SYSTEM_ADMIN')")
+  }
+
+  class TenantController <<RestController>> {
+    +list(pageable: Pageable): Page<TenantDto>
+    +get(id: Long): TenantDto
+    +create(request: TenantRequest): TenantDto
+    +update(id: Long, request: TenantRequest): TenantDto
+    +delete(id: Long): void
+    --
+    {static} @RequestMapping("/api/tenants")
+    {static} @PreAuthorize("hasRole('SYSTEM_ADMIN')")
   }
 }
 
-QualitasCareApiApplication --> SecurityConfig
-QualitasCareApiApplication --> ObservabilityConfiguration
-QualitasCareApiApplication --> AuthorizationServerConfig
-DevTestDataInitializer --> TenantService
-DevTestDataInitializer --> RoleService
-DevTestDataInitializer --> PermissionService
-DevTestDataInitializer --> PolicyService
-DevTestDataInitializer --> UserService
+package "com.erp.qualitascareapi.iam.application" as iam.app {
+  class UserService <<Service>>
+  class TenantService <<Service>>
+}
 
-TenantController --> TenantService
-TenantService --> TenantRepository
-TenantService --> Tenant
-UserController --> UserService
-UserService --> UserRepository
-UserService --> TenantRepository
-UserService --> RoleRepository
-UserService --> User
-UserService --> Tenant
+package "com.erp.qualitascareapi.iam.api.dto" as iam.dto {
+  class UserDto <<DTO>>
+  class UserCreateRequest <<Request>>
+  class UserUpdateRequest <<Request>>
 
-RoleController --> RoleService
-PermissionController --> PermissionService
-PolicyController --> PolicyService
-RolePermissionController --> RolePermissionService
-UserPermissionOverrideController --> UserPermissionOverrideService
+  class TenantDto <<DTO>>
+  class TenantRequest <<Request>>
+}
 
-RoleService --> RoleRepository
-PermissionService --> PermissionRepository
-PolicyService --> PolicyRepository
-RolePermissionService --> RolePermissionRepository
-UserPermissionOverrideService --> UserPermissionOverrideRepository
+' ========== RELAÇÕES CONTROLLER → SERVICE ==========
+iam.api.UserController --> iam.app.UserService : uses
+iam.api.TenantController --> iam.app.TenantService : uses
 
-SecurityAuditLogController --> SecurityAuditQueryService
-SecurityAuditQueryService --> SecurityAuditEventRepository
-SecurityAuditEventListener --> SecurityAuditEventRepository
-SecurityAuditEventFilter --> SecurityAuditEventRepository
+' ========== RELAÇÕES CONTROLLER → DTO ==========
+iam.api.UserController --> iam.dto.UserDto
+iam.api.UserController --> iam.dto.UserCreateRequest
+iam.api.UserController --> iam.dto.UserUpdateRequest
 
-DataAuditLogController --> DataAuditQueryService
-DataAuditQueryService --> AuditRevisionEntity
-AuditRevisionListener --> AuditRevisionEntity
+iam.api.TenantController --> iam.dto.TenantDto
+iam.api.TenantController --> iam.dto.TenantRequest
 
-OperationalLogController --> RequestLogQueryService
-RequestLogQueryService --> RequestLogRepository
-RequestLoggingFilter --> RequestLogRepository
-RequestLogFilter --> RequestLogRepository
-CorrelationFilter --> RequestLogRepository
+' ========== NOTAS ==========
+note right of iam.api.UserController
+  CRUD de Usuários
+  - Criação e atualização via DTOs específicos
+  - Somente SYSTEM_ADMIN pode acessar
+end note
 
-KitController --> KitService
-KitService --> KitProcedimentoRepository
-KitService --> KitVersionRepository
-KitService --> KitItemRepository
-KitService --> InstrumentoRepository
-KitService --> TenantRepository
+note right of iam.api.TenantController
+  CRUD de Tenants (Hospitais/Unidades)
+  - Controla isolamento multi-tenant
+  - Acesso restrito a SYSTEM_ADMIN
+end note
 
-LoteController --> LoteService
-LoteService --> SetorRepository
-LoteService --> LoteEtiquetaRepository
-LoteService --> KitVersionRepository
-LoteService --> MovimentacaoCMERepository
-LoteService --> UserRepository
+package "com.erp.qualitascareapi.security.api" as security.api {
 
-QualidadeController --> QualidadeService
-QualidadeService --> ExameCulturaRepository
-QualidadeService --> NaoConformidadeCMERepository
-QualidadeService --> TipoNaoConformidadeRepository
-QualidadeService --> GeracaoResiduoRepository
-QualidadeService --> LoteEtiquetaRepository
-QualidadeService --> SaneantePeraceticoLoteRepository
-QualidadeService --> EvidenciaArquivoRepository
+  class UserPermissionOverrideController <<RestController>> {
+    +list(pageable: Pageable): Page<UserPermissionOverrideDto>
+    +get(id: Long): UserPermissionOverrideDto
+    +create(request: UserPermissionOverrideRequest): UserPermissionOverrideDto
+    +update(id: Long, request: UserPermissionOverrideRequest): UserPermissionOverrideDto
+    +delete(id: Long): void
+    --
+    {static} @RequestMapping("/api/user-overrides")
+    {static} @PreAuthorize("hasRole('SYSTEM_ADMIN')")
+  }
+
+  class RolePermissionController <<RestController>> {
+    +list(pageable: Pageable): Page<RolePermissionDto>
+    +get(id: Long): RolePermissionDto
+    +create(request: RolePermissionRequest): RolePermissionDto
+    +update(id: Long, request: RolePermissionRequest): RolePermissionDto
+    +delete(id: Long): void
+    --
+    {static} @RequestMapping("/api/role-permissions")
+    {static} @PreAuthorize("hasRole('SYSTEM_ADMIN')")
+  }
+
+  class RoleController <<RestController>> {
+    +list(pageable: Pageable): Page<RoleDto>
+    +get(id: Long): RoleDto
+    +create(request: RoleRequest): RoleDto
+    +update(id: Long, request: RoleRequest): RoleDto
+    +delete(id: Long): void
+    --
+    {static} @RequestMapping("/api/roles")
+    {static} @PreAuthorize("hasRole('SYSTEM_ADMIN')")
+  }
+
+  class PolicyController <<RestController>> {
+    +list(pageable: Pageable): Page<PolicyDto>
+    +get(id: Long): PolicyDto
+    +create(request: PolicyRequest): PolicyDto
+    +update(id: Long, request: PolicyRequest): PolicyDto
+    +delete(id: Long): void
+    --
+    {static} @RequestMapping("/api/policies")
+    {static} @PreAuthorize("hasRole('SYSTEM_ADMIN')")
+  }
+
+  class PermissionController <<RestController>> {
+    +list(pageable: Pageable): Page<PermissionDto>
+    +get(id: Long): PermissionDto
+    +create(request: PermissionRequest): PermissionDto
+    +update(id: Long, request: PermissionRequest): PermissionDto
+    +delete(id: Long): void
+    --
+    {static} @RequestMapping("/api/permissions")
+    {static} @PreAuthorize("hasRole('SYSTEM_ADMIN')")
+  }
+}
+
+package "com.erp.qualitascareapi.security.application" as security.app {
+  class UserPermissionOverrideService <<Service>>
+  class RolePermissionService <<Service>>
+  class RoleService <<Service>>
+  class PolicyService <<Service>>
+  class PermissionService <<Service>>
+}
+
+package "com.erp.qualitascareapi.security.api.dto" as security.dto {
+  class UserPermissionOverrideDto <<DTO>>
+  class UserPermissionOverrideRequest <<Request>>
+
+  class RolePermissionDto <<DTO>>
+  class RolePermissionRequest <<Request>>
+
+  class RoleDto <<DTO>>
+  class RoleRequest <<Request>>
+
+  class PolicyDto <<DTO>>
+  class PolicyRequest <<Request>>
+
+  class PermissionDto <<DTO>>
+  class PermissionRequest <<Request>>
+}
+
+' ============ dependências controller -> service ============
+security.api.UserPermissionOverrideController --> security.app.UserPermissionOverrideService : uses
+security.api.RolePermissionController        --> security.app.RolePermissionService        : uses
+security.api.RoleController                  --> security.app.RoleService                  : uses
+security.api.PolicyController                --> security.app.PolicyService                : uses
+security.api.PermissionController            --> security.app.PermissionService            : uses
+
+' ============ assinaturas de retorno / parâmetros (associação conceitual) ============
+security.api.UserPermissionOverrideController --> security.dto.UserPermissionOverrideDto
+security.api.UserPermissionOverrideController --> security.dto.UserPermissionOverrideRequest
+
+security.api.RolePermissionController --> security.dto.RolePermissionDto
+security.api.RolePermissionController --> security.dto.RolePermissionRequest
+
+security.api.RoleController --> security.dto.RoleDto
+security.api.RoleController --> security.dto.RoleRequest
+
+security.api.PolicyController --> security.dto.PolicyDto
+security.api.PolicyController --> security.dto.PolicyRequest
+
+security.api.PermissionController --> security.dto.PermissionDto
+security.api.PermissionController --> security.dto.PermissionRequest
+
+' ============ notas úteis ============
+note right of security.api.UserPermissionOverrideController
+  HTTP 201 em create()
+  HTTP 204 em delete()
+end note
+
+note right of security.api.RolePermissionController
+  Paginação via Pageable / Page<T>
+end note
+
+note right of security.api.PolicyController
+  Escopo administrativo:
+  hasRole('SYSTEM_ADMIN')
+end note
+
+@enduml
+
 
 @enduml
