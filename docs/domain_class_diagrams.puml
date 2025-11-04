@@ -233,6 +233,7 @@ package "iam.domain" {
         +code: Long,
         +name: String,
         +cnpj: String,
+        +logo: String,
         +active: boolean
     }
 
