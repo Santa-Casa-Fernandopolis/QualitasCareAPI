@@ -15,11 +15,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.oauth2.jwt.JoseHeader;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.security.oauth2.jose.jws.JwsAlgorithm;
-import org.springframework.security.oauth2.jose.jws.JwsHeader;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.stereotype.Service;
@@ -89,10 +89,12 @@ public class TokenService {
                 .claim("roles", roles)
                 .build();
 
-        String token = jwtEncoder.encode(JwtEncoderParameters.from(
-                JwsHeader.with(jwsAlgorithm).type("JWT").build(),
-                claims
-        )).getTokenValue();
+        JoseHeader joseHeader = JoseHeader.withAlgorithm(jwsAlgorithm.getName())
+                .type("JWT")
+                .build();
+
+        String token = jwtEncoder.encode(JwtEncoderParameters.from(joseHeader, claims))
+                .getTokenValue();
 
         long expiresIn = accessTokenTtl.getSeconds();
         if (expiresIn <= 0) {
