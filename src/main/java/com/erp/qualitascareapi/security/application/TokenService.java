@@ -15,7 +15,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.oauth2.jwt.JoseHeader;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
@@ -89,12 +88,14 @@ public class TokenService {
                 .claim("roles", roles)
                 .build();
 
-        JoseHeader joseHeader = JoseHeader.withAlgorithm(jwsAlgorithm.getName())
-                .type("JWT")
-                .build();
+        //JwsPayloadExtractor joseHeader = JwsPayloadExtractor.withAlgorithm(jwsAlgorithm.getName())
+        //        .type("JWT")
+        //        .build();
 
-        String token = jwtEncoder.encode(JwtEncoderParameters.from(joseHeader, claims))
-                .getTokenValue();
+        //String token = jwtEncoder.encode(JwtEncoderParameters.from(joseHeader, claims))
+        //        .getTokenValue();
+
+        String token = jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
 
         long expiresIn = accessTokenTtl.getSeconds();
         if (expiresIn <= 0) {

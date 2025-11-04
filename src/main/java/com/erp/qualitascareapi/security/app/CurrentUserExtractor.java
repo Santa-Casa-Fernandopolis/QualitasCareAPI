@@ -1,7 +1,5 @@
 package com.erp.qualitascareapi.security.app;
 
-import com.erp.qualitascareapi.security.auth.jose.jws.JwsPayloadExtractor;
-import com.erp.qualitascareapi.security.auth.jose.jws.JwsPayloadExtractor.Payload;
 import com.erp.qualitascareapi.security.enums.IdentityOrigin;
 import com.erp.qualitascareapi.security.enums.UserStatus;
 import org.springframework.security.core.Authentication;
@@ -21,8 +19,7 @@ import java.util.stream.Collectors;
 @Component
 public class CurrentUserExtractor {
 
-    private final JwsPayloadExtractor jwsPayloadExtractor = new JwsPayloadExtractor();
-
+    private final JwtPayloadExtractor jwsPayloadExtractor = new JwtPayloadExtractor();
     public AuthContext from(Authentication auth) {
         if (auth == null || !auth.isAuthenticated()) {
             return AuthContext.anonymous();
@@ -52,28 +49,14 @@ public class CurrentUserExtractor {
         }
 
         if (jwt != null) {
-            Payload payload = jwsPayloadExtractor.extract(jwt);
-            if (payload.userId() != null) {
-                userId = payload.userId();
-            }
-            if (payload.username() != null) {
-                username = payload.username();
-            }
-            if (payload.tenantId() != null) {
-                tenantId = payload.tenantId();
-            }
-            if (payload.department() != null) {
-                department = payload.department();
-            }
-            if (payload.profession() != null) {
-                profession = payload.profession();
-            }
-            if (payload.status() != null) {
-                status = payload.status();
-            }
-            if (payload.origin() != null) {
-                origin = payload.origin();
-            }
+            JwtPayloadExtractor.Payload payload = jwsPayloadExtractor.extract(jwt);
+            if (payload.userId()     != null) userId     = payload.userId();
+            if (payload.username()   != null) username   = payload.username();
+            if (payload.tenantId()   != null) tenantId   = payload.tenantId();
+            if (payload.department() != null) department = payload.department();
+            if (payload.profession() != null) profession = payload.profession();
+            if (payload.status()     != null) status     = payload.status();
+            if (payload.origin()     != null) origin     = payload.origin();
             attributes.putAll(payload.attributes());
         } else if (principal instanceof UserDetails details) {
             username = details.getUsername();
