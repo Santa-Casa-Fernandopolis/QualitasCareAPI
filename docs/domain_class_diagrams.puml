@@ -3,6 +3,346 @@ skinparam packageStyle rectangle
 skinparam classAttributeIconSize 0
 skinparam linetype ortho
 
+' ===========================================================
+' NOVOS ENUMS DO MÓDULO DE DOCUMENTOS
+' ===========================================================
+package "ged.enums" {
+
+  enum DocumentType {
+    POP
+    PROTOCOLO
+    COMUNICACAO
+  }
+
+  enum DocumentStatus {
+      RASCUNHO
+      EM_REVISAO
+      APROVADO
+      PUBLICADO
+      OBSOLETO
+  }
+
+  enum ConfidentialityLevel {
+      PUBLICO
+      INTERNO
+      RESTRITO
+  }
+
+  enum ChangeRequestStatus {
+      ABERTA
+      EM_REVISAO
+      APROVADA
+      REJEITADA
+      CANCELADA
+      IMPLEMENTADA
+  }
+
+  enum Priority {
+      BAIXA
+      MEDIA
+      ALTA
+      CRITICA
+  }
+
+  enum ImpactLevel {
+      BAIXO
+      MODERADO
+      ALTO
+  }
+
+  enum TrainingStatus {
+      PENDENTE
+      EM_ANDAMENTO
+      CONCLUIDO
+      EM_ATRASO
+  }
+
+  enum ApprovalDecision {
+      PENDENTE
+      APROVADO
+      REJEITADO
+  }
+
+  enum AckStatus {
+      OBRIGATORIO
+      CIENTE
+      EM_ATRASO
+  }
+}
+
+' ===========================================================
+' DOMÍNIO DE DOCUMENTOS
+' ===========================================================
+package "ged.domain" {
+
+  class DocCategory <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -nome: String
+    -descricao: String
+  }
+
+  class DocTag <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -nome: String
+  }
+
+  class RetentionPolicy <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -nome: String
+    -anosGuarda: Integer
+    -metodoDescarte: String
+    -baseLegal: String
+  }
+
+  class Document <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -codigo: String              ' único por tenant (ex.: CME-POP-0007)
+    -titulo: String
+    -tipo: DocumentType
+    -status: DocumentStatus
+    -confidencialidade: ConfidentialityLevel
+    -categoria: DocCategory
+    -setorResponsavel: Setor
+    -dataVigenciaInicio: LocalDate
+    -dataVigenciaFim: LocalDate
+    -versaoAtual: DocumentVersion
+    -nivelONATarget: String      ' ex.: "Nível 1" | "Nível 2"
+    -regulacoes: String          ' ex.: "RDC 15/2012; RDC 36/2013"
+    -politicaRetencao: RetentionPolicy
+    -exigeTreinamento: Boolean
+  }
+
+  class DocumentLink <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -documentoOrigem: Document
+    -documentoAlvo: Document
+    -relacao: String             ' RELATED | SUBSTITUI | SUBSTITUIDO_POR
+  }
+
+  class DocumentVersion <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -documento: Document
+    -versaoMajor: Integer
+    -versaoMinor: Integer
+    -status: DocumentStatus
+    -resumoMudancas: String
+    -dataVigenciaInicio: LocalDate
+    -pdfArquivo: EvidenciaArquivo   ' aponta p/ sua tabela de arquivos
+    -pdfSha256: String
+    -geradoEm: LocalDateTime
+  }
+
+  class ApprovalStage <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -documentVersion: DocumentVersion
+    -ordem: Integer
+    -papelRequerido: String        ' ex.: "Enfermagem", "CCIH", "Diretoria Técnica"
+    -departamentoRequerido: String ' opcional
+  }
+
+  class Approval <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -stage: ApprovalStage
+    -aprovador: User
+    -decisao: ApprovalDecision
+    -decididoEm: LocalDateTime
+    -comentario: String
+    -assinaturaEletronica: String  ' id/uri/evidência de e-sign
+  }
+
+  class ChangeRequest <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -documento: Document
+    -titulo: String
+    -motivo: String
+    -solicitante: User
+    -solicitadoEm: LocalDateTime
+    -prioridade: Priority
+    -impacto: ImpactLevel
+    -prazo: LocalDate
+    -responsavel: User
+    -status: ChangeRequestStatus
+    -slaEstouradoEm: LocalDateTime
+    -implementedByVersionId: Long  ' opcional: versão que endereçou a CR
+  }
+
+  class ChangeRequestItem <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -changeRequest: ChangeRequest
+    -secaoAlvo: String
+    -textoAntes: Text
+    -textoDepois: Text
+    -justificativa: String
+  }
+
+  class ReviewCycle <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -documento: Document
+    -frequenciaMeses: Integer
+    -dataUltimaRevisao: LocalDate
+    -dataProximaRevisao: LocalDate
+    -grupoRevisor: String
+  }
+
+  class DistributionRule <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -documento: Document
+    -departamentosAlvo: String   ' lista separada por ";"
+    -papeisAlvo: String          ' lista separada por ";"
+  }
+
+  class Acknowledgment <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -documentVersion: DocumentVersion
+    -usuario: User
+    -status: AckStatus
+    -dataLimite: LocalDate
+    -cienteEm: LocalDateTime
+  }
+
+  class TrainingAssignment <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -documentVersion: DocumentVersion
+    -usuario: User
+    -status: TrainingStatus
+    -dataLimite: LocalDate
+    -concluidoEm: LocalDateTime
+    -nota: Integer
+  }
+
+  ' PERFIS ESPECÍFICOS POR TIPO
+  class PopProfile <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -documento: Document
+    -area: String
+    -objetivo: String
+    -escopo: String
+    -definicoes: Text
+    -responsabilidades: Text
+    -materiais: Text
+    -precaucoesSeguranca: Text
+    -registrosGerados: Text
+    -referencias: Text
+  }
+
+  class PopStep <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -popProfile: PopProfile
+    -ordem: Integer
+    -titulo: String
+    -instrucao: Text
+    -notaRisco: String
+  }
+
+  class ProtocolProfile <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -documento: Document
+    -escopoClinico: String
+    -indicacoes: Text
+    -contraIndicacoes: Text
+    -fluxogramaRef: String
+  }
+
+  class CommunicationProfile <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -documento: Document
+    -tipoMensagem: String     ' Alerta, Nota técnica, Circular
+    -publicoAlvo: String      ' setores/roles
+    -ackObrigatorio: Boolean
+    -validoDe: LocalDate
+    -validoAte: LocalDate
+  }
+}
+
+' ===========================================================
+' RELAÇÕES COM SEU MODELO (Tenant/User/Setor/EvidenciaArquivo)
+' ===========================================================
+DocCategory       " * " --> " 1 " Tenant : tenant
+DocTag            " * " --> " 1 " Tenant : tenant
+RetentionPolicy   " * " --> " 1 " Tenant : tenant
+
+Document          " * " --> " 1 " Tenant : tenant
+Document --> DocumentType
+Document --> DocumentStatus
+Document --> ConfidentialityLevel
+Document " * " --> " 1 " DocCategory : categoria
+Document " * " --> " 1 " Setor : setorResponsavel
+Document " 1 " o-- " 0..* " DocTag : tags
+Document " 1 " o-- " 0..* " DocumentLink : related
+Document --> RetentionPolicy : politicaRetencao
+Document --> DocumentVersion : versaoAtual
+
+DocumentLink  " * " --> " 1 " Tenant : tenant
+DocumentLink  --> Document : documentoOrigem
+DocumentLink  --> Document : documentoAlvo
+
+DocumentVersion " * " --> " 1 " Tenant : tenant
+DocumentVersion " * " --> " 1 " Document : documento
+DocumentVersion " * " --> " 0..1 " EvidenciaArquivo : pdfArquivo
+DocumentVersion --> DocumentStatus
+
+ApprovalStage " * " --> " 1 " Tenant : tenant
+ApprovalStage " * " --> " 1 " DocumentVersion : documentVersion
+Approval " * " --> " 1 " Tenant : tenant
+Approval " * " --> " 1 " ApprovalStage : stage
+Approval " * " --> " 1 " User : aprovador
+Approval --> ApprovalDecision
+
+ChangeRequest " * " --> " 1 " Tenant : tenant
+ChangeRequest " * " --> " 1 " Document : documento
+ChangeRequest " * " --> " 1 " User : solicitante
+ChangeRequest " * " --> " 0..1 " User : responsavel
+ChangeRequest --> Priority
+ChangeRequest --> ImpactLevel
+ChangeRequest --> ChangeRequestStatus
+
+ChangeRequestItem " * " --> " 1 " Tenant : tenant
+ChangeRequestItem " * " --> " 1 " ChangeRequest : changeRequest
+
+ReviewCycle " * " --> " 1 " Tenant : tenant
+ReviewCycle " * " --> " 1 " Document : documento
+
+DistributionRule " * " --> " 1 " Tenant : tenant
+DistributionRule " * " --> " 1 " Document : documento
+
+Acknowledgment " * " --> " 1 " Tenant : tenant
+Acknowledgment " * " --> " 1 " DocumentVersion : documentVersion
+Acknowledgment " * " --> " 1 " User : usuario
+Acknowledgment --> AckStatus
+
+TrainingAssignment " * " --> " 1 " Tenant : tenant
+TrainingAssignment " * " --> " 1 " DocumentVersion : documentVersion
+TrainingAssignment " * " --> " 1 " User : usuario
+TrainingAssignment --> TrainingStatus
+
+PopProfile " * " --> " 1 " Tenant : tenant
+PopProfile " * " --> " 1 " Document : documento
+PopStep " * " --> " 1 " Tenant : tenant
+PopStep " * " --> " 1 " PopProfile : popProfile
+
+ProtocolProfile " * " --> " 1 " Tenant : tenant
+ProtocolProfile " * " --> " 1 " Document : documento
+
+CommunicationProfile " * " --> " 1 " Tenant : tenant
+CommunicationProfile " * " --> " 1 " Document : documento
 
 ' =============================
 ' PACKAGE: observability.audit
@@ -123,7 +463,12 @@ package "security.enums" {
       PGRSS
       USUARIO
       DASHBOARD
-    }
+      DOCUMENTO
+      DOCUMENTO_VERSAO
+      DOCUMENTO_TREINAMENTO
+      DOCUMENTO_ACK
+      DOCUMENTO_ALTERACAO
+  }
 
     enum IdentityOrigin {
       LOCAL
