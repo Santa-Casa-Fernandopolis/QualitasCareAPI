@@ -70,8 +70,10 @@ public class DevTestDataInitializer implements ApplicationRunner {
 
         log.info("Bootstrapping reference data for dev/test environment...");
 
-        Tenant scf = tenantRepository.save(new Tenant(null, "SCF", "Santa Casa Felicidade", true));
-        Tenant scj = tenantRepository.save(new Tenant(null, "SCJ", "Santa Casa Jacarandá", true));
+        Tenant scf = tenantRepository.save(new Tenant(null, 1001L, "Santa Casa Felicidade",
+                "12345678000100", "https://cdn.qualitascare.com/logos/scf.png", true));
+        Tenant scj = tenantRepository.save(new Tenant(null, 1002L, "Santa Casa Jacarandá",
+                "12345678000290", "https://cdn.qualitascare.com/logos/scj.png", true));
 
         Role scfSystemAdmin = roleRepository.save(new Role(null, "SYSTEM_ADMIN", scf, "Administrador do sistema"));
         Role scfAdmin = roleRepository.save(new Role(null, "ADMIN_QUALIDADE", scf, "Administrador de Qualidade"));

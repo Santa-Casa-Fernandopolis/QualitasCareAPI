@@ -11,17 +11,17 @@ Documentação dos cenários de teste implementados em `com.erp.qualitascareapi.
 
 ### loadUserByUsername_resolvesTenantSuffixWithAtSymbol
 - **Cenário:** Entrada contendo sufixo de tenant separado por `@` e espaços extras.
-- **Preparação:** O repositório retorna um usuário válido quando consultado com `findByUsernameIgnoreCaseAndTenant_CodeIgnoreCase("enf.scf", "scf")`.
+- **Preparação:** O repositório retorna um usuário válido quando consultado com `findByUsernameIgnoreCaseAndTenant_Code("enf.scf", 1001L)`.
 - **Verificações:**
   - O método retorna uma instância de `AuthenticatedUserDetails` com username `"enf.scf"`.
   - Garante que apenas a consulta específica por tenant foi realizada, sem fallback para busca genérica.
 
 ### loadUserByUsername_resolvesTenantPrefixSeparatedByPipe
 - **Cenário:** Entrada contendo prefixo de tenant separado por `|`.
-- **Preparação:** Repositório configurado para responder à busca por username e tenant com `"SCF"`.
+- **Preparação:** Repositório configurado para responder à busca por username e tenant com `1001L`.
 - **Verificações:**
   - Username retornado é `"admin.scf"`.
-  - Captura do parâmetro de tenant confirma resolução para `"SCF"`.
+  - Captura do parâmetro de tenant confirma resolução para `1001L`.
   - Nenhuma chamada para `findByUsernameIgnoreCase` (busca genérica).
 
 ### loadUserByUsername_withoutTenantFallsBackToGenericLookup

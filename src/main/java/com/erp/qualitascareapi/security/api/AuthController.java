@@ -7,7 +7,6 @@ import jakarta.validation.Valid;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,9 +27,9 @@ public class AuthController {
     @PostMapping("/login")
     public LoginResponse login(@Valid @RequestBody LoginRequest request) {
         String username = request.username() != null ? request.username().trim() : "";
-        String tenantCode = request.tenantCode();
-        if (StringUtils.hasText(tenantCode)) {
-            username = username + "@" + tenantCode.trim();
+        Long tenantCode = request.tenantCode();
+        if (tenantCode != null) {
+            username = username + "@" + tenantCode;
         }
 
         Authentication authentication = authenticationManager.authenticate(
