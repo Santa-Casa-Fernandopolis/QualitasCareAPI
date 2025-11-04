@@ -1,4 +1,4 @@
-package com.erp.qualitascareapi.ged.domain;
+﻿package com.erp.qualitascareapi.ged.domain;
 
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import jakarta.persistence.*;
@@ -6,10 +6,10 @@ import org.hibernate.envers.Audited;
 
 @Entity
 @Audited
-@Table(name = "doc_category",
-        uniqueConstraints = @UniqueConstraint(name = "uq_doc_category_tenant_nome",
+@Table(name = "doc_tag",
+        uniqueConstraints = @UniqueConstraint(name = "uq_doc_tag_tenant_nome",
                 columnNames = {"tenant_id", "nome"}))
-public class DocCategory {
+public class DocTag {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -17,22 +17,17 @@ public class DocCategory {
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "tenant_id", nullable = false)
     private Tenant tenant;
 
-    @Column(nullable = false, length = 120)
+    @Column(nullable = false, length = 80)
     private String nome;
 
-    @Column(length = 500)
-    private String descricao;
-
-    public DocCategory() {}
-    public DocCategory(Long id) { this.id = id; }
+    public DocTag() {}
+    public DocTag(Long id) { this.id = id; }
 
     // getters/setters
     public Long getId() { return id; }
     public Tenant getTenant() { return tenant; }
     public String getNome() { return nome; }
-    public String getDescricao() { return descricao; }
     public void setId(Long id) { this.id = id; }
     public void setTenant(Tenant tenant) { this.tenant = tenant; }
     public void setNome(String nome) { this.nome = nome; }
-    public void setDescricao(String descricao) { this.descricao = descricao; }
 }
