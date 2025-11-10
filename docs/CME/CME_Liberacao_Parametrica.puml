@@ -1,0 +1,36 @@
+﻿@startuml
+title CME – Liberação Paramétrica (sem IB)
+
+actor OperadorCME as op
+participant "CMEReleaseService" as svc
+participant "CicloEsterilizacao" as ciclo
+participant "ApprovalEngine" as appr
+participant "Enf. Gerente (Aprovador)" as nurseMgr
+participant "Qualidade (Opc.)" as qual
+participant "LoteEtiqueta" as lote
+
+op -> ciclo : Registrar ciclo (parâmetros físicos)
+ciclo -> svc : notificarFimCiclo(duracao, T/P, ...)
+
+svc -> ciclo : updateGateStatus(parametrosOk=true, iqOk=true, ibExigido=false, ibOk=true)
+note right of svc
+Gate 1 ok (parâmetros + IQ)
+Gate 2 pulado (ibExigido=false)
+end note
+
+op -> svc : startReleaseApproval(cicloId, requestedBy=op)
+svc -> appr : start(target=ciclo, requestedBy=op)\n(ApprovalDomain=CME_CYCLE_RELEASE)
+
+appr -> nurseMgr : step: FINAL_RELEASE_NURSE_MANAGER
+nurseMgr -> appr : decision APPROVE
+
+opt Dual Approval necessário (carga crítica)
+  appr -> qual : step: QUALITY_COUNTERSIGN
+  qual -> appr : decision APPROVE
+end
+
+appr -> svc : onApprovalGranted(requestId)
+svc -> ciclo : set status = CONCLUIDO
+svc -> lote : set status = LIBERADO
+
+@enduml

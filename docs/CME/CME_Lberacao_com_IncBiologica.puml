@@ -1,0 +1,45 @@
+﻿@startuml
+title CME – Liberação com IB
+
+actor OperadorCME as op
+participant "CMEReleaseService" as svc
+participant "CicloEsterilizacao" as ciclo
+participant "IndicadorQuimico" as IQ
+participant "IndicadorBiologico" as IB
+participant "ApprovalEngine" as appr
+participant "Enf. Gerente (Aprovador)" as nurseMgr
+participant "Qualidade (Opc.)" as qual
+participant "LoteEtiqueta" as lote
+
+op -> ciclo : Registrar fim de ciclo (parâmetros)
+op -> IQ : Lançar resultados IQ (CONFORME)
+IQ -> svc : notificar(iqOk=true)
+
+svc -> ciclo : updateGateStatus(parametrosOk=true, iqOk=true, ibExigido=true, ibOk=false)
+note right
+Gate 1 ok; Gate 2 exigido (IB pendente)
+end note
+
+... tempo de incubação ...
+
+op -> IB : Registrar leitura IB (CONFORME)
+IB -> svc : notificar(ibOk=true)
+
+svc -> ciclo : updateGateStatus(..., ibOk=true)
+
+op -> svc : startReleaseApproval(cicloId, requestedBy=op)
+svc -> appr : start(target=ciclo)
+
+appr -> nurseMgr : step: FINAL_RELEASE_NURSE_MANAGER
+nurseMgr -> appr : decision APPROVE
+
+opt Dual Approval
+  appr -> qual : step: QUALITY_COUNTERSIGN
+  qual -> appr : decision APPROVE
+end
+
+appr -> svc : onApprovalGranted()
+svc -> ciclo : set status = CONCLUIDO
+svc -> lote : set status = LIBERADO
+
+@enduml

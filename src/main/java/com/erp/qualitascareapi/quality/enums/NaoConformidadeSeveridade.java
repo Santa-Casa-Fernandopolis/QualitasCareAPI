@@ -1,4 +1,4 @@
-package com.erp.qualitascareapi.cme.enums;
+package com.erp.qualitascareapi.quality.enums;
 
 public enum NaoConformidadeSeveridade {
     BAIXA,

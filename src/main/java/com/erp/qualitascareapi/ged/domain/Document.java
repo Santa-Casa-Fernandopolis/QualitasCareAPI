@@ -1,4 +1,4 @@
-﻿package com.erp.qualitascareapi.ged.domain;
+package com.erp.qualitascareapi.ged.domain;
 
 import com.erp.qualitascareapi.core.domain.Setor;
 import com.erp.qualitascareapi.ged.enums.ConfidentialityLevel;

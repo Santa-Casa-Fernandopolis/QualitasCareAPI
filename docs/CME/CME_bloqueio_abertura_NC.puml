@@ -1,0 +1,26 @@
+﻿@startuml
+title CME – Falha em Gate (bloqueio e NC)
+
+actor OperadorCME as op
+participant "CMEReleaseService" as svc
+participant "CicloEsterilizacao" as ciclo
+participant "IndicadorQuimico" as IQ
+participant "LoteEtiqueta" as lote
+participant "NaoConformidadeCME" as nc
+
+op -> ciclo : Registrar fim de ciclo
+op -> IQ : Lançar IQ = NAO_CONFORME
+IQ -> svc : notificar(iqOk=false)
+
+svc -> ciclo : updateGateStatus(parametrosOk=?, iqOk=false, ibExigido=?, ibOk=?)
+svc -> ciclo : set status = BLOQUEADO
+svc -> lote : set status = BLOQUEADO
+
+svc -> nc : abrirNC(cicloOrigem=ciclo,\nseveridade=ALTA, ...)
+
+note right of svc
+Registra evidências (relatório/ fotos)
+e motivo no log de auditoria.
+end note
+
+@enduml

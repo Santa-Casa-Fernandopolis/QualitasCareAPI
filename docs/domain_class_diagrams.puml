@@ -3,6 +3,677 @@ skinparam packageStyle rectangle
 skinparam classAttributeIconSize 0
 skinparam linetype ortho
 
+package "approval.core.enums" {
+  enum ApprovalDomain {
+    DOCUMENT_VERSION
+    TRAINING_PLAN
+    USER_PERMISSION_OVERRIDE
+    NAO_CONFORMIDADE
+    CME_CYCLE_RELEASE
+  }
+
+  enum ApprovalRequestStatus {
+    OPEN
+    APPROVED
+    REJECTED
+    CANCELED
+  }
+
+  enum ApprovalStepStatus {
+    PENDING
+    APPROVED
+    REJECTED
+    SKIPPED
+  }
+
+  enum ApprovalDecision {
+    APPROVE
+    REJECT
+    REQUEST_CHANGES
+  }
+
+  enum OrgRoleType {
+    QUALIDADE_GERENTE
+    ENFERMAGEM_GERENTE
+    EDUCACAO_PERMANENTE_GERENTE
+    GERENCIA_SETOR
+    DIRETOR_TECNICO
+    DIRETOR_CLINICO
+  }
+}
+
+package "approval.core.contracts" {
+  interface ApprovableTarget {
+    +getTenant(): Tenant
+    +getApprovalDomain(): ApprovalDomain
+    +getApprovalKey(): String
+    +getScopeSetor(): Setor
+  }
+}
+
+package "approval.core.domain" {
+  class ApprovalFlowDef <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -domain: ApprovalDomain
+    -name: String
+    -active: Boolean
+  }
+
+  note right of ApprovalFlowDef
+    VALIDATIONS
+    - domain != null
+    - name: not blank
+    - active != null
+
+    INDEXES/UNIQUES
+    - Unique: (tenant_id, domain, name)
+    - Index : (tenant_id, active)
+  end note
+
+  class ApprovalStageDef <<Entity, Audited>> {
+    -id: Long
+    -flowDef: ApprovalFlowDef
+    -order: Integer
+    -stageCode: String
+    -requiredRole: OrgRoleType
+    -scopeByTargetSetor: Boolean
+    -minApprovers: Integer
+    -dualApproval: Boolean
+  }
+
+  note right of ApprovalStageDef
+    VALIDATIONS
+    - order >= 1
+    - stageCode: not blank
+    - minApprovers >= 1
+    - dualApproval: default false
+    - se scopeByTargetSetor == true → exigir setor no step
+
+    INDEXES/UNIQUES
+    - Unique: (flow_def_id, order)
+    - Unique: (flow_def_id, stage_code)
+  end note
+
+  class ApprovalRequest <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -domain: ApprovalDomain
+    -targetKey: String
+    -requestedBy: User
+    -requestedAt: LocalDateTime
+    -status: ApprovalRequestStatus
+    -flowNameSnapshot: String
+  }
+
+  note right of ApprovalRequest
+    VALIDATIONS
+    - domain, targetKey, requestedBy, requestedAt, status != null
+
+    INDEXES/UNIQUES
+    - Index: (tenant_id, domain, status)
+    - Index: (tenant_id, target_key)
+    - Index: (requested_at)
+  end note
+
+  class ApprovalStep <<Entity, Audited>> {
+    -id: Long
+    -request: ApprovalRequest
+    -stageOrder: Integer
+    -stageCode: String
+    -requiredRole: OrgRoleType
+    -scopeSetor: Setor
+    -status: ApprovalStepStatus
+    -decision: ApprovalDecision
+    -decidedBy: User
+    -decidedAt: LocalDateTime
+    -comment: String
+    -approvalsCount: Integer
+  }
+
+  note right of ApprovalStep
+    VALIDATIONS
+    - stageOrder >= 1
+    - requiredRole, status != null
+    - decision só preenchida quando status ∈ {APPROVED, REJECTED}
+
+    INDEXES/UNIQUES
+    - Unique: (request_id, stage_order)
+    - Index : (request_id, status)
+  end note
+
+  class ApprovalAttachment <<Entity, Audited>> {
+    -id: Long
+    -request: ApprovalRequest
+    -arquivo: EvidenciaArquivo
+    -nota: String
+  }
+
+  note right of ApprovalAttachment
+    INDEXES/UNIQUES
+    - Index: (request_id)
+    - Index: (arquivo_id)
+  end note
+
+  class ApprovalAuditLog <<Entity, Audited>> {
+    -id: Long
+    -request: ApprovalRequest
+    -stepOrder: Integer
+    -event: String
+    -when: LocalDateTime
+    -who: User
+    -data: String
+  }
+
+  note right of ApprovalAuditLog
+    INDEXES/UNIQUES
+    - Index: (request_id, step_order)
+    - Index: (when)
+    - Index: (who_id)
+  end note
+}
+
+package "org.domain" {
+  class OrgRoleAssignment <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -roleType: OrgRoleType
+    -user: User
+    -setor: Setor
+    -validFrom: LocalDate
+    -validUntil: LocalDate
+    -active: Boolean
+  }
+
+  note right of OrgRoleAssignment
+    VALIDATIONS
+    - roleType, user, active != null
+    - validUntil >= validFrom (quando informado)
+
+    INDEXES/UNIQUES
+    - Unique: (tenant_id, role_type, user_id, coalesce(setor_id,0), valid_from)
+    - Index : (tenant_id, role_type, active)
+  end note
+
+}
+
+package "approval.core.services" {
+  class ApproverResolver {
+    +resolveCandidates(tenant:Tenant, role:OrgRoleType, setor:Setor): List<User>
+    +isUserEligible(user:User, role:OrgRoleType, setor:Setor, when:LocalDateTime): boolean
+  }
+
+  class ApprovalEngine {
+    +start(target:ApprovableTarget, requestedBy:User): ApprovalRequest
+    +decide(stepId:Long, user:User, decision:ApprovalDecision, comment:String): void
+    +currentStep(requestId:Long): ApprovalStep
+  }
+}
+
+' relationships
+ApprovalStageDef " * " --> " 1 " ApprovalFlowDef : flowDef
+ApprovalRequest --> ApprovalDomain
+ApprovalRequest "1" o-- " * " ApprovalStep : steps
+ApprovalAttachment " * " --> " 1 " ApprovalRequest : request
+ApprovalAuditLog " * " --> " 1 " ApprovalRequest : request
+OrgRoleAssignment --> OrgRoleType
+OrgRoleAssignment " * " --> " 1 " Tenant : tenant
+OrgRoleAssignment " * " --> " 1 " User : user
+OrgRoleAssignment "0..1" --> "1" Setor : setor
+
+' =============================
+' RH BÁSICO (separado de User)
+' =============================
+package "hr.domain" {
+  class Cargo <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -codigo: String     ' único por tenant (ex.: ENF_PLENO)
+    -nome: String       ' Enfermeiro Pleno, Técnico de Enfermagem...
+    -descricao: String
+  }
+
+  note right of Cargo
+    VALIDATIONS
+    - codigo, nome: not blank
+
+    INDEXES/UNIQUES
+    - Unique: (tenant_id, codigo)
+    - Index : (tenant_id, nome)
+  end note
+
+  class Colaborador <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -matricula: String
+    -nomeCompleto: String
+    -cpf: String
+    -email: String
+    -telefone: String
+    -setor: Setor
+    -cargo: Cargo
+    -dataAdmissao: LocalDate
+    -status: ColaboradorStatus
+    -usuarioSistema: User  ' opcional (nem todo colaborador é User)
+  }
+
+  note right of Colaborador
+   VALIDATIONS
+   - matricula, nomeCompleto, cpf: not blank
+   - cpf: formato válido
+   - status != null
+
+   INDEXES/UNIQUES
+   - Unique: (tenant_id, matricula)
+   - Unique: (tenant_id, cpf)
+   - Index : (tenant_id, status)
+   - Index : (tenant_id, setor_id)
+ end note
+}
+
+package "hr.enums" {
+    enum ColaboradorStatus {
+        ATIVO
+        INATIVO
+        AFASTADO
+    }
+
+}
+
+' =============================
+' ENUMS
+' =============================
+package "edu.enums" {
+
+    enum AttemptStatus {
+        NAO_INICIADO
+        EM_ANDAMENTO
+        CONCLUIDO
+        APROVADO
+        REPROVADO
+        ABANDONADO
+    }
+
+    enum GradeScale {
+        PERCENTUAL
+        CONCEITO
+        PONTOS
+    }
+
+    enum FeedbackTarget {
+      COURSE
+      SESSION
+      INSTRUCTOR
+    }
+
+     enum BookingStatus {
+          SOLICITADO
+          APROVADO
+          REJEITADO
+          REALIZADO
+          CANCELADO
+     }
+
+     enum DeliveryMode {
+        EAD
+        PRESENCIAL
+        HIBRIDO
+     }
+
+     enum TrainingPlanStatus {
+         RASCUNHO
+         ENVIADO_PARA_APROVACAO
+         APROVADO
+         REJEITADO
+         CANCELADO
+     }
+
+}
+
+' ======================================
+' EDUCAÇÃO — PROVEDOR, CURSOS, INSTRUTOR
+' ======================================
+package "edu.domain" {
+
+  class TrainingProvider <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -nome: String          ' "EducaSaúde", "SENAC", "Equipe Interna"
+    -cnpj: String          ' opcional p/ externo
+    -contatoEmail: String
+    -contatoTelefone: String
+    -interno: Boolean      ' true = provedor interno
+    -siteUrl: String
+    -observacoes: String
+  }
+
+  class Course <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -provider: TrainingProvider
+    -codigo: String        ' único por tenant
+    -titulo: String
+    -descricao: String
+    -cargaHorariaMin: Integer
+    -deliveryMode: DeliveryMode
+    -obrigatorio: Boolean  ' compliance/ONA
+    -gradeScale: GradeScale
+  }
+
+  class CourseModule <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -course: Course
+    -ordem: Integer
+    -titulo: String
+    -descricao: String
+  }
+
+  class CourseItem <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -module: CourseModule
+    -ordem: Integer
+    -titulo: String
+    -descricao: String
+    -aprovacaoMin: Double         ' nota mínima
+    -frequenciaMinPct: Double     ' % mínima de progresso
+    -documentoBase: DocumentVersion  ' opcional: integra POP/Protocolo publicado
+  }
+
+  class CourseInstructor <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -provider: TrainingProvider
+    -colaborador: Colaborador     ' instrutor interno
+    -curriculo: String
+    -areaEspecialidade: String
+    -ativo: Boolean
+  }
+
+  ' ====== Recursos & Agendamentos ======
+  class TrainingResource <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -nome: String          ' Sala 01, Projetor A, Simulador de B.I.
+    -tipo: String          ' SALA, EQUIPAMENTO, SIMULADOR...
+    -localizacao: String
+    -capacidade: Integer
+    -ativo: Boolean
+  }
+
+  class ResourceBooking <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -resource: TrainingResource
+    -session: Session
+    -inicio: LocalDateTime
+    -fim: LocalDateTime
+    -status: BookingStatus
+    -solicitadoPor: User
+    -observacoes: String
+  }
+
+    ' ============ Feedback ============
+  class Feedback <<Entity, Audited>> {
+      -id: Long
+      -tenant: Tenant
+      -targetType: FeedbackTarget   ' COURSE/SESSION/INSTRUCTOR
+      -course: Course               ' opcional conforme target
+      -session: Session             ' opcional
+      -instructor: CourseInstructor ' opcional
+      -colaborador: Colaborador     ' quem avaliou
+      -nota: Integer                ' 1..5
+      -comentario: String
+      -enviadoEm: LocalDateTime
+  }
+
+  class Enrollment <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -offering: Offering
+    -colaborador: Colaborador
+    -inscritoEm: LocalDateTime
+    -obrigatorio: Boolean
+    -statusGeral: AttemptStatus
+    -notaFinal: Double
+    -concluidoEm: LocalDateTime
+  }
+
+  class Attempt <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -enrollment: Enrollment
+    -courseItem: CourseItem
+    -startedAt: LocalDateTime
+    -endedAt: LocalDateTime
+    -status: AttemptStatus
+    -scoreRaw: Double
+    -progressoPct: Double
+    -tentativaN: Integer
+  }
+
+  class Attendance <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -session: Session
+    -colaborador: Colaborador
+    -presente: Boolean
+    -registradoEm: LocalDateTime
+    -observacoes: String
+  }
+
+  ' ======= Competências & Rubricas práticas =======
+  class Competency <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -codigo: String
+    -nome: String
+    -descricao: String
+  }
+
+  class UserCompetency <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -colaborador: Colaborador
+    -competency: Competency
+    -obtidaEm: LocalDate
+    -origem: String           ' curso/avaliação/experiência
+    -validadeAte: LocalDate
+  }
+
+  class CompetencyRubric <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -competency: Competency
+    -titulo: String           ' "Punção venosa periférica - Adulto"
+    -descricao: String
+    -escalaDescricao: String  ' "0=Não realiza; 1=Assistido; 2=Supervis.; 3=Autônomo"
+  }
+
+  class RubricCriterion <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -rubric: CompetencyRubric
+    -ordem: Integer
+    -descricao: String        ' ex.: "Higieniza as mãos corretamente"
+    -peso: Double
+  }
+
+  class PracticalAssessment <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -rubric: CompetencyRubric
+    -colaborador: Colaborador
+    -avaliador: Colaborador   ' preceptor/avaliador
+    -realizadoNoSetor: Setor
+    -realizadoEm: LocalDateTime
+    -notaFinal: Double
+    -aprovado: Boolean
+    -evidencia: EvidenciaArquivo  ' foto, checklist escaneado...
+    -observacoes: String
+  }
+
+  class AssessmentCriterionScore <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -assessment: PracticalAssessment
+    -criterion: RubricCriterion
+    -pontuacao: Double         ' conforme escala
+    -comentario: String
+  }
+
+  '====== Planejamento treinamento
+  class TrainingPlan <<Entity, Audited, ApprovableTarget>> {
+      -id: Long
+      -tenant: Tenant
+      -ano: Integer
+      -setor: Setor
+      -status: TrainingPlanStatus
+      -solicitante: User
+      -enviadoEm: LocalDateTime
+      -aprovadoEm: LocalDateTime
+      -justificativa: String
+      --
+      +getTenant(): Tenant
+      +getApprovalDomain(): ApprovalDomain
+      +getApprovalKey(): String
+      +getScopeSetor(): Setor
+  }
+
+  class TrainingPlanItem <<Entity, Audited>> {
+      -id: Long
+      -tenant: Tenant
+      -plan: TrainingPlan
+      -course: Course
+      -deliveryMode: DeliveryMode
+      -cargaHorariaPrevista: Integer
+      -mesPlanejado: Integer         ' 1..12
+      -vagasPrevistas: Integer
+      -publicoAlvoSetor: Setor       ' opcional; pode reforçar foco
+      -observacoes: String
+  }
+
+  class Offering <<Entity, Audited>> {
+      -id: Long
+      -tenant: Tenant
+      -course: Course
+      -codigoTurma: String
+      -setorAlvo: Setor
+      -inicio: LocalDate
+      -fim: LocalDate
+      -vagas: Integer
+      -deliveryMode: DeliveryMode
+      -ativo: Boolean
+      -planItem: TrainingPlanItem   ' <--- novo vínculo (opcional)
+    }
+
+  class Session <<Entity, Audited>> {
+      -id: Long
+      -tenant: Tenant
+      -offering: Offering
+      -inicio: LocalDateTime
+      -fim: LocalDateTime
+      -local: String
+      -instrutor: CourseInstructor
+    }
+
+}
+
+' =============================
+' RELAÇÕES COM SEU MODELO
+' =============================
+Cargo " * " --> " 1 " Tenant : tenant
+
+Colaborador " * " --> " 1 " Tenant : tenant
+Colaborador " * " --> " 1 " Setor  : setor
+Colaborador " * " --> " 1 " Cargo  : cargo
+Colaborador "0..1" --> "1" User    : usuarioSistema
+Colaborador --> ColaboradorStatus
+
+TrainingProvider " * " --> " 1 " Tenant : tenant
+Course " * " --> " 1 " Tenant : tenant
+Course " * " --> " 1 " TrainingProvider : provider
+Course --> DeliveryMode
+Course --> GradeScale
+
+CourseModule " * " --> " 1 " Tenant : tenant
+CourseModule " * " --> " 1 " Course : course
+CourseItem " * " --> " 1 " Tenant : tenant
+CourseItem " * " --> " 1 " CourseModule : module
+CourseItem "0..1" --> "1" DocumentVersion : documentoBase
+
+CourseInstructor " * " --> " 1 " Tenant : tenant
+CourseInstructor " * " --> " 1 " TrainingProvider : provider
+CourseInstructor " * " --> " 1 " Colaborador : colaborador
+
+Enrollment " * " --> " 1 " Tenant : tenant
+Enrollment " * " --> " 1 " Offering : offering
+Enrollment " * " --> " 1 " Colaborador : colaborador
+Enrollment --> AttemptStatus
+
+Attempt " * " --> " 1 " Tenant : tenant
+Attempt " * " --> " 1 " Enrollment : enrollment
+Attempt " * " --> " 1 " CourseItem : courseItem
+Attempt --> AttemptStatus
+
+Attendance " * " --> " 1 " Tenant : tenant
+Attendance " * " --> " 1 " Session : session
+Attendance " * " --> " 1 " Colaborador : colaborador
+
+TrainingResource " * " --> " 1 " Tenant : tenant
+ResourceBooking " * " --> " 1 " Tenant : tenant
+ResourceBooking " * " --> " 1 " TrainingResource : resource
+ResourceBooking " * " --> " 1 " Session : session
+ResourceBooking --> BookingStatus
+
+Feedback " * " --> " 1 " Tenant : tenant
+Feedback "0..1" --> "1" Course : course
+Feedback "0..1" --> "1" Session : session
+Feedback "0..1" --> "1" CourseInstructor : instructor
+Feedback " * " --> " 1 " Colaborador : colaborador
+
+Competency " * " --> " 1 " Tenant : tenant
+UserCompetency " * " --> " 1 " Tenant : tenant
+UserCompetency " * " --> " 1 " Colaborador : colaborador
+UserCompetency " * " --> " 1 " Competency : competency
+
+CompetencyRubric " * " --> " 1 " Tenant : tenant
+CompetencyRubric " * " --> " 1 " Competency : competency
+RubricCriterion " * " --> " 1 " Tenant : tenant
+RubricCriterion " * " --> " 1 " CompetencyRubric : rubric
+
+PracticalAssessment " * " --> " 1 " Tenant : tenant
+PracticalAssessment " * " --> " 1 " CompetencyRubric : rubric
+PracticalAssessment " * " --> " 1 " Colaborador : colaborador
+PracticalAssessment " * " --> " 1 " Colaborador : avaliador
+PracticalAssessment " * " --> " 1 " Setor : realizadoNoSetor
+PracticalAssessment "0..1" -- "1" EvidenciaArquivo : evidencia
+
+AssessmentCriterionScore " * " --> " 1 " Tenant : tenant
+AssessmentCriterionScore " * " --> " 1 " PracticalAssessment : assessment
+AssessmentCriterionScore " * " --> " 1 " RubricCriterion : criterion
+
+TrainingPlan      " * " --> " 1 " Tenant : tenant
+TrainingPlan      " * " --> " 1 " Setor  : setor
+TrainingPlan --> TrainingPlanStatus
+TrainingPlan "1" o-- " * " TrainingPlanItem : itens\n(cascade)
+
+TrainingPlanItem  " * " --> " 1 " Tenant : tenant
+TrainingPlanItem  " * " --> " 1 " TrainingPlan : plan
+TrainingPlanItem  " * " --> " 1 " Course : course
+TrainingPlanItem --> DeliveryMode
+TrainingPlanItem "0..1" --> "1" Setor : publicoAlvoSetor
+
+Offering " * " --> " 1 " Tenant : tenant
+Offering " * " --> " 1 " Course : course
+Offering "0..1" --> "1" Setor : setorAlvo
+Offering --> DeliveryMode
+Offering "0..1" --> "1" TrainingPlanItem : planItem
+
+Session " * " --> " 1 " Tenant : tenant
+Session " * " --> " 1 " Offering : offering
+
 ' ===========================================================
 ' NOVOS ENUMS DO MÓDULO DE DOCUMENTOS
 ' ===========================================================
@@ -50,24 +721,6 @@ package "ged.enums" {
       ALTO
   }
 
-  enum TrainingStatus {
-      PENDENTE
-      EM_ANDAMENTO
-      CONCLUIDO
-      EM_ATRASO
-  }
-
-  enum ApprovalDecision {
-      PENDENTE
-      APROVADO
-      REJEITADO
-  }
-
-  enum AckStatus {
-      OBRIGATORIO
-      CIENTE
-      EM_ATRASO
-  }
 }
 
 ' ===========================================================
@@ -82,11 +735,27 @@ package "ged.domain" {
     -descricao: String
   }
 
+  note right of DocCategory
+    VALIDATIONS
+    - nome: not blank
+
+    INDEXES/UNIQUES
+    - Unique: (tenant_id, nome)
+  end note
+
   class DocTag <<Entity, Audited>> {
     -id: Long
     -tenant: Tenant
     -nome: String
   }
+
+  note right of DocTag
+    VALIDATIONS
+    - nome: not blank
+
+    INDEXES/UNIQUES
+    - Unique: (tenant_id, nome)
+  end note
 
   class RetentionPolicy <<Entity, Audited>> {
     -id: Long
@@ -96,6 +765,16 @@ package "ged.domain" {
     -metodoDescarte: String
     -baseLegal: String
   }
+
+  note right of RetentionPolicy
+    VALIDATIONS
+    - nome: not blank
+    - anosGuarda >= 0
+    - metodoDescarte: not blank
+
+    INDEXES/UNIQUES
+    - Unique: (tenant_id, nome)
+  end note
 
   class Document <<Entity, Audited>> {
     -id: Long
@@ -116,6 +795,20 @@ package "ged.domain" {
     -exigeTreinamento: Boolean
   }
 
+  note right of Document
+    VALIDATIONS
+    - codigo, titulo: not blank
+    - tipo, status, confidencialidade != null
+    - dataVigenciaFim >= dataVigenciaInicio (quando informado)
+    - se exigeTreinamento == true, documentar plano de capacitação vinculado
+
+    INDEXES/UNIQUES
+    - Unique: (tenant_id, codigo)
+    - Index : (tenant_id, status)
+    - Index : (tenant_id, categoria_id)
+    - Index : (tenant_id, setor_responsavel_id)
+  end note
+
   class DocumentLink <<Entity, Audited>> {
     -id: Long
     -tenant: Tenant
@@ -124,39 +817,77 @@ package "ged.domain" {
     -relacao: String             ' RELATED | SUBSTITUI | SUBSTITUIDO_POR
   }
 
-  class DocumentVersion <<Entity, Audited>> {
-    -id: Long
-    -tenant: Tenant
-    -documento: Document
-    -versaoMajor: Integer
-    -versaoMinor: Integer
-    -status: DocumentStatus
-    -resumoMudancas: String
-    -dataVigenciaInicio: LocalDate
-    -pdfArquivo: EvidenciaArquivo   ' aponta p/ sua tabela de arquivos
-    -pdfSha256: String
-    -geradoEm: LocalDateTime
+  note right of DocumentLink
+    VALIDATIONS
+    - documentoOrigem != documentoAlvo
+    - relacao ∈ {RELATED, SUBSTITUI, SUBSTITUIDO_POR}
+
+    INDEXES/UNIQUES
+    - Unique: (tenant_id, documento_origem_id, documento_alvo_id, relacao)
+    - Index : (tenant_id, documento_alvo_id)
+  end note
+
+  class DocumentVersion <<Entity, Audited, ApprovableTarget>> {
+    - id: Long
+    --
+    - tenant: Tenant <<@ManyToOne, LAZY, not null>>
+    - documento: Document <<@ManyToOne, LAZY, not null>>
+    --
+    - versaoMajor: Integer <<@Column(name="versao_major", not null), @Min(0)>>
+    - versaoMinor: Integer <<@Column(name="versao_minor", not null), @Min(0)>>
+    - status: DocumentStatus <<@Enumerated(STRING), not null>>
+    - resumoMudancas: String <<length=800>>
+    - dataVigenciaInicio: LocalDate
+    - pdfArquivo: EvidenciaArquivo <<@ManyToOne, LAZY>>
+    - pdfSha256: String <<@Column(name="pdf_sha256", length=64)>>
+    - geradoEm: LocalDateTime
+    --
+    + getId(): Long
+    + setId(id: Long): void
+    + getTenant(): Tenant         ' (ApprovableTarget) retorna o campo local
+    + setTenant(tenant: Tenant): void
+    + getDocumento(): Document
+    + setDocumento(documento: Document): void
+    + getVersaoMajor(): Integer
+    + setVersaoMajor(v: Integer): void
+    + getVersaoMinor(): Integer
+    + setVersaoMinor(v: Integer): void
+    + getStatus(): DocumentStatus
+    + setStatus(s: DocumentStatus): void
+    + getResumoMudancas(): String
+    + setResumoMudancas(t: String): void
+    + getDataVigenciaInicio(): LocalDate
+    + setDataVigenciaInicio(d: LocalDate): void
+    + getPdfArquivo(): EvidenciaArquivo
+    + setPdfArquivo(a: EvidenciaArquivo): void
+    + getPdfSha256(): String
+    + setPdfSha256(h: String): void
+    + getGeradoEm(): LocalDateTime
+    + setGeradoEm(dt: LocalDateTime): void
+    --
+    + getApprovalDomain(): ApprovalDomain
+    + getApprovalKey(): String
+    + getScopeSetor(): Setor
+    --
+    + getSemVer(): String <<@Transient>>
+    --
+    .. lifecycle/callbacks ..
+    # syncTenantFromDocumento(): void <<@PrePersist, @PreUpdate>>
   }
 
-  class ApprovalStage <<Entity, Audited>> {
-    -id: Long
-    -tenant: Tenant
-    -documentVersion: DocumentVersion
-    -ordem: Integer
-    -papelRequerido: String        ' ex.: "Enfermagem", "CCIH", "Diretoria Técnica"
-    -departamentoRequerido: String ' opcional
-  }
+  note right of DocumentVersion
+    VALIDATIONS
+    - versaoMajor >= 0, versaoMinor >= 0
+    - status != null
+    - getSemVer() coerente (major.minor)
+    - dataVigenciaInicio >= documento.dataVigenciaInicio (quando aplicável)
 
-  class Approval <<Entity, Audited>> {
-    -id: Long
-    -tenant: Tenant
-    -stage: ApprovalStage
-    -aprovador: User
-    -decisao: ApprovalDecision
-    -decididoEm: LocalDateTime
-    -comentario: String
-    -assinaturaEletronica: String  ' id/uri/evidência de e-sign
-  }
+    INDEXES/UNIQUES
+    - Unique: (tenant_id, documento_id, versao_major, versao_minor)
+    - Index : (tenant_id, status)
+    - Index : (tenant_id, documento_id, status)
+    - Unique (opcional): (pdf_sha256) quando preenchido
+  end note
 
   class ChangeRequest <<Entity, Audited>> {
     -id: Long
@@ -175,6 +906,19 @@ package "ged.domain" {
     -implementedByVersionId: Long  ' opcional: versão que endereçou a CR
   }
 
+  note right of ChangeRequest
+    VALIDATIONS
+    - titulo, motivo: not blank
+    - prioridade, impacto, status != null
+    - prazo >= solicitadoEm.date() (quando informado)
+    - se status == IMPLEMENTADA → implementedByVersionId not null
+
+    INDEXES/UNIQUES
+    - Index: (tenant_id, documento_id, status)
+    - Index: (tenant_id, prioridade, impacto)
+    - Index: (tenant_id, responsavel_id)
+  end note
+
   class ChangeRequestItem <<Entity, Audited>> {
     -id: Long
     -tenant: Tenant
@@ -184,6 +928,15 @@ package "ged.domain" {
     -textoDepois: Text
     -justificativa: String
   }
+
+  note right of ChangeRequestItem
+    VALIDATIONS
+    - secaoAlvo: not blank
+    - textoAntes/Depois: not null
+
+    INDEXES/UNIQUES
+    - Index: (tenant_id, change_request_id)
+  end note
 
   class ReviewCycle <<Entity, Audited>> {
     -id: Long
@@ -195,6 +948,17 @@ package "ged.domain" {
     -grupoRevisor: String
   }
 
+  note right of ReviewCycle
+    VALIDATIONS
+    - frequenciaMeses >= 0
+    - dataProximaRevisao >= dataUltimaRevisao (quando ambas informadas)
+
+    INDEXES/UNIQUES
+    - Unique: (tenant_id, documento_id)
+    - Index : (tenant_id, data_proxima_revisao)
+  end note
+
+
   class DistributionRule <<Entity, Audited>> {
     -id: Long
     -tenant: Tenant
@@ -203,26 +967,14 @@ package "ged.domain" {
     -papeisAlvo: String          ' lista separada por ";"
   }
 
-  class Acknowledgment <<Entity, Audited>> {
-    -id: Long
-    -tenant: Tenant
-    -documentVersion: DocumentVersion
-    -usuario: User
-    -status: AckStatus
-    -dataLimite: LocalDate
-    -cienteEm: LocalDateTime
-  }
+  note right of DistributionRule
+    VALIDATIONS
+    - documento != null
+    - departamentosAlvo OR papeisAlvo: ao menos um preenchido
 
-  class TrainingAssignment <<Entity, Audited>> {
-    -id: Long
-    -tenant: Tenant
-    -documentVersion: DocumentVersion
-    -usuario: User
-    -status: TrainingStatus
-    -dataLimite: LocalDate
-    -concluidoEm: LocalDateTime
-    -nota: Integer
-  }
+    INDEXES/UNIQUES
+    - Index: (tenant_id, documento_id)
+  end note
 
   ' PERFIS ESPECÍFICOS POR TIPO
   class PopProfile <<Entity, Audited>> {
@@ -240,6 +992,14 @@ package "ged.domain" {
     -referencias: Text
   }
 
+  note right of PopProfile
+    VALIDATIONS
+    - area, objetivo, escopo: not blank
+
+    INDEXES/UNIQUES
+    - Unique: (tenant_id, documento_id)
+  end note
+
   class PopStep <<Entity, Audited>> {
     -id: Long
     -tenant: Tenant
@@ -249,6 +1009,15 @@ package "ged.domain" {
     -instrucao: Text
     -notaRisco: String
   }
+
+  note right of PopStep
+    VALIDATIONS
+    - ordem >= 1
+    - titulo: not blank
+
+    INDEXES/UNIQUES
+    - Unique: (tenant_id, pop_profile_id, ordem)
+  end note
 
   class ProtocolProfile <<Entity, Audited>> {
     -id: Long
@@ -260,6 +1029,14 @@ package "ged.domain" {
     -fluxogramaRef: String
   }
 
+  note right of ProtocolProfile
+    VALIDATIONS
+    - escopoClinico: not blank
+
+    INDEXES/UNIQUES
+    - Unique: (tenant_id, documento_id)
+  end note
+
   class CommunicationProfile <<Entity, Audited>> {
     -id: Long
     -tenant: Tenant
@@ -270,6 +1047,16 @@ package "ged.domain" {
     -validoDe: LocalDate
     -validoAte: LocalDate
   }
+
+  note right of CommunicationProfile
+    VALIDATIONS
+    - tipoMensagem, publicoAlvo: not blank
+    - validoAte >= validoDe (quando informado)
+
+    INDEXES/UNIQUES
+    - Unique: (tenant_id, documento_id)
+    - Index : (tenant_id, valido_de, valido_ate)
+  end note
 }
 
 ' ===========================================================
@@ -296,15 +1083,10 @@ DocumentLink  --> Document : documentoAlvo
 
 DocumentVersion " * " --> " 1 " Tenant : tenant
 DocumentVersion " * " --> " 1 " Document : documento
-DocumentVersion " * " --> " 0..1 " EvidenciaArquivo : pdfArquivo
+DocumentVersion " 0..1 " --> " 1 " EvidenciaArquivo : pdfArquivo
 DocumentVersion --> DocumentStatus
-
-ApprovalStage " * " --> " 1 " Tenant : tenant
-ApprovalStage " * " --> " 1 " DocumentVersion : documentVersion
-Approval " * " --> " 1 " Tenant : tenant
-Approval " * " --> " 1 " ApprovalStage : stage
-Approval " * " --> " 1 " User : aprovador
-Approval --> ApprovalDecision
+DocumentVersion ..> ApprovalDomain
+DocumentVersion ..> Setor : scope via documento.setorResponsavel
 
 ChangeRequest " * " --> " 1 " Tenant : tenant
 ChangeRequest " * " --> " 1 " Document : documento
@@ -322,16 +1104,6 @@ ReviewCycle " * " --> " 1 " Document : documento
 
 DistributionRule " * " --> " 1 " Tenant : tenant
 DistributionRule " * " --> " 1 " Document : documento
-
-Acknowledgment " * " --> " 1 " Tenant : tenant
-Acknowledgment " * " --> " 1 " DocumentVersion : documentVersion
-Acknowledgment " * " --> " 1 " User : usuario
-Acknowledgment --> AckStatus
-
-TrainingAssignment " * " --> " 1 " Tenant : tenant
-TrainingAssignment " * " --> " 1 " DocumentVersion : documentVersion
-TrainingAssignment " * " --> " 1 " User : usuario
-TrainingAssignment --> TrainingStatus
 
 PopProfile " * " --> " 1 " Tenant : tenant
 PopProfile " * " --> " 1 " Document : documento
@@ -356,6 +1128,12 @@ package "observability.audit" {
     -clientIp: String
   }
 
+  note right of AuditRevisionEntity
+    INDEXES/UNIQUES
+    - Index: (timestamp)
+    - Index: (username)
+  end note
+
   class AuditRevisionListener <<Listener>>
 }
 
@@ -379,11 +1157,10 @@ package "observability.logging" {
   }
 
   note right of RequestLog
-    Tabela: request_logs
-    Índices:
-      - idx_request_logs_ts (logged_at)
-      - idx_request_logs_user (user_id)
-      - idx_request_logs_trace (trace_id)
+    INDEXES/UNIQUES
+    - Index: (timestamp)
+    - Index: (user_id)
+    - Index: (trace_id)
   end note
 }
 
@@ -409,11 +1186,10 @@ package "observability.security" {
   }
 
   note right of SecurityAuditEvent
-    Tabela: security_audit_events
-    Índices:
-      - idx_sec_audit_ts (occurred_at)
-      - idx_sec_audit_user (username)
-      - idx_sec_audit_type (event_type)
+    INDEXES/UNIQUES
+    - Index: (timestamp)
+    - Index: (username)
+    - Index: (event_type)
   end note
 }
 
@@ -465,7 +1241,6 @@ package "security.enums" {
       DASHBOARD
       DOCUMENTO
       DOCUMENTO_VERSAO
-      DOCUMENTO_TREINAMENTO
       DOCUMENTO_ACK
       DOCUMENTO_ALTERACAO
   }
@@ -520,19 +1295,6 @@ package "cme.enums" {
     DESINFECCAO_ALTO_NIVEL
   }
 
-  enum ResultadoConformidade {
-    CONFORME
-    NAO_CONFORME
-    NAO_APLICAVEL
-  }
-
-  enum NaoConformidadeSeveridade {
-    BAIXA
-    MEDIA
-    ALTA
-    CRITICA
-  }
-
   enum MovimentacaoTipo {
     ENTRADA_CONTAMINADO
     ENVIO_ESTERIL
@@ -569,6 +1331,13 @@ package "cme.enums" {
     CONCLUIDO
     BLOQUEADO
   }
+
+  enum ResultadoConformidade {
+        CONFORME
+        NAO_CONFORME
+        NAO_APLICAVEL
+  }
+
 }
 
 package "iam.domain" {
@@ -582,12 +1351,33 @@ package "iam.domain" {
         +active: boolean
     }
 
+    note right of Tenant
+      VALIDATIONS
+      - name: not blank
+      - cnpj: formato válido (quando informado)
+      - active != null
+
+      INDEXES/UNIQUES
+      - Unique: (code)
+      - Index : (active)
+    end note
+
     class User <<Entity, Audited>> {
         +id: Long,
         +userName: String,
         +passwordHash: String,
         +fullName: String,
     }
+
+    note right of User
+      VALIDATIONS
+      - userName: not blank, normalizado (lowercase, trim)
+      - passwordHash: not blank
+      - fullName: not blank
+
+      INDEXES/UNIQUES
+      - Unique: (userName)
+    end note
 
 }
 
@@ -603,6 +1393,17 @@ package "core.domain" {
 
   }
 
+  note right of ExameCultura
+    VALIDATIONS
+    - dataColeta <= now()
+    - origemAmostra: not blank
+    - resultado != null
+
+    INDEXES/UNIQUES
+    - Index: (tenant_id, data_coleta)
+    - Index: (tenant_id, resultado)
+  end note
+
   class Setor <<Entity, Audited>> {
       -id: Long,
       -tenant: Tenant,
@@ -610,6 +1411,17 @@ package "core.domain" {
       -tipo: TipoSetor,
       -descricao: String,
   }
+
+    note right of Setor
+      VALIDATIONS
+      - nome: not blank
+      - tipo: not null
+      - tenant: not null
+
+      INDEXES/UNIQUES
+      - Unique: (tenant_id, nome)
+      - Index : (tenant_id, tipo)
+    end note
 
   class Instrumento <<Entity, Audited>> {
       -id: Long,
@@ -619,6 +1431,16 @@ package "core.domain" {
       -descricao: String
   }
 
+  note right of Instrumento
+    VALIDATIONS
+    - nome: not blank
+    - codigoHospitalar: not blank
+
+    INDEXES/UNIQUES
+    - Unique: (tenant_id, codigo_hospitalar)
+    - Index : (tenant_id, nome)
+  end note
+
   class KitProcedimento <<Entity, Audited>> {
       -id: Long,
       -tenant: Tenant,
@@ -627,6 +1449,16 @@ package "core.domain" {
       -observacoes: String,
       -ativo: Boolean
   }
+
+  note right of KitProcedimento
+    VALIDATIONS
+    - nome, codigo: not blank
+    - ativo != null
+
+    INDEXES/UNIQUES
+    - Unique: (tenant_id, codigo)
+    - Index : (tenant_id, ativo)
+  end note
 
   class KitVersion <<Entity, Audited>> {
       -id: Long,
@@ -638,6 +1470,18 @@ package "core.domain" {
       -observacoes: String
   }
 
+  note right of KitVersion
+    VALIDATIONS
+    - numeroVersao >= 1
+    - vigenciaInicio != null
+    - validadeDias >= 0 (coerente com POP)
+    - ativo != null
+
+    INDEXES/UNIQUES
+    - Unique: (kit_id, numero_versao)
+    - Index : (ativo)
+  end note
+
   class KitItem <<Entity, Audited>> {
       -id: Long,
       -versao: KitVersion,
@@ -645,6 +1489,15 @@ package "core.domain" {
       -quantidade: Integer,
       -observacoes: String
   }
+
+  note right of KitItem
+    VALIDATIONS
+    - quantidade > 0
+    - versao, instrumento: not null
+
+    INDEXES/UNIQUES
+    - Unique: (versao_id, instrumento_id)
+  end note
 
 }
 
@@ -660,6 +1513,18 @@ package "environmental.domain" {
         -saneanteRelacionado: SaneantePeraceticoLote
         -observacoes: String
     }
+
+    note right of GeracaoResiduo
+      VALIDATIONS
+      - dataRegistro <= now()
+      - pesoEstimadoKg >= 0
+      - se loteRelacionada informado → status do lote compatível com descarte
+      - saneanteRelacionado coerente com período de uso
+
+      INDEXES/UNIQUES
+      - Index: (tenant_id, data_registro)
+      - Index: (tenant_id, classe_residuo)
+    end note
 }
 
 package "security.domain" {
@@ -677,9 +1542,14 @@ package "security.domain" {
   }
 
   note right of Policy
-    Tabela: policies
-    Index: (tenant_id, resource, action, feature, priority) «idx_policy_scope»
-    Index: (enabled) «idx_policy_enabled»
+    VALIDATIONS
+    - resource, action, effect != null
+    - priority >= 0
+    - enabled != null
+
+    INDEXES/UNIQUES
+    - Index : (tenant_id, resource, action, feature, priority)
+    - Index : (enabled)
   end note
 
   class PolicyCondition <<Entity, Audited>> {
@@ -690,6 +1560,11 @@ package "security.domain" {
     -value: String      ' cond_value (ex.: "UTI|CME")
   }
 
+  note right of PolicyCondition
+    VALIDATIONS
+    - type, operator, value: not blank
+  end note
+
   class Role <<Entity, Audited>> {
     -id: Long
     -name: String       ' unique por tenant
@@ -698,8 +1573,11 @@ package "security.domain" {
   }
 
   note right of Role
-    Tabela: roles
-    Unique: (tenant_id, name)  «uq_role_tenant_name»
+    VALIDATIONS
+    - name: not blank
+
+    INDEXES/UNIQUES
+    - Unique: (tenant_id, name)
   end note
 
   class Permission <<Entity, Audited>> {
@@ -712,9 +1590,13 @@ package "security.domain" {
   }
 
   note right of Permission
-    Tabela: permissions
-    Unique: (tenant_id, resource, action, feature) «uq_perm_scope»
-    Unique: (tenant_id, code) «uq_perm_code_tenant»
+    VALIDATIONS
+    - resource, action != null
+    - code: not blank
+
+    INDEXES/UNIQUES
+    - Unique: (tenant_id, resource, action, feature)
+    - Unique: (tenant_id, code)
   end note
 
   class RolePermission <<Entity, Audited>> {
@@ -725,32 +1607,45 @@ package "security.domain" {
   }
 
   note right of RolePermission
-    Tabela: role_permissions
-    Unique: (tenant_id, role_id, permission_id) «uq_role_perm»
+    VALIDATIONS
+    - role, permission, tenant: not null
+
+    INDEXES/UNIQUES
+    - Unique: (tenant_id, role_id, permission_id)
   end note
 
-  class UserPermissionOverride <<Entity, Audited>> {
+  class UserPermissionOverride <<Entity, Audited, ApprovableTarget>> {
     -id: Long
     -user: User
     -tenant: Tenant
     -resource: ResourceType
     -action: Action
-    -feature: String        ' NULL = coringa
+    -feature: String          ' NULL = coringa
     -effect: Effect
     -priority: int = 100
     -reason: String
     -validFrom: LocalDateTime
     -validUntil: LocalDateTime
-    -approved: boolean = false
-    -dualApprovalRequired: boolean = false
-    -requestedBy: String
-    -approvedBy: String
+
+    ' ---- NOVOS/CORRIGIDOS p/ approval.core ----
+    -targetSetor: Setor       ' opcional: escopo da aprovação (se houver)
+    -requestedByUser: User    ' quem solicitou
+    -requestedAt: LocalDateTime
+    -approvedByUser: User     ' (opcional, se quiser manter espelho legado)
     -approvedAt: LocalDateTime
   }
 
     note right of UserPermissionOverride
-      Tabela: user_permission_overrides
-      Index: (tenant_id, user_id, resource, action, feature, priority) «idx_override_lookup»
+      VALIDATIONS
+      - user, tenant, resource, action, effect != null
+      - validUntil >= validFrom (quando informado)
+      - se targetSetor informado → pertence ao mesmo tenant
+      - fluxo de aprovação obrigatório quando effect == ALLOW e priority < default
+
+      INDEXES/UNIQUES
+      - Index : (tenant_id, user_id)
+      - Index : (tenant_id, resource, action, feature)
+      - Index : (valid_from, valid_until)
     end note
 
 }
@@ -771,6 +1666,57 @@ package "quality.domain" {
     -nome: String
     -descricao: String
   }
+
+    class NaoConformidadeCME <<Entity, Audited, ApprovableTarget>> {
+        -id: Long
+        -tenant: Tenant
+        -tipo: TipoNaoConformidade
+        -titulo: String
+        -descricao: String
+        -severidade: NaoConformidadeSeveridade
+        -status: NaoConformidadeStatus
+        -dataAbertura: LocalDate
+        -dataEncerramento: LocalDate
+        -responsavel: User
+        -setorOrigem: Setor           ' quem registrou a NC
+        -setorResponsavel: Setor      ' quem executa as ações corretivas
+        -planoAcaoResumo: String
+        -cicloOrigem: CicloEsterilizacao  ' vínculo opcional com ciclo da CME
+        --
+        +getTenant(): Tenant
+        +getApprovalDomain(): ApprovalDomain
+        +getApprovalKey(): String
+        +getScopeSetor(): Setor
+    }
+
+    ' Plano de ação 5W2H por item (facilita auditoria da ONA)
+    class PlanoAcaoItem <<Entity, Audited>> {
+        -id: Long
+        -tenant: Tenant
+        -nc: NaoConformidadeCME
+        -oQue: String          ' What
+        -porQue: String        ' Why
+        -quem: User            ' Who (ou Colaborador se preferir)
+        -onde: String          ' Where
+        -quando: LocalDate     ' When
+        -como: String          ' How
+        -quanto: BigDecimal    ' How much (opcional)
+        -prazo: LocalDate
+        -statusExecucao: String
+        -evidencias: String
+      }
+
+   ' Avaliação de eficácia (checagem formal da qualidade)
+     class NCEficaciaAvaliacao <<Entity, Audited>> {
+       -id: Long
+       -tenant: Tenant
+       -nc: NaoConformidadeCME
+       -avaliador: User
+       -avaliadoEm: LocalDateTime
+       -metodo: String        ' ex.: reauditoria, indicador, amostragem
+       -resultado: String     ' ex.: eficaz/não eficaz + observações
+       -eficaz: Boolean
+     }
 }
 
 package "quality.enums" {
@@ -778,9 +1724,18 @@ package "quality.enums" {
     ABERTA
     EM_INVESTIGACAO
     EM_IMPLEMENTACAO
+    EM_VALIDACAO          ' NOVO: fase de checagem/validação da eficácia
+    AGUARDANDO_APROVACAO  ' NOVO: fila de aprovação no approval.core
     CONCLUIDA
     CANCELADA
   }
+
+    enum NaoConformidadeSeveridade {
+      BAIXA
+      MEDIA
+      ALTA
+      CRITICA
+    }
 }
 
 package "common.domain" {
@@ -800,10 +1755,15 @@ package "common.domain" {
   }
 
   note right of EvidenciaArquivo
-    Tabela: evidencias_arquivo
-    - Garante rastreabilidade documental.
-    - Arquivos evidenciam processos de qualidade,
-      auditorias e conformidades.
+    VALIDATIONS
+    - nomeArquivo, uri, contentType: not blank
+    - tamanhoBytes >= 0
+    - hashSha256: 64 hex (quando informado)
+
+    INDEXES/UNIQUES
+    - Unique (opcional): (hash_sha256)
+    - Index : (tenant_id, autor_id)
+    - Index : (criado_em)
   end note
 }
 
@@ -821,7 +1781,18 @@ package "cme.domain" {
     -ativo: Boolean
   }
 
-  class CicloEsterilizacao <<Entity, Audited>> {
+  note right of Autoclave
+    VALIDATIONS
+    - nome, fabricante, modelo, numeroSerie: not blank
+    - ativo != null
+
+    INDEXES/UNIQUES
+    - Unique: (tenant_id, numero_serie)
+    - Index : (tenant_id, nome)
+  end note
+
+' >>> ALTERADA: agora implementa ApprovableTarget e adiciona campos de gate
+  class CicloEsterilizacao <<Entity, Audited, ApprovableTarget>> {
     -id: Long
     -tenant: Tenant
     -autoclave: Autoclave
@@ -834,7 +1805,36 @@ package "cme.domain" {
     -status: CicloStatus
     -liberadoPor: User
     -observacoes: String
+    --
+    -setorExecutor: Setor
+    --
+    ' >>> NOVOS CAMPOS-CHAVE PARA LIBERAÇÃO EM ETAPAS
+    -parametrosOk: Boolean          ' Gate 1: físicos ok
+    -iqOk: Boolean                  ' Gate 1: indicadores químicos ok
+    -ibExigido: Boolean             ' Gate 2: IB requerido pelo POP?
+    -ibOk: Boolean                  ' Gate 2: leitura do IB ok
+    --
+    ' >>> ApprovableTarget
+    +getTenant(): Tenant
+    +getApprovalDomain(): ApprovalDomain
+    +getApprovalKey(): String        ' "cmeCycle:{id}"
+    +getScopeSetor(): Setor          ' setor da CME (ou do ciclo)
   }
+
+  note right of CicloEsterilizacao
+    VALIDATIONS
+    - inicio < fim; duracaoMinutos >= 0; coerência Duration≈duracaoMinutos
+    - temperaturaMaxima e pressaoMaxima em faixas plausíveis (POP)
+    - Não permitir ciclos EM_ANDAMENTO/AGENDADO simultâneos na mesma autoclave
+    - Gate1: parametrosOk && iqOk para concluir
+    - Gate2: se ibExigido, exige ibOk ou aprovação (approval.core) para liberar lote
+    - liberadoPor não pode ser o mesmo usuário que montou o lote (opcional SOD)
+
+    INDEXES/UNIQUES
+    - Index: (tenant_id, autoclave_id, inicio)
+    - Index: (tenant_id, status)
+    - Index: (tenant_id, lote_etiqueta_id)
+  end note
 
   class LoteEtiqueta <<Entity, Audited>> {
     -id: Long
@@ -850,6 +1850,78 @@ package "cme.domain" {
     -criadoEm: LocalDateTime
   }
 
+  note right of LoteEtiqueta
+    VALIDATIONS
+    - validade >= dataEmpacotamento
+    - LIBERADO só quando ciclo CONCLUIDO + Gate1 ok + (sem IB ou IB ok ou aprovado)
+    - Uso proibido se status ∈ {BLOQUEADO, VENCIDO}
+    - qrCode único por tenant
+
+    INDEXES/UNIQUES
+    - Unique: (tenant_id, codigo)
+    - Unique: (tenant_id, qr_code)
+    - Index : (tenant_id, status)
+    - Index : (tenant_id, kit_versao_id)
+  end note
+
+  class TesteBowieDick <<Entity, Audited>> {
+      -id: Long
+      -autoclave: Autoclave
+      -dataExecucao: LocalDate
+      -resultado: ResultadoConformidade
+      -executadoPor: User
+      -observacoes: String
+  }
+
+  note right of TesteBowieDick
+    VALIDATIONS
+    - Obrigatório antes do primeiro ciclo do dia
+    - NAO_CONFORME → bloquear start de novos ciclos e disparar NC
+
+    INDEXES/UNIQUES
+    - Index: (autoclave_id, data_execucao)
+    - Unique (opcional): (autoclave_id, data_execucao)  ' 1 teste por dia/equip.
+  end note
+
+  class IndicadorQuimico <<Entity, Audited>> {
+      -id: Long
+      -ciclo: CicloEsterilizacao
+      -tipo: String
+      -resultado: ResultadoConformidade
+      -observacoes: String
+  }
+
+  note right of IndicadorQuimico
+    VALIDATIONS
+    - pelo menos 1 por carga/posição conforme POP
+    - NAO_CONFORME → Gate1 falha (impede liberação)
+
+    INDEXES/UNIQUES
+    - Index: (ciclo_id, resultado)
+  end note
+
+  class IndicadorBiologico <<Entity, Audited>> {
+      -id: Long
+      -ciclo: CicloEsterilizacao
+      -loteIndicador: String
+      -incubadora: String
+      -leituraEm: LocalDate
+      -resultado: ResultadoConformidade
+      -observacoes: String
+  }
+
+  note right of IndicadorBiologico
+    VALIDATIONS
+    - leituraEm >= fim do ciclo e dentro da janela do POP
+    - Se ibExigido no ciclo, ibOk depende do(s) IB(s) CONFORME
+    - Registrar loteIndicador e incubadora
+
+    INDEXES/UNIQUES
+    - Unique: (ciclo_id, lote_indicador)
+    - Index : (ciclo_id, resultado)
+  end note
+
+
   class ManutencaoAutoclave <<Entity, Audited>> {
     -id: Long
     -autoclave: Autoclave
@@ -861,6 +1933,16 @@ package "cme.domain" {
     -observacoes: String
   }
 
+  note right of ManutencaoAutoclave
+    VALIDATIONS
+    - Não permitir manutenção EM_ANDAMENTO com ciclo ativo
+    - CALIBRACAO/VERIFICACAO_METROLOGICA → exigir evidências
+
+    INDEXES/UNIQUES
+    - Index: (autoclave_id, status)
+    - Index: (autoclave_id, data_agendamento)
+  end note
+
   class PlanoPreventivoAutoclave <<Entity, Audited>> {
     -id: Long
     -autoclave: Autoclave
@@ -869,6 +1951,16 @@ package "cme.domain" {
     -proximaExecucaoPrevista: LocalDate
     -descricao: String
   }
+
+  note right of PlanoPreventivoAutoclave
+    VALIDATIONS
+    - periodicidadeDias >= 0
+    - limiteCiclos   >= 0
+    - proximaExecucaoPrevista calculada pelo menor (dias/ciclos)
+
+    INDEXES/UNIQUES
+    - Unique: (autoclave_id)  ' 1 plano por autoclave (se aplicável)
+  end note
 
   class MovimentacaoCME <<Entity, Audited>> {
     -id: Long
@@ -882,6 +1974,17 @@ package "cme.domain" {
     -observacoes: String
   }
 
+  note right of MovimentacaoCME
+    VALIDATIONS
+    - setorOrigem != setorDestino
+    - ENVIO_ESTERIL → exige Lote LIBERADO
+    - RETORNO_CONTAMINADO → sugerir/abrir NC
+
+    INDEXES/UNIQUES
+    - Index: (tenant_id, lote_id, data_hora)
+    - Index: (tenant_id, tipo)
+  end note
+
   class UsoSaneante <<Entity, Audited>> {
     -id: Long
     -loteSaneante: SaneantePeraceticoLote
@@ -892,6 +1995,17 @@ package "cme.domain" {
     -usadoPor: User
     -observacoes: String
   }
+
+  note right of UsoSaneante
+    VALIDATIONS
+    - dataUso ∈ [dataAbertura, dataValidade]
+    - validar tempo pós-abertura do saneante (POP)
+    - volumeUtilizadoMl > 0 e ≤ saldo disponível
+
+    INDEXES/UNIQUES
+    - Index: (lote_saneante_id, data_uso)
+    - Index: (etapa)
+  end note
 
   class SaneantePeraceticoLote <<Entity, Audited>> {
     -id: Long
@@ -905,32 +2019,16 @@ package "cme.domain" {
     -observacoes: String
   }
 
-  class TesteBowieDick <<Entity, Audited>> {
-    -id: Long
-    -autoclave: Autoclave
-    -dataExecucao: LocalDate
-    -resultado: ResultadoConformidade
-    -executadoPor: User
-    -observacoes: String
-  }
+  note right of SaneantePeraceticoLote
+    VALIDATIONS
+    - numeroLote: not blank
+    - dataValidade >= dataAbertura
+    - volumeInicialMl > 0
 
-  class IndicadorQuimico <<Entity, Audited>> {
-    -id: Long
-    -ciclo: CicloEsterilizacao
-    -tipo: String
-    -resultado: ResultadoConformidade
-    -observacoes: String
-  }
-
-  class IndicadorBiologico <<Entity, Audited>> {
-    -id: Long
-    -ciclo: CicloEsterilizacao
-    -loteIndicador: String
-    -incubadora: String
-    -leituraEm: LocalDate
-    -resultado: ResultadoConformidade
-    -observacoes: String
-  }
+    INDEXES/UNIQUES
+    - Unique: (tenant_id, numero_lote)
+    - Index : (tenant_id, data_validade)
+  end note
 
   class HigienizacaoUltrassonica <<Entity, Audited>> {
     -id: Long
@@ -941,6 +2039,16 @@ package "cme.domain" {
     -observacoes: String
   }
 
+  note right of HigienizacaoUltrassonica
+    VALIDATIONS
+    - periodicidade conforme POP
+    - exigir evidência quando aplicável
+
+    INDEXES/UNIQUES
+    - Index: (tenant_id, data_realizacao)
+    - Index: (tenant_id, responsavel_id)
+  end note
+
   class HigienizacaoAutoclaveProfunda <<Entity, Audited>> {
     -id: Long
     -autoclave: Autoclave
@@ -949,18 +2057,25 @@ package "cme.domain" {
     -observacoes: String
   }
 
-  class NaoConformidadeCME <<Entity, Audited>> {
-    -id: Long
-    -tenant: Tenant
-    -tipo: TipoNaoConformidade
-    -titulo: String
-    -descricao: String
-    -severidade: NaoConformidadeSeveridade
-    -status: NaoConformidadeStatus
-    -dataAbertura: LocalDate
-    -dataEncerramento: LocalDate
-    -responsavel: User
-    -planoAcaoResumo: String
+  note right of HigienizacaoAutoclaveProfunda
+    VALIDATIONS
+    - periodicidade (ex.: mensal/semanal) conforme POP
+    - exigir evidências e assinatura do responsável
+
+    INDEXES/UNIQUES
+    - Index: (autoclave_id, data_realizacao)
+  end note
+
+}
+
+package "cme.application" {
+
+  ' >>> NOVO: serviço de aplicação responsável por acionar approval.core e liberar/bloquear lotes
+  class CMEReleaseService {
+    +startReleaseApproval(cicloId: Long, requestedBy: User): void
+    +onApprovalGranted(requestId: Long): void
+    +onApprovalRejected(requestId: Long, reason: String): void
+    +updateGateStatus(cicloId: Long, parametrosOk: boolean, iqOk: boolean, ibExigido: boolean, ibOk: boolean): void
   }
 
 }
@@ -1024,11 +2139,14 @@ RolePermission " * " --> " 1 " Permission : permission
 RolePermission " * " --> " 1 " Tenant : tenant
 
 ' UserPermissionOverride (exceções por usuário)
-UserPermissionOverride " * " --> " 1 " User : user
+UserPermissionOverride " * " --> " 1 " User   : user
 UserPermissionOverride " * " --> " 1 " Tenant : tenant
 UserPermissionOverride --> ResourceType
 UserPermissionOverride --> Action
 UserPermissionOverride --> Effect
+UserPermissionOverride "0..1" --> "1" Setor : targetSetor
+UserPermissionOverride "0..1" --> "1" User  : requestedByUser
+UserPermissionOverride "0..1" --> "1" User  : approvedByUser
 
 TipoNaoConformidade " * " --> " 1 " Tenant : tenant
 NaoConformidadeBase --> TipoNaoConformidade : tipo
@@ -1047,7 +2165,22 @@ CicloEsterilizacao " * " --> " 1 " Tenant : tenant
 CicloEsterilizacao " * " --> " 1 " Autoclave : autoclave
 CicloEsterilizacao --> LoteEtiqueta : loteEtiqueta
 CicloEsterilizacao --> CicloStatus
+CicloEsterilizacao " * " -- " * " EvidenciaArquivo : evidencias <<novo>>
 CicloEsterilizacao --> User : liberadoPor
+CicloEsterilizacao " * " --> " 1 " Setor : setorExecutor
+
+TesteBowieDick " * " --> " 1 " Autoclave : autoclave
+TesteBowieDick --> ResultadoConformidade
+TesteBowieDick --> User : executadoPor
+TesteBowieDick " * " -- " * " EvidenciaArquivo : evidencias
+
+IndicadorQuimico " * " --> " 1 " CicloEsterilizacao : ciclo
+IndicadorQuimico --> ResultadoConformidade
+IndicadorQuimico " * " -- " * " EvidenciaArquivo : evidencias
+
+IndicadorBiologico " * " --> " 1 " CicloEsterilizacao : ciclo
+IndicadorBiologico --> ResultadoConformidade
+IndicadorBiologico " * " -- " * " EvidenciaArquivo : evidencias
 
 LoteEtiqueta " * " --> " 1 " Tenant : tenant
 LoteEtiqueta --> KitVersion : kitVersao
@@ -1074,19 +2207,6 @@ UsoSaneante --> User : usadoPor
 
 SaneantePeraceticoLote " * " --> " 1 " Tenant : tenant
 
-TesteBowieDick " * " --> " 1 " Autoclave : autoclave
-TesteBowieDick --> ResultadoConformidade
-TesteBowieDick --> User : executadoPor
-TesteBowieDick " * " -- " * " EvidenciaArquivo : evidencias
-
-IndicadorQuimico " * " --> " 1 " CicloEsterilizacao : ciclo
-IndicadorQuimico --> ResultadoConformidade
-IndicadorQuimico " * " -- " * " EvidenciaArquivo : evidencias
-
-IndicadorBiologico " * " --> " 1 " CicloEsterilizacao : ciclo
-IndicadorBiologico --> ResultadoConformidade
-IndicadorBiologico " * " -- " * " EvidenciaArquivo : evidencias
-
 HigienizacaoUltrassonica " * " --> " 1 " Tenant : tenant
 HigienizacaoUltrassonica --> User : responsavel
 HigienizacaoUltrassonica " * " -- " * " EvidenciaArquivo : evidencias
@@ -1101,5 +2221,23 @@ NaoConformidadeCME --> TipoNaoConformidade : tipo
 NaoConformidadeCME --> NaoConformidadeSeveridade : severidade
 NaoConformidadeCME --> NaoConformidadeStatus : status
 NaoConformidadeCME --> User : responsavel
+NaoConformidadeCME "0..1" --> "1" Setor : setorOrigem
+NaoConformidadeCME "0..1" --> "1" Setor : setorResponsavel
 NaoConformidadeCME " * " -- " * " EvidenciaArquivo : evidencias
+NaoConformidadeCME "0..*" --> "0..1" CicloEsterilizacao : cicloOrigem <<novo>>
+
+' Ligação conceitual com approval.core (via ApprovableTarget e ApprovalDomain)
+CicloEsterilizacao ..> ApprovalDomain : CME_CYCLE_RELEASE
+CMEReleaseService ..> CicloEsterilizacao
+CMEReleaseService ..> NaoConformidadeCME
+CMEReleaseService ..> LoteEtiqueta
+
+PlanoAcaoItem " * " --> " 1 " Tenant : tenant
+PlanoAcaoItem " * " --> " 1 " NaoConformidadeCME : nc
+PlanoAcaoItem "0..1" --> "1" User : quem
+
+NCEficaciaAvaliacao " * " --> " 1 " Tenant : tenant
+NCEficaciaAvaliacao " * " --> " 1 " NaoConformidadeCME : nc
+NCEficaciaAvaliacao " * " --> " 1 " User : avaliador
+
 @enduml

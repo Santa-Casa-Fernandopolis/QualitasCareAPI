@@ -2,7 +2,7 @@ package com.erp.qualitascareapi.cme.application;
 
 import com.erp.qualitascareapi.cme.api.dto.*;
 import com.erp.qualitascareapi.cme.domain.LoteEtiqueta;
-import com.erp.qualitascareapi.cme.domain.NaoConformidadeCME;
+import com.erp.qualitascareapi.quality.domain.NaoConformidadeCME;
 import com.erp.qualitascareapi.cme.domain.SaneantePeraceticoLote;
 import com.erp.qualitascareapi.cme.repo.LoteEtiquetaRepository;
 import com.erp.qualitascareapi.cme.repo.NaoConformidadeCMERepository;

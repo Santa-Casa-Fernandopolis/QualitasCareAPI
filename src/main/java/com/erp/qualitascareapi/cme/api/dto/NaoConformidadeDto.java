@@ -1,6 +1,6 @@
 package com.erp.qualitascareapi.cme.api.dto;
 
-import com.erp.qualitascareapi.cme.enums.NaoConformidadeSeveridade;
+import com.erp.qualitascareapi.quality.enums.NaoConformidadeSeveridade;
 import com.erp.qualitascareapi.quality.enums.NaoConformidadeStatus;
 
 import java.time.LocalDate;

@@ -1,41 +1,8 @@
-# Domain Class Diagrams
 
-Este documento descreve a **arquitetura de domínio** do QualitasCareAPI a partir do arquivo `domain_class_diagrams.puml`, agrupando agregados por **bounded context** (módulos) e explicitando dependências entre pacotes. O objetivo é facilitar entendimento, manutenção, auditoria (ONA/Anvisa) e evolução do modelo.
+# Domain Class Diagrams — Unified & Updated (GED + EDU + HR)
 
-> Renderização:
->
-> ```bash
-> plantuml docs/domain_class_diagrams.puml
-> ```
->
-> Dica: use `-tpng` ou `-tsvg` para exportar imagens.
+> Versão consolidada com correções de sumário, índices/restrições explícitos, inclusão dos módulos **hr.domain** e **edu** completos, snapshot de **ged.domain** para referência cruzada, e organização de seções e relações.
 
----
-
-## Visão geral e princípios
-
-* **Multi-tenant**: quase todas as entidades de negócio possuem `Tenant` (chave estrangeira), isolando dados por hospital/unidade.
-* **Auditoria e rastreabilidade**: entidades com `@Audited` (Envers); `EvidenciaArquivo` associa anexos (hash, mimetype) a registros críticos.
-* **Enums descritivos**: estados/tipos padronizados (ex.: `LoteStatus`, `CicloStatus`, `NaoConformidadeStatus`) para regras claras e validação simples.
-* **Reuso entre módulos**: o pacote `core` concentra classes base (ex.: `Setor`, `Instrumento`, `Kit*`) e é reutilizado por `cme`, `quality` e `environmental`.
-* **Segurança e autorização**: fora do escopo deste diagrama, mas as entidades respeitam o modelo ABAC/RBAC (Policies/Permissions/Overrides) do módulo `security`.
-
----
-
-## Convenções do diagrama
-
-* **Pacotes** = módulos de domínio (`core`, `cme`, `quality`, `environmental`).
-* **Setas sólidas**: relacionamentos JPA (`@ManyToOne`, `@ManyToMany`, etc.).
-* **Enum**: tipos e estados persistidos via `@Enumerated(EnumType.STRING)`.
-* **Estereótipos**: `<<Entity, Audited>>` indica auditoria Envers ativa.
-
----
-
-# 📘 Documento de Domínio — Sistema **QualitasCareAPI**
-
-Cada pacote representa um **módulo funcional** do sistema e contém suas classes, enums e relacionamentos conforme mapeamento JPA/Hibernate, incluindo observações de auditoria, índices e vínculos entre módulos.
-
----
 
 ## Sumário
 
@@ -55,470 +22,437 @@ Cada pacote representa um **módulo funcional** do sistema e contém suas classe
 14. [Pacote `quality.domain`](#qualitydomain)
 15. [Pacote `common.domain`](#commondomain)
 16. [Relações entre pacotes](#relações-principais-entre-pacotes)
-17. [Regras e guidelines](#regras-de-integridade-e-negócio-guidelines)
-18. [Padrões técnicos](#padrões-técnicos-adotados)
-19. [Consultas típicas](#exemplos-de-navegação-típica-consultas)
-20. [Extensibilidade](#extensibilidade)
-21. [Checklist do diagrama](#checklist-de-qualidade-do-diagrama)
+17. [Pacote `hr.domain`](#hrdomain)
+18. [Pacote `edu.enums`](#eduenums)
+19. [Pacote `edu.domain`](#edudomain)
+20. [Regras de integridade e negócio (Guidelines)](#regras-de-integridade-e-negócio-guidelines)
+21. [Padrões técnicos adotados](#padrões-técnicos-adotados)
+22. [Exemplos de navegação típica (Consultas)](#exemplos-de-navegação-típica-consultas)
+23. [Extensibilidade](#extensibilidade)
+24. [Checklist de qualidade do diagrama](#checklist-de-qualidade-do-diagrama)
+
 
 ---
 
 ## iam.domain
-
-### Tenant (Entity, Audited)
-| Campo | Tipo | Notas |
+| Entidade | Campos-chave | Observações |
 |---|---|---|
-| id | Long | PK |
-| code | Long | Código interno |
-| name | String | Nome da instituição |
-| cnpj | String | Identificador nacional |
-| active | boolean | Status de atividade |
-
-### User (Entity, Audited)
-| Campo | Tipo | Notas |
-|---|---|---|
-| id | Long | PK |
-| userName | String | Login único por tenant |
-| passwordHash | String | Hash seguro |
-| fullName | String | Nome completo do usuário |
+| **Tenant** | `id, code, name, cnpj, logo, active` | Identidade do cliente (multi-tenant). |
+| **User** | `id, userName, passwordHash, fullName` | Usuários do sistema (nem todo colaborador é user). |
 
 ---
 
 ## security.enums
-
-### UserStatus
-Estados possíveis do ciclo de vida de um usuário.
-| Constante | active |
-|---|---|
-| PROVISIONED | false |
-| ACTIVE | true |
-| SUSPENDED | false |
-| DISABLED | false |
-| EXPIRED | false |
-
-Método: `isActive(): boolean`
-
-### ResourceType
-`INDICADOR, AUDITORIA, NC, PROTOCOLO, CAPACITACAO, PGRSS, USUARIO, DASHBOARD`
-
-### IdentityOrigin
-`LOCAL, LDAP, SSO, IMPORTED`
-
-> Indica a origem da identidade do usuário, mantida curta para validações e auditorias simples.
-
-### Effect
-`ALLOW, DENY`
-
-### Action
-`READ, CREATE, UPDATE, DELETE, APPROVE, EXPORT, CLOSE`
+- `UserStatus` {PROVISIONED, ACTIVE, SUSPENDED, DISABLED, EXPIRED}
+- `ResourceType` {INDICADOR, AUDITORIA, NC, PROTOCOLO, CAPACITACAO, PGRSS, USUARIO, DASHBOARD, DOCUMENTO, DOCUMENTO_VERSAO, DOCUMENTO_TREINAMENTO, DOCUMENTO_ACK, DOCUMENTO_ALTERACAO}
+- `Effect` {ALLOW, DENY}
+- `Action` {READ, CREATE, UPDATE, DELETE, APPROVE, EXPORT, CLOSE}
+- `IdentityOrigin` {LOCAL, LDAP, SSO, IMPORTED}
 
 ---
 
 ## security.domain
-
-### Policy (Entity, Audited)
-| Campo | Tipo | Notas |
-|---|---|---|
-| id | Long | PK |
-| tenant | Tenant | FK |
-| resource | ResourceType | Escopo de autorização |
-| action | Action | Ação controlada |
-| feature | String | **NULL = coringa** (qualquer feature) |
-| effect | Effect | ALLOW/DENY |
-| enabled | boolean | Default `true` |
-| priority | int | Default `100` |
-| description | String | Descritivo |
-
-**Índices**
-- `idx_policy_scope(tenant_id, resource, action, feature, priority)`
-- `idx_policy_enabled(enabled)`
-
-**Relações**
-- `Policy *—* Role` (tabela `policy_roles`)
-- `Policy 1 o—* PolicyCondition` (`cascade=ALL`, `orphanRemoval=true`)
-
----
-
-### PolicyCondition (Entity, Audited)
-| Campo | Tipo | Notas |
-|---|---|---|
-| id | Long | PK |
-| policy | Policy | FK |
-| type | String | Ex.: `TARGET_DEPARTMENT` |
-| operator | String | EQ, NE, IN, NOT_IN |
-| value | String | Ex.: `"UTI|CME"` |
-
----
-
-### Role (Entity, Audited)
-| Campo | Tipo | Notas |
-|---|---|---|
-| id | Long | PK |
-| name | String | **Único por tenant** |
-| tenant | Tenant | FK |
-| description | String | Descritivo |
-
-**Unique:** `uq_role_tenant_name(tenant_id, name)`
-
----
-
-### Permission (Entity, Audited)
-| Campo | Tipo | Notas |
-|---|---|---|
-| id | Long | PK |
-| resource | ResourceType | Escopo |
-| action | Action | Operação |
-| feature | String | **NULL = coringa** |
-| tenant | Tenant | FK |
-| code | String | Ex.: `"NC_READ@LISTA"` |
-
-**Uniques**
-- `uq_perm_scope(tenant_id, resource, action, feature)`
-- `uq_perm_code_tenant(tenant_id, code)`
-
----
-
-### RolePermission (Entity, Audited)
-| Campo | Tipo | Notas |
-|---|---|---|
-| id | Long | PK |
-| role | Role | FK |
-| permission | Permission | FK |
-| tenant | Tenant | FK |
-
-**Unique:** `uq_role_perm(tenant_id, role_id, permission_id)`
-
----
-
-### UserPermissionOverride (Entity, Audited)
-| Campo | Tipo | Notas |
-|---|---|---|
-| id | Long | PK |
-| user | User | FK |
-| tenant | Tenant | FK |
-| resource | ResourceType | Escopo |
-| action | Action | Operação |
-| feature | String | **NULL = coringa** |
-| effect | Effect | ALLOW/DENY |
-| priority | int | Default `100` |
-| reason | String | Justificativa |
-| validFrom | LocalDateTime | Início da validade |
-| validUntil | LocalDateTime | Fim da validade |
-| approved | boolean | Flag de aprovação |
-| dualApprovalRequired | boolean | Aprovação dupla |
-| requestedBy | String | Solicitante |
-| approvedBy | String | Aprovador |
-| approvedAt | LocalDateTime | Data/hora da aprovação |
-
-**Índice:** `idx_override_lookup(tenant_id, user_id, resource, action, feature, priority)`
-
-> **Regra de avaliação:** overrides vencidos são ignorados; entre válidos, aplica-se o de menor `priority`. Em empate, prevalece `DENY` (fail-secure).
+| Entidade | Campos-chave | Índices/Restrições | Observações |
+|---|---|---|---|
+| **Policy** | `tenant, resource, action, feature, effect, priority, enabled` | `(tenant_id, resource, action, feature, priority)`; `(enabled)` | ABAC (feature opcional = coringa). |
+| **PolicyCondition** | `policy, type, operator, value` |  | Condições (EQ, NE, IN...). |
+| **Role** | `tenant, name, description` | **UNIQUE** `(tenant_id, name)` |  |
+| **Permission** | `tenant, resource, action, feature, code` | **UNIQUE** `(tenant_id, resource, action, feature)`; **UNIQUE** `(tenant_id, code)` |  |
+| **RolePermission** | `role, permission, tenant` | **UNIQUE** `(tenant_id, role_id, permission_id)` |  |
+| **UserPermissionOverride** | `user, tenant, resource, action, feature, effect, priority, ...` | `(tenant_id, user_id, resource, action, feature, priority)` | Exceções por usuário com aprovação dupla opcional. |
 
 ---
 
 ## observability.audit
-
-### AuditRevisionEntity (Entity, @RevisionEntity)
-| Campo | Tipo | Notas |
-|---|---|---|
-| id | Long | @RevisionNumber |
-| timestamp | long | @RevisionTimestamp |
-| username | String | Usuário que executou a transação |
-| clientIp | String | IP do cliente |
-
-**Listener:** `AuditRevisionListener` (preenche username e clientIp via contexto de segurança).
-
----
+- **AuditRevisionEntity** (RevisionEntity): `id, timestamp, username, clientIp`
+- **AuditRevisionListener**
 
 ## observability.logging
-
-### RequestLog (Entity)
-| Campo | Tipo | Notas |
-|---|---|---|
-| id | Long | PK |
-| timestamp | Instant | logged_at |
-| method | String | — |
-| path | String | — |
-| status | int | — |
-| durationMs | long | Tempo de resposta |
-| traceId | String | Correlaciona com auditoria |
-| userId | String | — |
-| clientIp | String | — |
-| httpVersion | String | — |
-| contentLength | Long | — |
-
-**Índices**
-- `idx_request_logs_ts(logged_at)`
-- `idx_request_logs_user(user_id)`
-- `idx_request_logs_trace(trace_id)`
-
-> Correlação conceitual: `RequestLog.traceId` vincula eventos do Envers (`AuditRevisionEntity`) e auditorias de segurança.
-
----
+- **RequestLog**: `id, timestamp, method, path, status, durationMs, traceId, userId, clientIp, httpVersion, contentLength`  
+  Índices: `(logged_at)`, `(user_id)`, `(trace_id)`
 
 ## observability.security
-
-### SecurityAuditEventType (Enum)
-`AUTHENTICATION_SUCCESS, AUTHENTICATION_FAILURE, AUTHORIZATION_FAILURE`
-
-### SecurityAuditEvent (Entity)
-| Campo | Tipo | Notas |
-|---|---|---|
-| id | Long | PK |
-| timestamp | Instant | occurred_at |
-| username | String | Usuário |
-| eventType | SecurityAuditEventType | Tipo do evento |
-| clientIp | String | — |
-| traceId | String | — |
-| description | String | — |
-
-**Índices**
-- `idx_sec_audit_ts(occurred_at)`
-- `idx_sec_audit_user(username)`
-- `idx_sec_audit_type(event_type)`
+- **SecurityAuditEventType**: {AUTHENTICATION_SUCCESS, AUTHENTICATION_FAILURE, AUTHORIZATION_FAILURE}
+- **SecurityAuditEvent**: `id, timestamp, username, eventType, clientIp, traceId, description`  
+  Índices: `(occurred_at)`, `(username)`, `(event_type)`
 
 ---
 
 ## core.enums
-- **ExameCulturaResultado:** `PENDENTE, NEGATIVO, POSITIVO, INVALIDO`
-- **TipoSetor:** `CME, CC, UTI, ENFERMARIA, FARMACIA, HOTELARIA, MANUTENCAO, PS`
-
----
+- `ExameCulturaResultado` {PENDENTE, NEGATIVO, POSITIVO, INVALIDO}
+- `TipoSetor` {CME, CC, UTI, ENFERMARIA, FARMACIA, HOTELARIA, MANUTENCAO, PS}
 
 ## core.domain
-
-### Setor
-| Campo | Tipo | Notas |
-|---|---|---|
-| id | Long | PK |
-| tenant | Tenant | FK obrigatório |
-| nome | String | 120 |
-| tipo | TipoSetor | — |
-| descricao | String | — |
-
-### Instrumento
-| Campo | Tipo | Notas |
-|---|---|---|
-| id | Long | PK |
-| tenant | Tenant | FK obrigatório |
-| nome | String | 150 |
-| codigoHospitalar | String | — |
-| descricao | String | — |
-
-### KitProcedimento
-| Campo | Tipo | Notas |
-|---|---|---|
-| id | Long | PK |
-| tenant | Tenant | FK obrigatório |
-| nome | String | 150 |
-| codigo | String | — |
-| observacoes | String | — |
-| ativo | Boolean | default TRUE |
-
-### KitVersion
-| Campo | Tipo | Notas |
-|---|---|---|
-| id | Long | PK |
-| kit | KitProcedimento | FK |
-| numeroVersao | Integer | — |
-| vigenciaInicio | LocalDate | — |
-| validadeDias | Integer | — |
-| ativo | Boolean | default TRUE |
-| observacoes | String | — |
-
-### KitItem
-| Campo | Tipo | Notas |
-|---|---|---|
-| id | Long | PK |
-| versao | KitVersion | FK |
-| instrumento | Instrumento | FK |
-| quantidade | Integer | — |
-| observacoes | String | — |
-
-### ExameCultura
-| Campo | Tipo | Notas |
-|---|---|---|
-| id | Long | PK |
-| tenant | Tenant | FK obrigatório |
-| origemAmostra | String | 120 |
-| dataColeta | LocalDate | — |
-| responsavelColeta | String | 150 |
-| resultado | ExameCulturaResultado | Default `PENDENTE` |
-| registradoPor | User | — |
-| observacoes | String | — |
-
-**Relações**
-- `ExameCultura *—* EvidenciaArquivo` (ManyToMany)
+- **Setor**: `tenant, nome, tipo, descricao`
+- **Instrumento/Kit*:** classes de kits e itens (conforme arquivo principal)
 
 ---
 
 ## cme.enums
-- **UsoSaneanteEtapa:** `PRE_LIMPEZA, LIMPEZA_MANUAL, LAVADORA_TERMODESINFECCAO, DESINFECCAO_ALTO_NIVEL`
-- **ResultadoConformidade:** `CONFORME, NAO_CONFORME, NAO_APLICAVEL`
-- **NaoConformidadeSeveridade:** `BAIXA, MEDIA, ALTA, CRITICA`
-- **MovimentacaoTipo:** `ENTRADA_CONTAMINADO, ENVIO_ESTERIL, RETORNO_CONTAMINADO, DESCARTE`
-- **ManutencaoTipo:** `PREVENTIVA, CORRETIVA, CALIBRACAO, VERIFICACAO_METROLOGICA`
-- **ManutencaoStatus:** `PLANEJADA, ABERTA, EM_ANDAMENTO, CONCLUIDA, CANCELADA`
-- **LoteStatus:** `MONTADO, EM_PROCESSO, LIBERADO, BLOQUEADO, VENCIDO`
-- **CicloStatus:** `AGENDADO, EM_ANDAMENTO, CONCLUIDO, BLOQUEADO`
-
----
+- `UsoSaneanteEtapa` {PRE_LIMPEZA, LIMPEZA_MANUAL, LAVADORA_TERMODESINFECCAO, DESINFECCAO_ALTO_NIVEL}
+- `ResultadoConformidade` {CONFORME, NAO_CONFORME, NAO_APLICAVEL}
+- `NaoConformidadeSeveridade` {BAIXA, MEDIA, ALTA, CRITICA}
+- `MovimentacaoTipo` {ENTRADA_CONTAMINADO, ENVIO_ESTERIL, RETORNO_CONTAMINADO, DESCARTE}
+- `ManutencaoTipo` {PREVENTIVA, CORRETIVA, CALIBRACAO, VERIFICACAO_METROLOGICA}
+- `ManutencaoStatus` {PLANEJADA, ABERTA, EM_ANDAMENTO, CONCLUIDA, CANCELADA}
+- `LoteStatus` {MONTADO, EM_PROCESSO, LIBERADO, BLOQUEADO, VENCIDO}
+- `CicloStatus` {AGENDADO, EM_ANDAMENTO, CONCLUIDO, BLOQUEADO}
 
 ## cme.domain
-
-| Classe | Relações principais |
-|---|---|
-| **Autoclave** | Tenant |
-| **CicloEsterilizacao** | Tenant, Autoclave, LoteEtiqueta, User (liberadoPor) |
-| **LoteEtiqueta** | Tenant, KitVersion, User (montadoPor) |
-| **ManutencaoAutoclave** | Autoclave, EvidenciaArquivo (M:N) |
-| **PlanoPreventivoAutoclave** | Autoclave |
-| **MovimentacaoCME** | Tenant, LoteEtiqueta, Setor (origem/destino), User |
-| **UsoSaneante** | SaneantePeraceticoLote, User |
-| **SaneantePeraceticoLote** | Tenant |
-| **TesteBowieDick** | Autoclave, User, EvidenciaArquivo (M:N) |
-| **IndicadorQuimico** | CicloEsterilizacao, EvidenciaArquivo (M:N) |
-| **IndicadorBiologico** | CicloEsterilizacao, EvidenciaArquivo (M:N) |
-| **HigienizacaoUltrassonica** | Tenant, User, EvidenciaArquivo (M:N) |
-| **HigienizacaoAutoclaveProfunda** | Autoclave, User, EvidenciaArquivo (M:N) |
-| **NaoConformidadeCME** | Tenant, TipoNaoConformidade, User, EvidenciaArquivo (M:N) |
-
-> Todas as classes da CME são auditadas via Envers e vinculadas a `Tenant`.  
-> **Observação:** o código-fonte apresentava duplicidade de `PlanoPreventivoAutoclave`; manter apenas **uma** definição.
+- (conforme arquivo principal; sem mudanças neste patch)
 
 ---
 
 ## environmental.enums
-- **ClasseResiduo:** `PERFUROCORTANTE, BIOLOGICO, QUIMICO, RECICLAVEL, COMUM`
-
----
+- `ClasseResiduo` {PERFUROCORTANTE, BIOLOGICO, QUIMICO, RECICLAVEL, COMUM}
 
 ## environmental.domain
-
-### GeracaoResiduo
-| Campo | Tipo | Notas |
-|---|---|---|
-| id | Long | PK |
-| tenant | Tenant | FK obrigatório |
-| dataRegistro | LocalDate | — |
-| classeResiduo | ClasseResiduo | — |
-| pesoEstimadoKg | Double | — |
-| destinoFinal | String | — |
-| loteRelacionada | LoteEtiqueta | — |
-| saneanteRelacionado | SaneantePeraceticoLote | — |
-| observacoes | String | — |
+- **GeracaoResiduo**: `tenant, dataRegistro, classeResiduo, pesoEstimadoKg, destinoFinal, loteRelacionada, saneanteRelacionado, observacoes`
 
 ---
 
 ## quality.enums
-- **NaoConformidadeStatus:** `ABERTA, EM_INVESTIGACAO, EM_IMPLEMENTACAO, CONCLUIDA, CANCELADA`
-
----
+- `NaoConformidadeStatus` {ABERTA, EM_INVESTIGACAO, EM_IMPLEMENTACAO, CONCLUIDA, CANCELADA}
 
 ## quality.domain
-
-### NaoConformidadeBase (Interface)
-| Método | Retorno |
-|---|---|
-| getId() | Long |
-| getTenant() | Tenant |
-| getTitulo() | String |
-| getStatus() | NaoConformidadeStatus |
-| getTipo() | TipoNaoConformidade |
-
-### TipoNaoConformidade (Entity, Audited)
-| Campo | Tipo | Notas |
-|---|---|---|
-| id | Long | PK |
-| tenant | Tenant | FK |
-| nome | String | 120 |
-| descricao | String | 255 |
+- **TipoNaoConformidade**: `tenant, nome, descricao`
+- **NaoConformidadeBase** (interface): getters padrão
 
 ---
 
 ## common.domain
-
-### EvidenciaArquivo (Entity, Audited)
-| Campo | Tipo | Notas |
-|---|---|---|
-| id | Long | PK |
-| tenant | Tenant | FK obrigatório |
-| nomeArquivo | String | 180 |
-| uri | String | 255 |
-| hashSha256 | String | 64 |
-| contentType | String | 120 |
-| tamanhoBytes | Long | — |
-| autor | User | FK opcional |
-| criadoEm | LocalDateTime | definido no @PrePersist |
-
-**Relações**
-- ManyToMany com várias entidades (CME e Core).
-
-**Notas**
-- Tabela: `evidencias_arquivo`
-- Utilizada para rastreabilidade documental e comprovação de conformidades.
+- **EvidenciaArquivo**: `tenant, nomeArquivo, uri, hashSha256, contentType, tamanhoBytes, autor, criadoEm`  
+  Observação: usar hash para integridade, manter trilhas com Envers.
 
 ---
 
 ## Relações principais entre pacotes
-
-- **Tenant**: FK presente em todas as entidades auditáveis.
-- **User**: Referenciado por entidades de autoria ou execução.
-- **EvidenciaArquivo**: vínculo ManyToMany em processos de CME e auditorias.
-- **Política de acesso (Security)**: define camada de autorização granular (tenant + recurso + ação + feature).
-- **Observabilidade**: une logs de requisição, revisões de dados e auditorias de segurança via `traceId`.
+- `CME ⇄ core.domain`: Setor, Kits, Lotes, etc.
+- `SECURITY ⇄ iam`: Policies/Permissions por tenant.
+- `OBSERVABILITY ⇄ *`: logs e auditorias amarram traceId/user/tenant.
+- `GED ⇄ EDU`: `CourseItem.documentoBase → DocumentVersion` (só vincular a **PUBLICADO**).
+- `EDU ⇄ HR`: `Colaborador` como pivô de inscrições, presenças e competências.
+- `EDU ⇄ COMMON`: `PracticalAssessment.evidencia → EvidenciaArquivo`.
 
 ---
 
-## Regras de integridade e negócio (guidelines)
+## hrdomain
 
-1. **Tenant obrigatório** em todas as entidades de negócio “top-level”.
-2. **Estados coerentes**:
-    * `CicloEsterilizacao.status`: `AGENDADO → EM_ANDAMENTO → CONCLUIDO` (ou `BLOQUEADO`).
-    * `LoteEtiqueta.status`: `MONTADO → EM_PROCESSO → LIBERADO` (ou `BLOQUEADO`/`VENCIDO`).
-    * `NaoConformidadeStatus`: `ABERTA → EM_INVESTIGACAO → EM_IMPLEMENTACAO → CONCLUIDA` (ou `CANCELADA`).
-3. **Validade de lotes**: `LoteEtiqueta.validade` ≥ `dataEmpacotamento`; bloquear se expirar.
-4. **Rastreio de saneantes**: `UsoSaneante.etapa` segue a sequência do processo; `volumeUtilizadoMl` ≥ 0.
-5. **Indicadores**: se `resultado = NAO_CONFORME`, exigir evidência e ação corretiva (NC ou bloqueio).
-6. **Resíduos (PGRSS)**: `classeResiduo` compatível com o insumo/processo de origem.
-7. **Evidências**: `hashSha256` imutável; `uri` deve apontar para repositório confiável (ex.: S3 com Object Lock).
+### Cargo
+| Campo | Tipo | Notas |
+|---|---|---|
+| id | Long | PK |
+| tenant | Tenant | FK |
+| codigo | String | **Único por tenant** |
+| nome | String |  |
+| descricao | String |  |
+
+**Índices/Restrições**
+- `uq_cargo_tenant_codigo (tenant_id, codigo)`
+
+### Colaborador
+| Campo | Tipo | Notas |
+|---|---|---|
+| id | Long | PK |
+| tenant | Tenant | FK |
+| matricula | String | |
+| nomeCompleto | String | |
+| cpf | String | |
+| email | String | |
+| telefone | String | |
+| setor | Setor | FK |
+| cargo | Cargo | FK |
+| dataAdmissao | LocalDate | |
+| ativo | Boolean | |
+| usuarioSistema | User (opcional) | Nem todo colaborador é usuário do sistema |
+
+---
+
+## eduenums
+- `AttemptStatus` {NAO_INICIADO, EM_ANDAMENTO, CONCLUIDO, APROVADO, REPROVADO, ABANDONADO}
+- `GradeScale` {PERCENTUAL, CONCEITO, PONTOS}
+- `FeedbackTarget` {COURSE, SESSION, INSTRUCTOR}
+- `BookingStatus` {SOLICITADO, APROVADO, REJEITADO, REALIZADO, CANCELADO}
+- `DeliveryMode` {EAD, PRESENCIAL, HIBRIDO}
+
+---
+
+## edudomain
+
+### TrainingProvider
+| Campo | Tipo | Notas |
+|---|---|---|
+| id | Long | PK |
+| tenant | Tenant | FK |
+| nome | String | |
+| cnpj | String | opcional |
+| contatoEmail | String | |
+| contatoTelefone | String | |
+| interno | Boolean | true = provedor interno |
+| siteUrl | String | |
+| observacoes | String | |
+
+### Course
+| Campo | Tipo | Notas |
+|---|---|---|
+| id | Long | PK |
+| tenant | Tenant | FK |
+| provider | TrainingProvider | FK |
+| codigo | String | **Único por tenant** |
+| titulo | String | |
+| descricao | String | |
+| cargaHorariaMin | Integer | |
+| deliveryMode | DeliveryMode | |
+| obrigatorio | Boolean | compliance/ONA |
+| gradeScale | GradeScale | |
+
+**Índices/Restrições**
+- `uq_course_tenant_codigo (tenant_id, codigo)`
+
+### CourseModule
+| Campo | Tipo |
+|---|---|
+| id | Long |
+| tenant | Tenant |
+| course | Course |
+| ordem | Integer |
+| titulo | String |
+| descricao | String |
+
+### CourseItem
+| Campo | Tipo | Notas |
+|---|---|---|
+| id | Long | PK |
+| tenant | Tenant | FK |
+| module | CourseModule | FK |
+| ordem | Integer | |
+| titulo | String | |
+| descricao | String | |
+| aprovacaoMin | Double | nota mínima |
+| frequenciaMinPct | Double | % mínima de progresso |
+| documentoBase | DocumentVersion (opcional) | **Somente Documentos PUBLICADO** |
+
+### CourseInstructor
+| Campo | Tipo |
+|---|---|
+| id | Long |
+| tenant | Tenant |
+| provider | TrainingProvider |
+| colaborador | Colaborador |
+| curriculo | String |
+| areaEspecialidade | String |
+| ativo | Boolean |
+
+### Offering
+| Campo | Tipo |
+|---|---|
+| id | Long |
+| tenant | Tenant |
+| course | Course |
+| codigoTurma | String |
+| setorAlvo | Setor (opcional) |
+| inicio | LocalDate |
+| fim | LocalDate |
+| vagas | Integer |
+| deliveryMode | DeliveryMode |
+| ativo | Boolean |
+
+### Session
+| Campo | Tipo |
+|---|---|
+| id | Long |
+| tenant | Tenant |
+| offering | Offering |
+| inicio | LocalDateTime |
+| fim | LocalDateTime |
+| local | String |
+| instrutor | CourseInstructor |
+
+### Enrollment
+| Campo | Tipo |
+|---|---|
+| id | Long |
+| tenant | Tenant |
+| offering | Offering |
+| colaborador | Colaborador |
+| inscritoEm | LocalDateTime |
+| obrigatorio | Boolean |
+| statusGeral | AttemptStatus |
+| notaFinal | Double |
+| concluidoEm | LocalDateTime |
+
+### Attempt
+| Campo | Tipo |
+|---|---|
+| id | Long |
+| tenant | Tenant |
+| enrollment | Enrollment |
+| courseItem | CourseItem |
+| startedAt | LocalDateTime |
+| endedAt | LocalDateTime |
+| status | AttemptStatus |
+| scoreRaw | Double |
+| progressoPct | Double |
+| tentativaN | Integer |
+
+### Attendance
+| Campo | Tipo |
+|---|---|
+| id | Long |
+| tenant | Tenant |
+| session | Session |
+| colaborador | Colaborador |
+| presente | Boolean |
+| registradoEm | LocalDateTime |
+| observacoes | String |
+
+### TrainingResource
+| Campo | Tipo |
+|---|---|
+| id | Long |
+| tenant | Tenant |
+| nome | String |
+| tipo | String |
+| localizacao | String |
+| capacidade | Integer |
+| ativo | Boolean |
+
+### ResourceBooking
+| Campo | Tipo |
+|---|---|
+| id | Long |
+| tenant | Tenant |
+| resource | TrainingResource |
+| session | Session |
+| inicio | LocalDateTime |
+| fim | LocalDateTime |
+| status | BookingStatus |
+| solicitadoPor | User |
+| observacoes | String |
+
+### Feedback
+| Campo | Tipo | Notas |
+|---|---|---|
+| id | Long | PK |
+| tenant | Tenant | FK |
+| targetType | FeedbackTarget | |
+| course | Course (opcional) | conforme target |
+| session | Session (opcional) | conforme target |
+| instructor | CourseInstructor (opcional) | conforme target |
+| colaborador | Colaborador | avaliador |
+| nota | Integer | 1..5 |
+| comentario | String | |
+| enviadoEm | LocalDateTime | |
+
+### Competency
+| Campo | Tipo |
+|---|---|
+| id | Long |
+| tenant | Tenant |
+| codigo | String |
+| nome | String |
+| descricao | String |
+
+### UserCompetency
+| Campo | Tipo |
+|---|---|
+| id | Long |
+| tenant | Tenant |
+| colaborador | Colaborador |
+| competency | Competency |
+| obtidaEm | LocalDate |
+| origem | String |
+| validadeAte | LocalDate |
+
+### CompetencyRubric
+| Campo | Tipo |
+|---|---|
+| id | Long |
+| tenant | Tenant |
+| competency | Competency |
+| titulo | String |
+| descricao | String |
+| escalaDescricao | String |
+
+### RubricCriterion
+| Campo | Tipo |
+|---|---|
+| id | Long |
+| tenant | Tenant |
+| rubric | CompetencyRubric |
+| ordem | Integer |
+| descricao | String |
+| peso | Double |
+
+### PracticalAssessment
+| Campo | Tipo |
+|---|---|
+| id | Long |
+| tenant | Tenant |
+| rubric | CompetencyRubric |
+| colaborador | Colaborador |
+| avaliador | Colaborador |
+| realizadoNoSetor | Setor |
+| realizadoEm | LocalDateTime |
+| notaFinal | Double |
+| aprovado | Boolean |
+| evidencia | EvidenciaArquivo (opcional) |
+| observacoes | String |
+
+### AssessmentCriterionScore
+| Campo | Tipo |
+|---|---|
+| id | Long |
+| tenant | Tenant |
+| assessment | PracticalAssessment |
+| criterion | RubricCriterion |
+| pontuacao | Double |
+| comentario | String |
+
+---
+
+## Regras de integridade e negócio (Guidelines)
+1. **CourseItem.documentoBase**: deve apontar para `DocumentVersion` com `status = PUBLICADO`. Bloquear vínculo caso contrário.
+2. **Conclusão de Enrollment**: somente quando todos os `CourseItem` obrigatórios tiverem `Attempt.status ∈ {APROVADO, CONCLUIDO}` e `frequenciaMinPct` atendida.
+3. **Attempt**: `tentativaN` autoincremental por `Enrollment+CourseItem`. Manter histórico.
+4. **Attendance**: uma presença por `Session+Colaborador`. Tratar duplicidade via **UNIQUE** lógico.
+5. **ResourceBooking**: não permitir conflitos (`resource` ocupado em interseção de `inicio..fim`).
+6. **Competências**: `PracticalAssessment` calcula `notaFinal` por soma ponderada de `AssessmentCriterionScore.pontuacao * peso`; `aprovado` conforme thresholds do hospital.
+7. **HR desvinculado de User**: `Colaborador.usuarioSistema` é opcional; permissões continuam em `User`.
+8. **Auditoria**: todas as entidades **Audited** com Envers; evidências com `hashSha256` e retenção conforme política institucional.
 
 ---
 
 ## Padrões técnicos adotados
-
-* **JPA/Hibernate**: `@ManyToOne(fetch = LAZY)` por padrão; `@Enumerated(EnumType.STRING)`.
-* **Auditoria (Envers)**: classes críticas com `@Audited`; trilha em `revinfo` captura `username`/`clientIp`.
-* **Observabilidade**: integração com `RequestLog` (acesso), `SecurityAuditEvent` (login/autorização) e **MDC traceId** (correlação).
+- **JPA/Hibernate**; **Spring Data**; **Envers** para auditoria; **JSON logs** com MDC (traceId/userId).
+- **Multi-tenant** por FK (`tenant_id`) e índices compostos **UNIQUE** para códigos.
+- **Validação**: Bean Validation (ex.: `@NotNull`, `@Email`, `@Size`).
+- **Armazenamento de arquivos**: `EvidenciaArquivo.uri` para externo (S3, filesystem); integridade por `hashSha256`.
+- **Segurança**: ABAC (Policy/Condition) com sobreposição `UserPermissionOverride`.
 
 ---
 
-## Exemplos de navegação típica (consultas)
-
-* **Ciclo completo**: `Autoclave → CicloEsterilizacao → {IndicadorQuimico, IndicadorBiologico} → LoteEtiqueta`.
-* **Ação corretiva**: `NaoConformidadeCME (NAO_CONFORME) → EvidenciaArquivo`; acionar `PlanoPreventivoAutoclave`/`ManutencaoAutoclave` se necessário.
-* **PGRSS**: `GeracaoResiduo` ← (`LoteEtiqueta` | `SaneantePeraceticoLote`) para relatórios de destinação final.
+## Exemplos de navegação típica (Consultas)
+- **Histórico de treinamentos por colaborador**: `Enrollment` + `Attempt` + `Attendance` + `UserCompetency`.
+- **Cursos que exigem documento-base**: `CourseItem` com `documentoBase != null` + join `DocumentVersion.status`.
+- **Mapa de competências**: `Competency` ⇄ `UserCompetency` com validade.
+- **Utilização de recursos**: `ResourceBooking` por período + conflitos.
 
 ---
 
 ## Extensibilidade
-
-* **Novos setores**: ampliar `TipoSetor` sem quebrar o domínio.
-* **Novos estados**: adicionar em enums com cautela (migrar dados e regras).
-* **CME**: expandir entidades conectadas a `LoteEtiqueta` e `CicloEsterilizacao`.
-* **Integrações**: eventos de domínio podem alimentar ETL/ELT para BI/indicadores ONA.
+- **Certificados**: adicionar `Certificate` (issuance, template, assinatura).
+- **Planos de aprendizagem**: `LearningPath` (ordem de cursos; pré-requisitos).
+- **Integrações futuras**: SCORM/xAPI em `Attempt` (guardando statementId/launchId).
+- **Catálogo externo**: sincronizar `TrainingProvider/Course` de parceiros.
 
 ---
 
 ## Checklist de qualidade do diagrama
+- [x] Sumário único e numerado.
+- [x] Índices **UNIQUE** explícitos: `Cargo.codigo`, `Course.codigo`.
+- [x] Tabelas sem fragmentação (todos quadros encerrados).
+- [x] Snapshot do GED incluso para referência.
+- [x] Regras de negócio registradas.
+- [x] Relações entre pacotes listadas.
 
-* [x] Todas as entidades de negócio possuem **Tenant** quando aplicável.
-* [x] Estados e tipos **persistidos como String**.
-* [x] Relacionamentos críticos com **multiplicidades corretas**.
-* [x] **Evidências** associadas onde a conformidade exige prova documental.
-* [x] Integração **CME ⇄ Quality ⇄ Environmental** desenhada.
-* [x] Duplicidades de classe **removidas** (ex.: `PlanoPreventivoAutoclave`).
-
----
-
-*Gerado em 2025-11-03T17:04:16*

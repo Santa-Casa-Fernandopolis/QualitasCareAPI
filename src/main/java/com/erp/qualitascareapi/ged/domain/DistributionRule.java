@@ -1,4 +1,4 @@
-﻿package com.erp.qualitascareapi.ged.domain;
+package com.erp.qualitascareapi.ged.domain;
 
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import jakarta.persistence.*;
