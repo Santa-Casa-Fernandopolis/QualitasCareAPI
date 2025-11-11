@@ -24,30 +24,31 @@ public class SecurityAuditEventListener {
     @EventListener
     public void onAuthenticationSuccess(AuthenticationSuccessEvent event) {
         Authentication authentication = event.getAuthentication();
-        String username = authentication.getName();
+        String username = truncate(authentication.getName(), 120);
         String clientIp = resolveClientIp(authentication.getDetails());
         repository.save(new SecurityAuditEvent(Instant.now(), username, SecurityAuditEventType.AUTHENTICATION_SUCCESS,
-                clientIp, MDC.get(CorrelationFilter.TRACE_ID), "Login bem-sucedido"));
+                clientIp, truncate(MDC.get(CorrelationFilter.TRACE_ID), 64), "Login bem-sucedido"));
     }
 
     @EventListener
     public void onAuthenticationFailure(AbstractAuthenticationFailureEvent event) {
         Authentication authentication = event.getAuthentication();
-        String username = authentication != null ? authentication.getName() : "unknown";
+        String username = authentication != null ? truncate(authentication.getName(), 120) : "unknown";
         String clientIp = resolveClientIp(authentication != null ? authentication.getDetails() : null);
         String description = event.getException() != null ? event.getException().getMessage() : "Falha de autenticação";
+        description = truncate(description, 255);
         repository.save(new SecurityAuditEvent(Instant.now(), username, SecurityAuditEventType.AUTHENTICATION_FAILURE,
-                clientIp, MDC.get(CorrelationFilter.TRACE_ID), description));
+                clientIp, truncate(MDC.get(CorrelationFilter.TRACE_ID), 64), description));
     }
 
     @EventListener
     public void onAuthorizationFailure(AuthorizationFailureEvent event) {
         Authentication authentication = event.getAuthentication();
-        String username = authentication != null ? authentication.getName() : "anonymous";
+        String username = authentication != null ? truncate(authentication.getName(), 120) : "anonymous";
         String clientIp = resolveClientIp(authentication != null ? authentication.getDetails() : null);
-        String description = "Acesso negado ao recurso " + event.getSource();
+        String description = truncate("Acesso negado ao recurso " + event.getSource(), 255);
         repository.save(new SecurityAuditEvent(Instant.now(), username, SecurityAuditEventType.AUTHORIZATION_FAILURE,
-                clientIp, MDC.get(CorrelationFilter.TRACE_ID), description));
+                clientIp, truncate(MDC.get(CorrelationFilter.TRACE_ID), 64), description));
     }
 
     private String resolveClientIp(Object details) {
@@ -55,5 +56,15 @@ public class SecurityAuditEventListener {
             return webDetails.getRemoteAddress();
         }
         return null;
+    }
+
+    private String truncate(String value, int maxLength) {
+        if (value == null) {
+            return null;
+        }
+        if (value.length() <= maxLength) {
+            return value;
+        }
+        return value.substring(0, maxLength);
     }
 }
