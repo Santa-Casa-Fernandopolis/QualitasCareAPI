@@ -103,18 +103,16 @@ class AccessDecisionServiceIntegrationTest {
 
     @Test
     void nurseOverrideShouldGrantTemporaryUpdateAccess() {
-        UserPermissionOverride override = new UserPermissionOverride(
-                null,
-                nurseScf,
-                nurseScf.getTenant(),
-                ResourceType.NC,
-                Action.UPDATE,
-                null,
-                Effect.ALLOW,
-                1,
-                "Temporary maintenance window"
-        );
-        override.setApproved(true);
+        UserPermissionOverride override = new UserPermissionOverride();
+        override.setUser(nurseScf);
+        override.setTenant(nurseScf.getTenant());
+        override.setResource(ResourceType.NC);
+        override.setAction(Action.UPDATE);
+        override.setEffect(Effect.ALLOW);
+        override.setPriority(1);
+        override.setReason("Temporary maintenance window");
+        override.setApprovedByUser(adminScf);
+        override.setApprovedAt(LocalDateTime.now());
         override.setValidFrom(LocalDateTime.now().minusMinutes(5));
         override.setValidUntil(LocalDateTime.now().plusMinutes(5));
         overrideRepository.saveAndFlush(override);
@@ -139,8 +137,7 @@ class AccessDecisionServiceIntegrationTest {
         deny.setEffect(Effect.DENY);
         deny.setPriority(1);
         deny.setReason("Temporary restriction");
-        deny.setApproved(true);
-        deny.setApprovedBy("system");
+        deny.setApprovedByUser(adminScf);
         deny.setApprovedAt(LocalDateTime.now());
         deny.setValidFrom(LocalDateTime.now().minusDays(1));
         deny.setValidUntil(LocalDateTime.now().plusDays(1));

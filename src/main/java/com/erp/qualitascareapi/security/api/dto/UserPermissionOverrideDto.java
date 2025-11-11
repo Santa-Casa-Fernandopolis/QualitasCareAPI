@@ -18,10 +18,10 @@ public record UserPermissionOverrideDto(
         String reason,
         LocalDateTime validFrom,
         LocalDateTime validUntil,
-        boolean approved,
-        boolean dualApprovalRequired,
-        String requestedBy,
-        String approvedBy,
+        Long targetSetorId,
+        Long requestedByUserId,
+        LocalDateTime requestedAt,
+        Long approvedByUserId,
         LocalDateTime approvedAt
 ) {
 }
