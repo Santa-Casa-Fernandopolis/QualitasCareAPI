@@ -128,56 +128,209 @@ package "iam.enums" {
     DIRETOR_CLINICO
   }
   enum TipoSetor {
-    CME; CC; UTI; ENFERMARIA; FARMACIA; HOTELARIA; MANUTENCAO; PS; QUALIDADE; EDUCACAO_PERMANENTE
+    CME;
+    CC;
+    UTI;
+    ENFERMARIA;
+    FARMACIA;
+    HOTELARIA;
+    MANUTENCAO;
+    PS;
+    QUALIDADE;
+    EDUCACAO_PERMANENTE;
+    CCIH;
+    NIR
   }
 }
 
 package "quality.enums" {
-  enum NaoConformidadeSeveridade { BAIXA; MEDIA; ALTA; CRITICA }
+  enum NaoConformidadeSeveridade {
+    BAIXA;
+    MEDIA;
+    ALTA;
+    CRITICA }
+
   enum NaoConformidadeStatus {
-    ABERTA; EM_INVESTIGACAO; EM_IMPLEMENTACAO; EM_VALIDACAO; AGUARDANDO_APROVACAO; CONCLUIDA; CANCELADA
+    ABERTA;
+    EM_INVESTIGACAO;
+    EM_IMPLEMENTACAO;
+    EM_VALIDACAO;
+    AGUARDANDO_APROVACAO;
+    CONCLUIDA;
+    CANCELADA
   }
 }
 
 package "ged.enums" {
-  enum DocumentType   { POP; PROTOCOLO; COMUNICACAO }
-  enum DocumentStatus { RASCUNHO; EM_REVISAO; APROVADO; PUBLICADO; OBSOLETO }
-  enum ConfidentialityLevel { PUBLICO; INTERNO; RESTRITO }
-  enum ChangeRequestStatus { ABERTA; EM_REVISAO; APROVADA; REJEITADA; CANCELADA; IMPLEMENTADA }
-  enum Priority { BAIXA; MEDIA; ALTA; CRITICA }
-  enum ImpactLevel { BAIXO; MODERADO; ALTO }
+  enum DocumentType   {
+    POP;
+    PROTOCOLO;
+    COMUNICACAO
+  }
+
+  enum DocumentStatus {
+    RASCUNHO;
+    EM_REVISAO;
+    APROVADO;
+    PUBLICADO;
+    OBSOLETO
+  }
+
+  enum ConfidentialityLevel {
+    PUBLICO;
+    INTERNO;
+    RESTRITO
+  }
+
+  enum ChangeRequestStatus {
+    ABERTA;
+    EM_REVISAO;
+    APROVADA;
+    REJEITADA;
+    CANCELADA;
+    IMPLEMENTADA
+  }
+
+  enum Priority {
+    BAIXA;
+    MEDIA;
+    ALTA;
+    CRITICA
+  }
+
+  enum ImpactLevel {
+    BAIXO;
+    MODERADO;
+    ALTO
+  }
 }
 
 package "edu.enums" {
-  enum AttemptStatus { NAO_INICIADO; EM_ANDAMENTO; CONCLUIDO; APROVADO; REPROVADO; ABANDONADO }
-  enum GradeScale { PERCENTUAL; CONCEITO; PONTOS }
-  enum FeedbackTarget { COURSE; SESSION; INSTRUCTOR }
-  enum BookingStatus { SOLICITADO; APROVADO; REJEITADO; REALIZADO; CANCELADO }
-  enum DeliveryMode { EAD; PRESENCIAL; HIBRIDO }
-  enum TrainingPlanStatus { RASCUNHO; ENVIADO_PARA_APROVACAO; APROVADO; REJEITADO; CANCELADO }
+  enum AttemptStatus {
+    NAO_INICIADO;
+    EM_ANDAMENTO;
+    CONCLUIDO;
+    APROVADO;
+    REPROVADO;
+    ABANDONADO
+  }
+
+  enum GradeScale {
+    PERCENTUAL;
+    CONCEITO;
+    PONTOS
+  }
+
+  enum FeedbackTarget {
+    COURSE;
+    SESSION;
+    INSTRUCTOR
+  }
+
+  enum BookingStatus {
+    SOLICITADO;
+    APROVADO;
+    REJEITADO;
+    REALIZADO;
+    CANCELADO
+  }
+
+  enum DeliveryMode {
+    EAD;
+    PRESENCIAL;
+    HIBRIDO
+  }
+
+  enum TrainingPlanStatus {
+    RASCUNHO;
+    ENVIADO_PARA_APROVACAO;
+    APROVADO;
+    REJEITADO;
+    CANCELADO
+  }
 }
 
 package "environmental.enums" {
-  enum ClasseResiduo { PERFUROCORTANTE; BIOLOGICO; QUIMICO; RECICLAVEL; COMUM }
+  enum ClasseResiduo {
+    PERFUROCORTANTE;
+    BIOLOGICO;
+    QUIMICO;
+    RECICLAVEL;
+    COMUM
+  }
 }
 
 package "core.enums" {
-  enum ExameCulturaResultado { PENDENTE; NEGATIVO; POSITIVO; INVALIDO }
+  enum ExameCulturaResultado {
+    PENDENTE;
+    NEGATIVO;
+    POSITIVO;
+    INVALIDO
+  }
 }
 
 package "cme.enums" {
   ' Consolidado (superset) para não perder estados prévios
   enum CicloStatus {
-    RASCUNHO; AGENDADO; EM_ANDAMENTO; AGUARDANDO_VALIDACAO_PARAMETROS; REPROVADO_PARAMETROS;
-    AGUARDANDO_TESTE_IQ; IQ_REPROVADO; AVALIAR_EXIGENCIA_IB; AGUARDANDO_IB; IB_REPROVADO;
-    PRONTO_PARA_LIBERACAO; CONCLUIDO; LIBERADO; BLOQUEADO; CANCELADO
+    RASCUNHO;
+    AGENDADO;
+    EM_ANDAMENTO;
+    AGUARDANDO_VALIDACAO_PARAMETROS;
+    REPROVADO_PARAMETROS;
+    AGUARDANDO_TESTE_IQ;
+    IQ_REPROVADO;
+    AVALIAR_EXIGENCIA_IB;
+    AGUARDANDO_IB;
+    IB_REPROVADO;
+    PRONTO_PARA_LIBERACAO;
+    CONCLUIDO;
+    LIBERADO;
+    BLOQUEADO;
+    CANCELADO
   }
-  enum UsoSaneanteEtapa { PRE_LIMPEZA; LIMPEZA_MANUAL; LAVADORA_TERMODESINFECCAO; DESINFECCAO_ALTO_NIVEL }
-  enum MovimentacaoTipo { ENTRADA_CONTAMINADO; ENVIO_ESTERIL; RETORNO_CONTAMINADO; DESCARTE }
-  enum ManutencaoTipo { PREVENTIVA; CORRETIVA; CALIBRACAO; VERIFICACAO_METROLOGICA }
-  enum ManutencaoStatus { PLANEJADA; ABERTA; EM_ANDAMENTO; CONCLUIDA; CANCELADA }
-  enum LoteStatus { MONTADO; EM_PROCESSO; LIBERADO; BLOQUEADO; VENCIDO }
-  enum ResultadoConformidade { CONFORME; NAO_CONFORME; NAO_APLICAVEL }
+
+  enum UsoSaneanteEtapa {
+    PRE_LIMPEZA;
+    LIMPEZA_MANUAL;
+    LAVADORA_TERMODESINFECCAO;
+    DESINFECCAO_ALTO_NIVEL
+  }
+
+  enum MovimentacaoTipo {
+    ENTRADA_CONTAMINADO;
+    ENVIO_ESTERIL;
+    RETORNO_CONTAMINADO;
+    DESCARTE
+  }
+
+  enum ManutencaoTipo {
+    PREVENTIVA;
+    CORRETIVA;
+    CALIBRACAO;
+    VERIFICACAO_METROLOGICA
+  }
+
+  enum ManutencaoStatus {
+    PLANEJADA;
+    ABERTA;
+    EM_ANDAMENTO;
+    CONCLUIDA;
+    CANCELADA
+  }
+
+  enum LoteStatus {
+    MONTADO;
+    EM_PROCESSO;
+    LIBERADO;
+    BLOQUEADO;
+    VENCIDO
+  }
+
+  enum ResultadoConformidade {
+    CONFORME;
+    NAO_CONFORME;
+    NAO_APLICAVEL
+  }
 }
 
 ' ============================================================
@@ -386,6 +539,7 @@ package "approval.core.services" {
     +resolveCandidates(tenant:Tenant, role:OrgRoleType, setor:Setor): List<User>
     +isUserEligible(user:User, role:OrgRoleType, setor:Setor, when:LocalDateTime): boolean
   }
+
   class ApprovalEngine {
     +start(target:ApprovableTarget, requestedBy:User): ApprovalRequest
     +decide(stepId:Long, user:User, decision:ApprovalDecision, comment:String): void
@@ -651,7 +805,11 @@ package "hr.domain" {
   }
 }
 package "hr.enums" {
-  enum ColaboradorStatus { ATIVO; INATIVO; AFASTADO }
+  enum ColaboradorStatus {
+    ATIVO;
+    INATIVO;
+    AFASTADO
+  }
 }
 
 ' ============================================================
@@ -659,68 +817,212 @@ package "hr.enums" {
 ' ============================================================
 package "edu.domain" {
   class TrainingProvider <<Entity, Audited>> {
-    -id: Long; -tenant: Tenant; -nome: String; -cnpj: String; -contatoEmail: String; -contatoTelefone: String; -interno: Boolean; -siteUrl: String; -observacoes: String
+    -id: Long;
+    -tenant: Tenant;
+    -nome: String;
+    -cnpj: String;
+    -contatoEmail: String;
+    -contatoTelefone: String;
+    -interno: Boolean;
+    -siteUrl: String;
+    -observacoes: String
   }
   class Course <<Entity, Audited>> {
-    -id: Long; -tenant: Tenant; -provider: TrainingProvider; -codigo: String; -titulo: String; -descricao: String; -cargaHorariaMin: Integer; -deliveryMode: DeliveryMode; -obrigatorio: Boolean; -gradeScale: GradeScale
+    -id: Long;
+    -tenant: Tenant;
+    -provider: TrainingProvider;
+    -codigo: String;
+    -titulo: String;
+    -descricao: String;
+    -cargaHorariaMin: Integer;
+    -deliveryMode: DeliveryMode;
+    -obrigatorio: Boolean;
+    -gradeScale: GradeScale
   }
   class CourseModule <<Entity, Audited>> {
-    -id: Long; -tenant: Tenant; -course: Course; -ordem: Integer; -titulo: String; -descricao: String
+    -id: Long;
+    -tenant: Tenant;
+    -course: Course;
+    -ordem: Integer;
+    -titulo: String;
+    -descricao: String
   }
   class CourseItem <<Entity, Audited>> {
-    -id: Long; -tenant: Tenant; -module: CourseModule; -ordem: Integer; -titulo: String; -descricao: String; -aprovacaoMin: Double; -frequenciaMinPct: Double; -documentoBase: ged.domain.DocumentVersion
+    -id: Long;
+    -tenant: Tenant;
+    -module: CourseModule;
+    -ordem: Integer;
+    -titulo: String;
+    -descricao: String;
+    -aprovacaoMin: Double;
+    -frequenciaMinPct: Double;
+    -documentoBase: ged.domain.DocumentVersion
   }
   class CourseInstructor <<Entity, Audited>> {
-    -id: Long; -tenant: Tenant; -provider: TrainingProvider; -colaborador: Colaborador; -curriculo: String; -areaEspecialidade: String; -ativo: Boolean
+    -id: Long;
+    -tenant: Tenant;
+    -provider: TrainingProvider;
+    -colaborador: Colaborador;
+    -curriculo: String;
+    -areaEspecialidade: String;
+    -ativo: Boolean
   }
   class TrainingResource <<Entity, Audited>> {
-    -id: Long; -tenant: Tenant; -nome: String; -tipo: String; -localizacao: String; -capacidade: Integer; -ativo: Boolean
+    -id: Long;
+    -tenant: Tenant;
+    -nome: String;
+    -tipo: String;
+    -localizacao: String;
+    -capacidade: Integer;
+    -ativo: Boolean
   }
   class ResourceBooking <<Entity, Audited>> {
-    -id: Long; -tenant: Tenant; -resource: TrainingResource; -session: Session; -inicio: LocalDateTime; -fim: LocalDateTime; -status: BookingStatus; -solicitadoPor: User; -observacoes: String
+    -id: Long;
+    -tenant: Tenant;
+    -resource: TrainingResource;
+    -session: Session;
+    -inicio: LocalDateTime;
+    -fim: LocalDateTime;
+    -status: BookingStatus;
+    -solicitadoPor: User;
+    -observacoes: String
   }
   class Feedback <<Entity, Audited>> {
-    -id: Long; -tenant: Tenant; -targetType: FeedbackTarget; -course: Course; -session: Session; -instructor: CourseInstructor; -colaborador: Colaborador; -nota: Integer; -comentario: String; -enviadoEm: LocalDateTime
+    -id: Long;
+    -tenant: Tenant;
+    -targetType: FeedbackTarget;
+    -course: Course;
+    -session: Session;
+    -instructor: CourseInstructor;
+    -colaborador: Colaborador;
+    -nota: Integer;
+    -comentario: String;
+    -enviadoEm: LocalDateTime
   }
   class Offering <<Entity, Audited>> {
-    -id: Long; -tenant: Tenant; -course: Course; -codigoTurma: String; -setorAlvo: Setor; -inicio: LocalDate; -fim: LocalDate; -vagas: Integer; -deliveryMode: DeliveryMode; -ativo: Boolean; -planItem: TrainingPlanItem
+    -id: Long;
+    -tenant: Tenant;
+    -course: Course;
+    -codigoTurma: String;
+    -setorAlvo: Setor;
+    -inicio: LocalDate;
+    -fim: LocalDate;
+    -vagas: Integer;
+    -deliveryMode: DeliveryMode;
+    -ativo: Boolean;
+    -planItem: TrainingPlanItem
   }
   class Session <<Entity, Audited>> {
-    -id: Long; -tenant: Tenant; -offering: Offering; -inicio: LocalDateTime; -fim: LocalDateTime; -local: String; -instrutor: CourseInstructor
+    -id: Long;
+    -tenant: Tenant;
+    -offering: Offering;
+    -inicio: LocalDateTime;
+    -fim: LocalDateTime;
+    -local: String;
+    -instrutor: CourseInstructor
   }
   class Enrollment <<Entity, Audited>> {
-    -id: Long; -tenant: Tenant; -offering: Offering; -colaborador: Colaborador; -inscritoEm: LocalDateTime; -obrigatorio: Boolean; -statusGeral: AttemptStatus; -notaFinal: Double; -concluidoEm: LocalDateTime
+    -id: Long;
+    -tenant: Tenant;
+    -offering: Offering;
+    -colaborador: Colaborador;
+    -inscritoEm: LocalDateTime;
+    -obrigatorio: Boolean;
+    -statusGeral: AttemptStatus;
+    -notaFinal: Double;
+    -concluidoEm: LocalDateTime
   }
   class Attempt <<Entity, Audited>> {
-    -id: Long; -tenant: Tenant; -enrollment: Enrollment; -courseItem: CourseItem; -startedAt: LocalDateTime; -endedAt: LocalDateTime; -status: AttemptStatus; -scoreRaw: Double; -progressoPct: Double; -tentativaN: Integer
+    -id: Long;
+    -tenant: Tenant;
+    -enrollment: Enrollment;
+    -courseItem: CourseItem;
+    -startedAt: LocalDateTime;
+    -endedAt: LocalDateTime;
+    -status: AttemptStatus;
+    -scoreRaw: Double;
+    -progressoPct: Double;
+    -tentativaN: Integer
   }
   class Attendance <<Entity, Audited>> {
-    -id: Long; -tenant: Tenant; -session: Session; -colaborador: Colaborador; -presente: Boolean; -registradoEm: LocalDateTime; -observacoes: String
+    -id: Long;
+    -tenant: Tenant;
+    -session: Session;
+    -colaborador: Colaborador;
+    -presente: Boolean;
+    -registradoEm: LocalDateTime;
+    -observacoes: String
   }
   class Competency <<Entity, Audited>> {
-    -id: Long; -tenant: Tenant; -codigo: String; -nome: String; -descricao: String
+    -id: Long;
+    -tenant: Tenant;
+    -codigo: String;
+    -nome: String;
+    -descricao: String
   }
   class CompetencyRubric <<Entity, Audited>> {
-    -id: Long; -tenant: Tenant; -competency: Competency; -titulo: String; -descricao: String; -escalaDescricao: String
+    -id: Long;
+    -tenant: Tenant;
+    -competency: Competency;
+    -titulo: String;
+    -descricao: String;
+    -escalaDescricao: String
   }
   class RubricCriterion <<Entity, Audited>> {
-    -id: Long; -tenant: Tenant; -rubric: CompetencyRubric; -ordem: Integer; -descricao: String; -peso: Double
+    -id: Long;
+    -tenant: Tenant;
+    -rubric: CompetencyRubric;
+    -ordem: Integer;
+    -descricao: String;
+    -peso: Double
   }
   class PracticalAssessment <<Entity, Audited>> {
-    -id: Long; -tenant: Tenant; -rubric: CompetencyRubric; -colaborador: Colaborador; -avaliador: Colaborador; -realizadoNoSetor: Setor; -realizadoEm: LocalDateTime; -notaFinal: Double; -aprovado: Boolean; -evidencia: EvidenciaArquivo; -observacoes: String
+    -id: Long;
+    -tenant: Tenant;
+    -rubric: CompetencyRubric;
+    -colaborador: Colaborador;
+    -avaliador: Colaborador;
+    -realizadoNoSetor: Setor;
+    -realizadoEm: LocalDateTime;
+    -notaFinal: Double;
+    -aprovado: Boolean;
+    -evidencia: EvidenciaArquivo;
+    -observacoes: String
   }
   class AssessmentCriterionScore <<Entity, Audited>> {
-    -id: Long; -tenant: Tenant; -assessment: PracticalAssessment; -criterion: RubricCriterion; -pontuacao: Double; -comentario: String
+    -id: Long;
+    -tenant: Tenant;
+    -assessment: PracticalAssessment;
+    -criterion: RubricCriterion;
+    -pontuacao: Double;
+    -comentario: String
   }
   class TrainingPlan <<Entity, Audited, ApprovableTarget>> {
-    -id: Long; -tenant: Tenant; -ano: Integer; -setor: Setor; -status: TrainingPlanStatus; -solicitante: User; -enviadoEm: LocalDateTime; -aprovadoEm: LocalDateTime; -justificativa: String
+    -id: Long;
+    -tenant: Tenant;
+    -ano: Integer;
+    -setor: Setor;
+    -status: TrainingPlanStatus;
+    -solicitante: User;
+    -enviadoEm: LocalDateTime;
+    -aprovadoEm: LocalDateTime;
+    -justificativa: String
     +getTenant(): Tenant
     +getApprovalDomain(): ApprovalDomain
     +getApprovalKey(): String
     +getScopeSetor(): Setor
   }
   class TrainingPlanItem <<Entity, Audited>> {
-    -id: Long; -tenant: Tenant; -plan: TrainingPlan; -course: Course; -deliveryMode: DeliveryMode; -cargaHorariaPrevista: Integer; -mesPlanejado: Integer; -vagasPrevistas: Integer; -publicoAlvoSetor: Setor; -observacoes: String
+    -id: Long;
+    -tenant: Tenant;
+    -plan: TrainingPlan;
+    -course: Course;
+    -deliveryMode: DeliveryMode;
+    -cargaHorariaPrevista: Integer;
+    -mesPlanejado: Integer;
+    -vagasPrevistas: Integer;
+    -publicoAlvoSetor: Setor;
+    -observacoes: String
   }
 }
 
@@ -729,7 +1031,10 @@ package "edu.domain" {
 ' ============================================================
 package "core.domain" {
   class ExameCultura <<Entity, Audited>> {
-    +id: Long; +origemAmostra: String; +dataColeta: LocalDate; +responsavelColeta: String; +resultado: ExameCulturaResultado; +observacoes: String
+    +id: Long;
+    +origemAmostra: String;
+    +dataColeta: LocalDate;
+    +responsavelColeta: String; +resultado: ExameCulturaResultado; +observacoes: String
   }
   class Instrumento <<Entity, Audited>> {
     -id: Long; -tenant: Tenant; -nome: String; -codigoHospitalar: String; -descricao: String
@@ -843,7 +1148,13 @@ package "quality.domain" {
     +getStatus(): NaoConformidadeStatus
     +getTipo(): TipoNaoConformidade
   }
-  class TipoNaoConformidade <<Entity, Audited>> { -id: Long; -tenant: Tenant; -nome: String; -descricao: String }
+
+  class TipoNaoConformidade <<Entity, Audited>> {
+    -id: Long;
+    -tenant: Tenant;
+    -nome: String;
+    -descricao: String
+  }
 
   class NaoConformidadeCME <<Entity, Audited, ApprovableTarget>> {
     -id: Long; -tenant: Tenant; -tipo: TipoNaoConformidade; -titulo: String; -descricao: String;
@@ -896,17 +1207,38 @@ package "security.domain" {
 ' OBSERVABILITY / AUDIT
 ' ============================================================
 package "observability.audit" {
-  class AuditRevisionEntity <<Entity, RevisionEntity>> { -id: Long; -timestamp: long; -username: String; -clientIp: String }
+  class AuditRevisionEntity <<Entity, RevisionEntity>> {
+    -id: Long;
+    -timestamp: long;
+    -username: String;
+    -clientIp: String
+  }
+
   class AuditRevisionListener <<Listener>>
 }
+
 package "observability.logging" {
   class RequestLog <<Entity>> {
     -id: Long; -timestamp: Instant; -method: String; -path: String; -status: int; -durationMs: long; -traceId: String; -userId: String; -clientIp: String; -httpVersion: String; -contentLength: Long
   }
 }
+
 package "observability.security" {
-  enum SecurityAuditEventType { AUTHENTICATION_SUCCESS; AUTHENTICATION_FAILURE; AUTHORIZATION_FAILURE }
-  class SecurityAuditEvent <<Entity>> { -id: Long; -timestamp: Instant; -username: String; -eventType: SecurityAuditEventType; -clientIp: String; -traceId: String; -description: String }
+  enum SecurityAuditEventType {
+    AUTHENTICATION_SUCCESS;
+    AUTHENTICATION_FAILURE;
+    AUTHORIZATION_FAILURE
+  }
+
+  class SecurityAuditEvent <<Entity>> {
+    -id: Long;
+    -timestamp: Instant;
+    -username: String;
+    -eventType: SecurityAuditEventType;
+    -clientIp: String;
+    -traceId: String;
+    -description: String
+  }
 }
 
 ' ============================================================
