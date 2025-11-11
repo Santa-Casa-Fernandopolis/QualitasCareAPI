@@ -4,6 +4,7 @@ skinparam classAttributeIconSize 0
 skinparam linetype ortho
 
 package "approval.core.enums" {
+
   enum ApprovalDomain {
     DOCUMENT_VERSION
     TRAINING_PLAN

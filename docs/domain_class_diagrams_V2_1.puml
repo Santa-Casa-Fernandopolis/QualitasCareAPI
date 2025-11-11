@@ -1,0 +1,1193 @@
+﻿@startuml
+' ============================================================
+' Santa Casa - Gestão da Qualidade — Domain Class Diagram V2.1 (FINAL)
+' Data: 2025-11-10 (America/Sao_Paulo)
+' Escopo: CME, Qualidade/NC, Aprovação, IAM, GED, Segurança/Obs, EDU, RH, Ambiental
+' Diretrizes:
+'  - Aggregate Root carrega Tenant (multi-tenant).
+'  - Filhas (children) não repetem tenant e possuem FK obrigatória.
+'  - Evidências (GED) são imutáveis/versões; nunca deletar binário.
+'  - Máquinas de estado documentadas por notas (guards/invariantes).
+'  - Políticas/fluxos de aprovação orientadas a domínio + setor + papel.
+' ============================================================
+
+skinparam defaultFontName Arial
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam stereotype {
+  CBackgroundColor<<Entity>> #EEF7FF
+  CBackgroundColor<<ValueObject>> #F7F7F7
+  CBackgroundColor<<Audited>> #FFF5E6
+  CBackgroundColor<<ApprovableTarget>> #EAFBEA
+}
+
+title Santa Casa – Domain Class Diagram (V2.1 Final Consolidada)
+
+' ============================================================
+' VALUE OBJECTS (somente os necessários e neutros)
+' ============================================================
+package "common.vo" {
+  class PeriodoVigencia <<ValueObject>> {
+    +Instant inicio;
+    +Instant fim
+    }
+}
+
+' ============================================================
+' ENUMS POR PACOTE (unificados)
+' ============================================================
+package "approval.core.enums" {
+  enum ApprovalDomain {
+    DOCUMENT_VERSION
+    TRAINING_PLAN
+    USER_PERMISSION_OVERRIDE
+    NAO_CONFORMIDADE
+    CME_CYCLE_RELEASE
+  }
+
+  enum ApprovalRequestStatus {
+    OPEN;
+    APPROVED;
+    REJECTED;
+    CANCELED
+  }
+
+  enum ApprovalStepStatus {
+    PENDING;
+    APPROVED;
+    REJECTED;
+    SKIPPED
+  }
+
+  enum ApprovalDecision {
+    APPROVE;
+    REJECT;
+    REQUEST_CHANGES
+  }
+}
+
+package "security.enums" {
+  enum Effect {
+    ALLOW;
+    DENY
+  }
+
+  enum Action {
+    READ;
+    CREATE;
+    UPDATE;
+    DELETE;
+    APPROVE;
+    EXPORT;
+    CLOSE
+  }
+
+  enum IdentityOrigin {
+    LOCAL;
+    LDAP;
+    SSO;
+    IMPORTED
+  }
+
+  enum ResourceType {
+      INDICADOR;
+      AUDITORIA;
+      NC;
+      PROTOCOLO;
+      CAPACITACAO;
+      PGRSS;
+      USUARIO;
+      DASHBOARD;
+      DOCUMENTO;
+      DOCUMENTO_VERSAO;
+      DOCUMENTO_ACK;
+      DOCUMENTO_ALTERACAO
+  }
+
+  enum UserStatus {
+    PROVISIONED(false);
+    ACTIVE(true);
+    SUSPENDED(false);
+    DISABLED(false);
+    EXPIRED(false)
+    --
+    -active: boolean
+    +isActive(): boolean
+  }
+}
+
+package "iam.enums" {
+  ' Mantido setorial (evita perda de semântica nas políticas de aprovadores)
+  enum OrgRoleType {
+    QUALIDADE_GERENTE
+    ENFERMAGEM_GERENTE
+    EDUCACAO_PERMANENTE_GERENTE
+    GERENCIA_SETOR
+    DIRETOR_TECNICO
+    DIRETOR_CLINICO
+  }
+  enum TipoSetor {
+    CME; CC; UTI; ENFERMARIA; FARMACIA; HOTELARIA; MANUTENCAO; PS; QUALIDADE; EDUCACAO_PERMANENTE
+  }
+}
+
+package "quality.enums" {
+  enum NaoConformidadeSeveridade { BAIXA; MEDIA; ALTA; CRITICA }
+  enum NaoConformidadeStatus {
+    ABERTA; EM_INVESTIGACAO; EM_IMPLEMENTACAO; EM_VALIDACAO; AGUARDANDO_APROVACAO; CONCLUIDA; CANCELADA
+  }
+}
+
+package "ged.enums" {
+  enum DocumentType   { POP; PROTOCOLO; COMUNICACAO }
+  enum DocumentStatus { RASCUNHO; EM_REVISAO; APROVADO; PUBLICADO; OBSOLETO }
+  enum ConfidentialityLevel { PUBLICO; INTERNO; RESTRITO }
+  enum ChangeRequestStatus { ABERTA; EM_REVISAO; APROVADA; REJEITADA; CANCELADA; IMPLEMENTADA }
+  enum Priority { BAIXA; MEDIA; ALTA; CRITICA }
+  enum ImpactLevel { BAIXO; MODERADO; ALTO }
+}
+
+package "edu.enums" {
+  enum AttemptStatus { NAO_INICIADO; EM_ANDAMENTO; CONCLUIDO; APROVADO; REPROVADO; ABANDONADO }
+  enum GradeScale { PERCENTUAL; CONCEITO; PONTOS }
+  enum FeedbackTarget { COURSE; SESSION; INSTRUCTOR }
+  enum BookingStatus { SOLICITADO; APROVADO; REJEITADO; REALIZADO; CANCELADO }
+  enum DeliveryMode { EAD; PRESENCIAL; HIBRIDO }
+  enum TrainingPlanStatus { RASCUNHO; ENVIADO_PARA_APROVACAO; APROVADO; REJEITADO; CANCELADO }
+}
+
+package "environmental.enums" {
+  enum ClasseResiduo { PERFUROCORTANTE; BIOLOGICO; QUIMICO; RECICLAVEL; COMUM }
+}
+
+package "core.enums" {
+  enum ExameCulturaResultado { PENDENTE; NEGATIVO; POSITIVO; INVALIDO }
+}
+
+package "cme.enums" {
+  ' Consolidado (superset) para não perder estados prévios
+  enum CicloStatus {
+    RASCUNHO; AGENDADO; EM_ANDAMENTO; AGUARDANDO_VALIDACAO_PARAMETROS; REPROVADO_PARAMETROS;
+    AGUARDANDO_TESTE_IQ; IQ_REPROVADO; AVALIAR_EXIGENCIA_IB; AGUARDANDO_IB; IB_REPROVADO;
+    PRONTO_PARA_LIBERACAO; CONCLUIDO; LIBERADO; BLOQUEADO; CANCELADO
+  }
+  enum UsoSaneanteEtapa { PRE_LIMPEZA; LIMPEZA_MANUAL; LAVADORA_TERMODESINFECCAO; DESINFECCAO_ALTO_NIVEL }
+  enum MovimentacaoTipo { ENTRADA_CONTAMINADO; ENVIO_ESTERIL; RETORNO_CONTAMINADO; DESCARTE }
+  enum ManutencaoTipo { PREVENTIVA; CORRETIVA; CALIBRACAO; VERIFICACAO_METROLOGICA }
+  enum ManutencaoStatus { PLANEJADA; ABERTA; EM_ANDAMENTO; CONCLUIDA; CANCELADA }
+  enum LoteStatus { MONTADO; EM_PROCESSO; LIBERADO; BLOQUEADO; VENCIDO }
+  enum ResultadoConformidade { CONFORME; NAO_CONFORME; NAO_APLICAVEL }
+}
+
+' ============================================================
+' IAM (Tenant, User, Setor, Role Assignment)
+' ============================================================
+package "iam.domain" {
+  class Tenant <<Entity, Audited>> {
+    +id: Long
+    +code: Long
+    +name: String
+    +cnpj: String
+    +logo: String
+    +active: boolean
+  }
+  note right of Tenant
+    VALIDATIONS
+    - name: not blank
+    - cnpj: formato válido (quando informado)
+    - active != null
+
+    INDEXES/UNIQUES
+    - Unique: (code)
+    - Index : (active)
+  end note
+
+  class User <<Entity, Audited>> {
+    +id: Long
+    +userName: String
+    +passwordHash: String
+    +fullName: String
+    +origin: IdentityOrigin
+  }
+  note right of User
+    VALIDATIONS
+    - userName: not blank, normalizado
+    - passwordHash: not blank
+    - fullName: not blank
+
+    INDEXES/UNIQUES
+    - Unique: (userName)
+  end note
+
+  class Setor <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -nome: String
+    -tipo: TipoSetor
+    -descricao: String
+  }
+  note right of Setor
+    VALIDATIONS
+    - nome: not blank
+    - tipo: not null
+    - tenant: not null
+
+    INDEXES/UNIQUES
+    - Unique: (tenant_id, nome)
+    - Index : (tenant_id, tipo)
+  end note
+
+  class OrgRoleAssignment <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -user: User
+    -setor: Setor
+    -roleType: OrgRoleType
+    -vigencia: PeriodoVigencia
+    -active: Boolean
+  }
+  note right of OrgRoleAssignment
+    VALIDATIONS
+    - roleType, user, active != null
+    - vigencia.inicio <= vigencia.fim (quando informado)
+
+    INDEXES/UNIQUES
+    - Index : (tenant_id, role_type, active)
+    - Unique: (tenant_id, role_type, user_id, coalesce(setor_id,0), vigencia.inicio)
+  end note
+
+  OrgRoleAssignment --> Tenant : tenant
+  OrgRoleAssignment --> User   : user
+  OrgRoleAssignment "0..1" --> Setor : setor
+}
+
+' ============================================================
+' APPROVAL CORE (contratos, domínio e serviços)
+' ============================================================
+package "approval.core.contracts" {
+  interface ApprovableTarget {
+    +getTenant(): Tenant
+    +getApprovalDomain(): ApprovalDomain
+    +getApprovalKey(): String
+    +getScopeSetor(): Setor
+  }
+}
+
+package "approval.core.domain" {
+  class ApprovalFlowDef <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -domain: ApprovalDomain
+    -name: String
+    -active: Boolean
+  }
+  note right of ApprovalFlowDef
+    VALIDATIONS
+    - domain != null; name not blank; active != null
+    INDEXES/UNIQUES
+    - Unique: (tenant_id, domain, name)
+    - Index : (tenant_id, active)
+  end note
+
+  class ApprovalStageDef <<Entity, Audited>> {
+    -id: Long
+    -flowDef: ApprovalFlowDef
+    -order: Integer
+    -stageCode: String
+    -requiredRole: OrgRoleType
+    -scopeByTargetSetor: Boolean
+    -minApprovers: Integer
+    -dualApproval: Boolean
+  }
+  note right of ApprovalStageDef
+    VALIDATIONS
+    - order >= 1; stageCode not blank; minApprovers >= 1
+    - dualApproval default false
+    INDEXES/UNIQUES
+    - Unique: (flow_def_id, order)
+    - Unique: (flow_def_id, stage_code)
+  end note
+
+  class ApprovalRequest <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -domain: ApprovalDomain
+    -targetKey: String
+    -requestedBy: User
+    -requestedAt: LocalDateTime
+    -status: ApprovalRequestStatus
+    -flowNameSnapshot: String
+    -scopeSetor: Setor
+  }
+  note right of ApprovalRequest
+    VALIDATIONS
+    - domain, targetKey, requestedBy, requestedAt, status != null
+    INDEXES/UNIQUES
+    - Index: (tenant_id, domain, status)
+    - Index: (tenant_id, target_key)
+    - Index: (requested_at)
+  end note
+
+  class ApprovalStep <<Entity, Audited>> {
+    -id: Long
+    -request: ApprovalRequest
+    -stageOrder: Integer
+    -stageCode: String
+    -requiredRole: OrgRoleType
+    -scopeSetor: Setor
+    -status: ApprovalStepStatus
+    -decision: ApprovalDecision
+    -decidedBy: User
+    -decidedAt: LocalDateTime
+    -comment: String
+    -approvalsCount: Integer
+  }
+  note right of ApprovalStep
+    VALIDATIONS
+    - stageOrder >= 1; requiredRole, status != null
+    - decision só quando status ∈ {APPROVED, REJECTED}
+    INDEXES/UNIQUES
+    - Unique: (request_id, stage_order)
+    - Index : (request_id, status)
+  end note
+
+  class ApprovalAttachment <<Entity, Audited>> {
+    -id: Long
+    -request: ApprovalRequest
+    -arquivo: EvidenciaArquivo
+    -nota: String
+  }
+  note right of ApprovalAttachment
+    INDEXES/UNIQUES
+    - Index: (request_id)
+    - Index: (arquivo_id)
+  end note
+
+  class ApprovalAuditLog <<Entity, Audited>> {
+    -id: Long
+    -request: ApprovalRequest
+    -stepOrder: Integer
+    -event: String
+    -when: LocalDateTime
+    -who: User
+    -data: String
+  }
+  note right of ApprovalAuditLog
+    INDEXES/UNIQUES
+    - Index: (request_id, step_order)
+    - Index: (when)
+    - Index: (who_id)
+  end note
+}
+
+package "approval.core.services" {
+  class ApproverResolver {
+    +resolveCandidates(tenant:Tenant, role:OrgRoleType, setor:Setor): List<User>
+    +isUserEligible(user:User, role:OrgRoleType, setor:Setor, when:LocalDateTime): boolean
+  }
+  class ApprovalEngine {
+    +start(target:ApprovableTarget, requestedBy:User): ApprovalRequest
+    +decide(stepId:Long, user:User, decision:ApprovalDecision, comment:String): void
+    +currentStep(requestId:Long): ApprovalStep
+  }
+}
+
+' ============================================================
+' COMMON / EVIDÊNCIAS
+' ============================================================
+package "common.domain" {
+  class EvidenciaArquivo <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -nomeArquivo: String
+    -uri: String
+    -hashSha256: String
+    -contentType: String
+    -tamanhoBytes: Long
+    -autor: User
+    -criadoEm: LocalDateTime
+    +prePersist(): void
+  }
+  note right of EvidenciaArquivo
+    VALIDATIONS
+    - nomeArquivo, uri, contentType: not blank
+    - tamanhoBytes >= 0; hashSha256 64 hex (quando informado)
+    INDEXES/UNIQUES
+    - Unique (opcional): (hash_sha256)
+    - Index : (tenant_id, autor_id)
+    - Index : (criado_em)
+  end note
+}
+
+' ============================================================
+' GED (domínio rico + aprovável)
+' ============================================================
+package "ged.domain" {
+  class DocCategory <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -nome: String
+    -descricao: String
+  }
+  note right of DocCategory
+    VALIDATIONS: nome not blank
+    UNIQUE: (tenant_id, nome)
+  end note
+
+  class DocTag <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -nome: String
+  }
+  note right of DocTag
+    VALIDATIONS: nome not blank
+    UNIQUE: (tenant_id, nome)
+  end note
+
+  class RetentionPolicy <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -nome: String
+    -anosGuarda: Integer
+    -metodoDescarte: String
+    -baseLegal: String
+  }
+  note right of RetentionPolicy
+    VALIDATIONS: nome not blank; anosGuarda >= 0; metodoDescarte not blank
+    UNIQUE: (tenant_id, nome)
+  end note
+
+  class Document <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -codigo: String
+    -titulo: String
+    -tipo: DocumentType
+    -status: DocumentStatus
+    -confidencialidade: ConfidentialityLevel
+    -categoria: DocCategory
+    -setorResponsavel: Setor
+    -dataVigenciaInicio: LocalDate
+    -dataVigenciaFim: LocalDate
+    -versaoAtual: DocumentVersion
+    -nivelONATarget: String
+    -regulacoes: String
+    -politicaRetencao: RetentionPolicy
+    -exigeTreinamento: Boolean
+  }
+  note right of Document
+    VALIDATIONS
+    - codigo, titulo not blank; tipo/status/confidencialidade != null
+    - dataVigenciaFim >= dataVigenciaInicio (quando informada)
+    - se exigeTreinamento==true → vincular plano/oferta
+    INDEXES/UNIQUES
+    - Unique: (tenant_id, codigo)
+    - Index : (tenant_id, status)
+    - Index : (tenant_id, categoria_id)
+    - Index : (tenant_id, setor_responsavel_id)
+  end note
+
+  class DocumentLink <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -documentoOrigem: Document
+    -documentoAlvo: Document
+    -relacao: String ' RELATED | SUBSTITUI | SUBSTITUIDO_POR
+  }
+  note right of DocumentLink
+    VALIDATIONS: origem != alvo; relacao ∈ {RELATED,SUBSTITUI,SUBSTITUIDO_POR}
+    UNIQUE: (tenant_id, documento_origem_id, documento_alvo_id, relacao)
+  end note
+
+  class DocumentVersion <<Entity, Audited, ApprovableTarget>> {
+    -id: Long
+    -tenant: Tenant
+    -documento: Document
+    -versaoMajor: Integer
+    -versaoMinor: Integer
+    -status: DocumentStatus
+    -resumoMudancas: String
+    -dataVigenciaInicio: LocalDate
+    -pdfArquivo: EvidenciaArquivo
+    -pdfSha256: String
+    -geradoEm: LocalDateTime
+    --
+    +getTenant(): Tenant
+    +getApprovalDomain(): ApprovalDomain
+    +getApprovalKey(): String
+    +getScopeSetor(): Setor
+    +getSemVer(): String
+    #syncTenantFromDocumento(): void
+  }
+  note right of DocumentVersion
+    VALIDATIONS: major/minor >= 0; status != null; SemVer coerente
+    INDEXES/UNIQUES
+    - Unique: (tenant_id, documento_id, versao_major, versao_minor)
+    - Index : (tenant_id, status)
+    - Unique opcional: (pdf_sha256)
+  end note
+
+  class ChangeRequest <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -documento: Document
+    -titulo: String
+    -motivo: String
+    -solicitante: User
+    -solicitadoEm: LocalDateTime
+    -prioridade: Priority
+    -impacto: ImpactLevel
+    -prazo: LocalDate
+    -responsavel: User
+    -status: ChangeRequestStatus
+    -slaEstouradoEm: LocalDateTime
+    -implementedByVersionId: Long
+  }
+  note right of ChangeRequest
+    VALIDATIONS: campos obrigatórios; prazo coerente
+    INDEXES: (tenant_id, documento_id, status), (tenant_id, prioridade, impacto)
+  end note
+
+  class ChangeRequestItem <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -changeRequest: ChangeRequest
+    -secaoAlvo: String
+    -textoAntes: Text
+    -textoDepois: Text
+    -justificativa: String
+  }
+
+  class ReviewCycle <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -documento: Document
+    -frequenciaMeses: Integer
+    -dataUltimaRevisao: LocalDate
+    -dataProximaRevisao: LocalDate
+    -grupoRevisor: String
+  }
+
+  class DistributionRule <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -documento: Document
+    -departamentosAlvo: String
+    -papeisAlvo: String
+  }
+
+  class PopProfile <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -documento: Document
+    -area: String
+    -objetivo: String
+    -escopo: String
+    -definicoes: Text
+    -responsabilidades: Text
+    -materiais: Text
+    -precaucoesSeguranca: Text
+    -registrosGerados: Text
+    -referencias: Text
+  }
+
+  class PopStep <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -popProfile: PopProfile
+    -ordem: Integer
+    -titulo: String
+    -instrucao: Text
+    -notaRisco: String
+  }
+
+  class ProtocolProfile <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -documento: Document
+    -escopoClinico: String
+    -indicacoes: Text
+    -contraIndicacoes: Text
+    -fluxogramaRef: String
+  }
+
+  class CommunicationProfile <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -documento: Document
+    -tipoMensagem: String
+    -publicoAlvo: String
+    -ackObrigatorio: Boolean
+    -validoDe: LocalDate
+    -validoAte: LocalDate
+  }
+}
+
+' ============================================================
+' RH (separado de User)
+' ============================================================
+package "hr.domain" {
+  class Cargo <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -codigo: String
+    -nome: String
+    -descricao: String
+  }
+  class Colaborador <<Entity, Audited>> {
+    -id: Long
+    -tenant: Tenant
+    -matricula: String
+    -nomeCompleto: String
+    -cpf: String
+    -email: String
+    -telefone: String
+    -setor: Setor
+    -cargo: Cargo
+    -dataAdmissao: LocalDate
+    -status: ColaboradorStatus
+    -usuarioSistema: User
+  }
+}
+package "hr.enums" {
+  enum ColaboradorStatus { ATIVO; INATIVO; AFASTADO }
+}
+
+' ============================================================
+' EDU (provedor, cursos, recursos, agendamento, avaliação)
+' ============================================================
+package "edu.domain" {
+  class TrainingProvider <<Entity, Audited>> {
+    -id: Long; -tenant: Tenant; -nome: String; -cnpj: String; -contatoEmail: String; -contatoTelefone: String; -interno: Boolean; -siteUrl: String; -observacoes: String
+  }
+  class Course <<Entity, Audited>> {
+    -id: Long; -tenant: Tenant; -provider: TrainingProvider; -codigo: String; -titulo: String; -descricao: String; -cargaHorariaMin: Integer; -deliveryMode: DeliveryMode; -obrigatorio: Boolean; -gradeScale: GradeScale
+  }
+  class CourseModule <<Entity, Audited>> {
+    -id: Long; -tenant: Tenant; -course: Course; -ordem: Integer; -titulo: String; -descricao: String
+  }
+  class CourseItem <<Entity, Audited>> {
+    -id: Long; -tenant: Tenant; -module: CourseModule; -ordem: Integer; -titulo: String; -descricao: String; -aprovacaoMin: Double; -frequenciaMinPct: Double; -documentoBase: ged.domain.DocumentVersion
+  }
+  class CourseInstructor <<Entity, Audited>> {
+    -id: Long; -tenant: Tenant; -provider: TrainingProvider; -colaborador: Colaborador; -curriculo: String; -areaEspecialidade: String; -ativo: Boolean
+  }
+  class TrainingResource <<Entity, Audited>> {
+    -id: Long; -tenant: Tenant; -nome: String; -tipo: String; -localizacao: String; -capacidade: Integer; -ativo: Boolean
+  }
+  class ResourceBooking <<Entity, Audited>> {
+    -id: Long; -tenant: Tenant; -resource: TrainingResource; -session: Session; -inicio: LocalDateTime; -fim: LocalDateTime; -status: BookingStatus; -solicitadoPor: User; -observacoes: String
+  }
+  class Feedback <<Entity, Audited>> {
+    -id: Long; -tenant: Tenant; -targetType: FeedbackTarget; -course: Course; -session: Session; -instructor: CourseInstructor; -colaborador: Colaborador; -nota: Integer; -comentario: String; -enviadoEm: LocalDateTime
+  }
+  class Offering <<Entity, Audited>> {
+    -id: Long; -tenant: Tenant; -course: Course; -codigoTurma: String; -setorAlvo: Setor; -inicio: LocalDate; -fim: LocalDate; -vagas: Integer; -deliveryMode: DeliveryMode; -ativo: Boolean; -planItem: TrainingPlanItem
+  }
+  class Session <<Entity, Audited>> {
+    -id: Long; -tenant: Tenant; -offering: Offering; -inicio: LocalDateTime; -fim: LocalDateTime; -local: String; -instrutor: CourseInstructor
+  }
+  class Enrollment <<Entity, Audited>> {
+    -id: Long; -tenant: Tenant; -offering: Offering; -colaborador: Colaborador; -inscritoEm: LocalDateTime; -obrigatorio: Boolean; -statusGeral: AttemptStatus; -notaFinal: Double; -concluidoEm: LocalDateTime
+  }
+  class Attempt <<Entity, Audited>> {
+    -id: Long; -tenant: Tenant; -enrollment: Enrollment; -courseItem: CourseItem; -startedAt: LocalDateTime; -endedAt: LocalDateTime; -status: AttemptStatus; -scoreRaw: Double; -progressoPct: Double; -tentativaN: Integer
+  }
+  class Attendance <<Entity, Audited>> {
+    -id: Long; -tenant: Tenant; -session: Session; -colaborador: Colaborador; -presente: Boolean; -registradoEm: LocalDateTime; -observacoes: String
+  }
+  class Competency <<Entity, Audited>> {
+    -id: Long; -tenant: Tenant; -codigo: String; -nome: String; -descricao: String
+  }
+  class CompetencyRubric <<Entity, Audited>> {
+    -id: Long; -tenant: Tenant; -competency: Competency; -titulo: String; -descricao: String; -escalaDescricao: String
+  }
+  class RubricCriterion <<Entity, Audited>> {
+    -id: Long; -tenant: Tenant; -rubric: CompetencyRubric; -ordem: Integer; -descricao: String; -peso: Double
+  }
+  class PracticalAssessment <<Entity, Audited>> {
+    -id: Long; -tenant: Tenant; -rubric: CompetencyRubric; -colaborador: Colaborador; -avaliador: Colaborador; -realizadoNoSetor: Setor; -realizadoEm: LocalDateTime; -notaFinal: Double; -aprovado: Boolean; -evidencia: EvidenciaArquivo; -observacoes: String
+  }
+  class AssessmentCriterionScore <<Entity, Audited>> {
+    -id: Long; -tenant: Tenant; -assessment: PracticalAssessment; -criterion: RubricCriterion; -pontuacao: Double; -comentario: String
+  }
+  class TrainingPlan <<Entity, Audited, ApprovableTarget>> {
+    -id: Long; -tenant: Tenant; -ano: Integer; -setor: Setor; -status: TrainingPlanStatus; -solicitante: User; -enviadoEm: LocalDateTime; -aprovadoEm: LocalDateTime; -justificativa: String
+    +getTenant(): Tenant
+    +getApprovalDomain(): ApprovalDomain
+    +getApprovalKey(): String
+    +getScopeSetor(): Setor
+  }
+  class TrainingPlanItem <<Entity, Audited>> {
+    -id: Long; -tenant: Tenant; -plan: TrainingPlan; -course: Course; -deliveryMode: DeliveryMode; -cargaHorariaPrevista: Integer; -mesPlanejado: Integer; -vagasPrevistas: Integer; -publicoAlvoSetor: Setor; -observacoes: String
+  }
+}
+
+' ============================================================
+' CORE (amostras/indicadores/itens)
+' ============================================================
+package "core.domain" {
+  class ExameCultura <<Entity, Audited>> {
+    +id: Long; +origemAmostra: String; +dataColeta: LocalDate; +responsavelColeta: String; +resultado: ExameCulturaResultado; +observacoes: String
+  }
+  class Instrumento <<Entity, Audited>> {
+    -id: Long; -tenant: Tenant; -nome: String; -codigoHospitalar: String; -descricao: String
+  }
+  class KitProcedimento <<Entity, Audited>> {
+    -id: Long; -tenant: Tenant; -nome: String; -codigo: String; -observacoes: String; -ativo: Boolean
+  }
+  class KitVersion <<Entity, Audited>> {
+    -id: Long; -kit: KitProcedimento; -numeroVersao: Integer; -vigenciaInicio: LocalDate; -validadeDias: Integer; -ativo: Boolean; -observacoes: String
+  }
+  class KitItem <<Entity, Audited>> {
+    -id: Long; -versao: KitVersion; -instrumento: Instrumento; -quantidade: Integer; -observacoes: String
+  }
+}
+
+' ============================================================
+' CME (domínio + gates de liberação + ApprovableTarget)
+' ============================================================
+package "cme.domain" {
+  class Autoclave <<Entity, Audited>> {
+    -id: Long; -tenant: Tenant; -nome: String; -fabricante: String; -modelo: String; -numeroSerie: String;
+    -localizacao: String; -ultimaHigienizacaoProfunda: LocalDate; -ativo: Boolean
+  }
+
+  class CicloEsterilizacao <<Entity, Audited, ApprovableTarget>> {
+    -id: Long; -tenant: Tenant; -autoclave: Autoclave; -loteEtiqueta: LoteEtiqueta;
+    -inicio: LocalDateTime; -fim: LocalDateTime; -duracaoMinutos: Integer;
+    -temperaturaMaxima: Double; -pressaoMaxima: Double; -status: CicloStatus;
+    -liberadoPor: User; -observacoes: String; -setorExecutor: Setor;
+    -parametrosOk: Boolean; -iqOk: Boolean; -ibExigido: Boolean; -ibOk: Boolean
+    +getTenant(): Tenant
+    +getApprovalDomain(): ApprovalDomain
+    +getApprovalKey(): String
+    +getScopeSetor(): Setor
+  }
+  note right of CicloEsterilizacao
+    INVARIANTE p/ LIBERAR LOTE:
+    - Gate1: parametrosOk && iqOk
+    - Gate2: se ibExigido → ibOk OU aprovação via approval.core
+    - SOD opcional: quem monta lote ≠ quem libera
+    - Bloquear ciclos simultâneos EM_ANDAMENTO na mesma autoclave
+    INDEXES
+    - (tenant_id, autoclave_id, inicio), (tenant_id, status), (tenant_id, lote_etiqueta_id)
+  end note
+
+  class LoteEtiqueta <<Entity, Audited>> {
+    -id: Long; -tenant: Tenant; -codigo: String; -kitVersao: core.domain.KitVersion; -dataEmpacotamento: LocalDate;
+    -validade: LocalDate; -status: LoteStatus; -qrCode: String; -montadoPor: User; -observacoes: String; -criadoEm: LocalDateTime
+  }
+
+  class TesteBowieDick <<Entity, Audited>> {
+    -id: Long; -autoclave: Autoclave; -dataExecucao: LocalDate; -resultado: ResultadoConformidade; -executadoPor: User; -observacoes: String
+  }
+
+  class IndicadorQuimico <<Entity, Audited>> {
+    -id: Long; -ciclo: CicloEsterilizacao; -tipo: String; -resultado: ResultadoConformidade; -observacoes: String
+  }
+
+  class IndicadorBiologico <<Entity, Audited>> {
+    -id: Long; -ciclo: CicloEsterilizacao; -loteIndicador: String; -incubadora: String; -leituraEm: LocalDate; -resultado: ResultadoConformidade; -observacoes: String
+  }
+
+  class ManutencaoAutoclave <<Entity, Audited>> {
+    -id: Long; -autoclave: Autoclave; -tipo: ManutencaoTipo; -status: ManutencaoStatus; -dataAgendamento: LocalDate; -dataExecucao: LocalDate; -responsavelTecnico: String; -observacoes: String
+  }
+
+  class PlanoPreventivoAutoclave <<Entity, Audited>> {
+    -id: Long; -autoclave: Autoclave; -periodicidadeDias: Integer; -limiteCiclos: Integer; -proximaExecucaoPrevista: LocalDate; -descricao: String
+  }
+
+  class MovimentacaoCME <<Entity, Audited>> {
+    -id: Long; -tenant: Tenant; -lote: LoteEtiqueta; -setorOrigem: Setor; -setorDestino: Setor; -tipo: MovimentacaoTipo; -dataHora: LocalDateTime; -responsavel: User; -observacoes: String
+  }
+
+  class UsoSaneante <<Entity, Audited>> {
+    -id: Long; -loteSaneante: SaneantePeraceticoLote; -dataUso: LocalDate; -etapa: UsoSaneanteEtapa;
+    -volumeUtilizadoMl: Double; -diluicao: String; -usadoPor: User; -observacoes: String
+  }
+
+  class SaneantePeraceticoLote <<Entity, Audited>> {
+    -id: Long; -tenant: Tenant; -numeroLote: String; -fabricante: String; -concentracao: String; -dataValidade: LocalDate;
+    -dataAbertura: LocalDate; -volumeInicialMl: Double; -observacoes: String
+  }
+
+  class HigienizacaoUltrassonica <<Entity, Audited>> {
+    -id: Long; -tenant: Tenant; -dataRealizacao: LocalDate; -equipamentoDescricao: String; -responsavel: User; -observacoes: String
+  }
+
+  class HigienizacaoAutoclaveProfunda <<Entity, Audited>> {
+    -id: Long; -autoclave: Autoclave; -dataRealizacao: LocalDate; -responsavel: User; -observacoes: String
+  }
+}
+
+package "cme.application" {
+  class CMEReleaseService {
+    +startReleaseApproval(cicloId: Long, requestedBy: User): void
+    +onApprovalGranted(requestId: Long): void
+    +onApprovalRejected(requestId: Long, reason: String): void
+    +updateGateStatus(cicloId: Long, parametrosOk: boolean, iqOk: boolean, ibExigido: boolean, ibOk: boolean): void
+  }
+}
+
+' ============================================================
+' QUALITY / NC (com 5W2H e avaliação de eficácia)
+' ============================================================
+package "quality.domain" {
+  interface NaoConformidadeBase {
+    +getId(): Long
+    +getTenant(): Tenant
+    +getTitulo(): String
+    +getStatus(): NaoConformidadeStatus
+    +getTipo(): TipoNaoConformidade
+  }
+  class TipoNaoConformidade <<Entity, Audited>> { -id: Long; -tenant: Tenant; -nome: String; -descricao: String }
+
+  class NaoConformidadeCME <<Entity, Audited, ApprovableTarget>> {
+    -id: Long; -tenant: Tenant; -tipo: TipoNaoConformidade; -titulo: String; -descricao: String;
+    -severidade: NaoConformidadeSeveridade; -status: NaoConformidadeStatus; -dataAbertura: LocalDate; -dataEncerramento: LocalDate;
+    -responsavel: User; -setorOrigem: Setor; -setorResponsavel: Setor; -planoAcaoResumo: String; -cicloOrigem: cme.domain.CicloEsterilizacao
+    +getTenant(): Tenant
+    +getApprovalDomain(): ApprovalDomain
+    +getApprovalKey(): String
+    +getScopeSetor(): Setor
+  }
+
+  class PlanoAcaoItem <<Entity, Audited>> {
+    -id: Long; -tenant: Tenant; -nc: NaoConformidadeCME;
+    -oQue: String; -porQue: String; -quem: User; -onde: String; -quando: LocalDate; -como: String; -quanto: BigDecimal;
+    -prazo: LocalDate; -statusExecucao: String; -evidencias: String
+  }
+
+  class NCEficaciaAvaliacao <<Entity, Audited>> {
+    -id: Long; -tenant: Tenant; -nc: NaoConformidadeCME; -avaliador: User; -avaliadoEm: LocalDateTime; -metodo: String; -resultado: String; -eficaz: Boolean
+  }
+}
+
+' ============================================================
+' SECURITY (policy/permission/overrides)
+' ============================================================
+package "security.domain" {
+  class Policy <<Entity, Audited>> {
+    -id: Long; -tenant: Tenant; -resource: ResourceType; -action: Action; -feature: String; -effect: Effect; -enabled: boolean = true; -priority: int = 100; -description: String
+  }
+  class PolicyCondition <<Entity, Audited>> {
+    -id: Long; -policy: Policy; -type: String; -operator: String; -value: String
+  }
+  class Role <<Entity, Audited>> {
+    -id: Long; -name: String; -tenant: Tenant; -description: String
+  }
+  class Permission <<Entity, Audited>> {
+    -id: Long; -resource: ResourceType; -action: Action; -feature: String; -tenant: Tenant; -code: String
+  }
+  class RolePermission <<Entity, Audited>> {
+    -id: Long; -role: Role; -permission: Permission; -tenant: Tenant
+  }
+  class UserPermissionOverride <<Entity, Audited, ApprovableTarget>> {
+    -id: Long; -user: User; -tenant: Tenant; -resource: ResourceType; -action: Action; -feature: String; -effect: Effect; -priority: int = 100;
+    -reason: String; -validFrom: LocalDateTime; -validUntil: LocalDateTime;
+    -targetSetor: Setor; -requestedByUser: User; -requestedAt: LocalDateTime; -approvedByUser: User; -approvedAt: LocalDateTime
+  }
+}
+
+' ============================================================
+' OBSERVABILITY / AUDIT
+' ============================================================
+package "observability.audit" {
+  class AuditRevisionEntity <<Entity, RevisionEntity>> { -id: Long; -timestamp: long; -username: String; -clientIp: String }
+  class AuditRevisionListener <<Listener>>
+}
+package "observability.logging" {
+  class RequestLog <<Entity>> {
+    -id: Long; -timestamp: Instant; -method: String; -path: String; -status: int; -durationMs: long; -traceId: String; -userId: String; -clientIp: String; -httpVersion: String; -contentLength: Long
+  }
+}
+package "observability.security" {
+  enum SecurityAuditEventType { AUTHENTICATION_SUCCESS; AUTHENTICATION_FAILURE; AUTHORIZATION_FAILURE }
+  class SecurityAuditEvent <<Entity>> { -id: Long; -timestamp: Instant; -username: String; -eventType: SecurityAuditEventType; -clientIp: String; -traceId: String; -description: String }
+}
+
+' ============================================================
+' AMBIENTAL / PGRSS
+' ============================================================
+package "environmental.domain" {
+  class GeracaoResiduo <<Entity, Audited>> {
+    -id: Long; -tenant: Tenant; -dataRegistro: LocalDate; -classeResiduo: ClasseResiduo; -pesoEstimadoKg: Double;
+    -destinoFinal: String; -loteRelacionada: cme.domain.LoteEtiqueta; -saneanteRelacionado: cme.domain.SaneantePeraceticoLote; -observacoes: String
+  }
+}
+
+' ============================================================
+' RELACIONAMENTOS (chaves principais entre pacotes)
+' ============================================================
+' ---- GED ----
+ged.domain.DocCategory --> iam.domain.Tenant
+ged.domain.DocTag --> iam.domain.Tenant
+ged.domain.RetentionPolicy --> iam.domain.Tenant
+
+ged.domain.Document --> iam.domain.Tenant
+ged.domain.Document --> ged.enums.DocumentType
+ged.domain.Document --> ged.enums.DocumentStatus
+ged.domain.Document --> ged.enums.ConfidentialityLevel
+ged.domain.Document --> ged.domain.DocCategory : categoria
+ged.domain.Document --> iam.domain.Setor : setorResponsavel
+ged.domain.Document " 1 " o-- " 0..* " ged.domain.DocTag : tags
+ged.domain.Document " 1 " o-- " 0..* " ged.domain.DocumentLink : related
+ged.domain.Document --> ged.domain.RetentionPolicy : politicaRetencao
+ged.domain.Document --> ged.domain.DocumentVersion : versaoAtual
+
+ged.domain.DocumentLink --> iam.domain.Tenant
+ged.domain.DocumentLink --> ged.domain.Document : documentoOrigem
+ged.domain.DocumentLink --> ged.domain.Document : documentoAlvo
+
+ged.domain.DocumentVersion --> iam.domain.Tenant
+ged.domain.DocumentVersion --> ged.domain.Document : documento
+ged.domain.DocumentVersion "0..1" --> common.domain.EvidenciaArquivo : pdfArquivo
+ged.domain.DocumentVersion ..> approval.core.enums.ApprovalDomain
+ged.domain.DocumentVersion ..> iam.domain.Setor : scope via documento.setorResponsavel
+
+ged.domain.ChangeRequest --> iam.domain.Tenant
+ged.domain.ChangeRequest --> ged.domain.Document : documento
+ged.domain.ChangeRequest --> iam.domain.User : solicitante
+ged.domain.ChangeRequest "0..1" --> iam.domain.User : responsavel
+ged.domain.ChangeRequest --> ged.enums.Priority
+ged.domain.ChangeRequest --> ged.enums.ImpactLevel
+ged.domain.ChangeRequest --> ged.enums.ChangeRequestStatus
+ged.domain.ChangeRequestItem --> iam.domain.Tenant
+ged.domain.ChangeRequestItem --> ged.domain.ChangeRequest : changeRequest
+ged.domain.ReviewCycle --> iam.domain.Tenant
+ged.domain.ReviewCycle --> ged.domain.Document : documento
+ged.domain.DistributionRule --> iam.domain.Tenant
+ged.domain.DistributionRule --> ged.domain.Document : documento
+ged.domain.PopProfile --> iam.domain.Tenant
+ged.domain.PopProfile --> ged.domain.Document : documento
+ged.domain.PopStep --> iam.domain.Tenant
+ged.domain.PopStep --> ged.domain.PopProfile : popProfile
+ged.domain.ProtocolProfile --> iam.domain.Tenant
+ged.domain.ProtocolProfile --> ged.domain.Document : documento
+ged.domain.CommunicationProfile --> iam.domain.Tenant
+ged.domain.CommunicationProfile --> ged.domain.Document : documento
+
+' ---- RH ----
+hr.domain.Cargo --> iam.domain.Tenant
+hr.domain.Colaborador --> iam.domain.Tenant
+hr.domain.Colaborador --> iam.domain.Setor
+hr.domain.Colaborador --> hr.domain.Cargo
+hr.domain.Colaborador "0..1" --> iam.domain.User : usuarioSistema
+hr.domain.Colaborador --> hr.enums.ColaboradorStatus
+
+' ---- EDU ----
+edu.domain.TrainingProvider --> iam.domain.Tenant
+edu.domain.Course --> iam.domain.Tenant
+edu.domain.Course --> edu.domain.TrainingProvider : provider
+edu.domain.Course --> edu.enums.DeliveryMode
+edu.domain.Course --> edu.enums.GradeScale
+edu.domain.CourseModule --> iam.domain.Tenant
+edu.domain.CourseModule --> edu.domain.Course : course
+edu.domain.CourseItem --> iam.domain.Tenant
+edu.domain.CourseItem --> edu.domain.CourseModule : module
+edu.domain.CourseItem "0..1" --> ged.domain.DocumentVersion : documentoBase
+edu.domain.CourseInstructor --> iam.domain.Tenant
+edu.domain.CourseInstructor --> edu.domain.TrainingProvider : provider
+edu.domain.CourseInstructor --> hr.domain.Colaborador : colaborador
+edu.domain.Enrollment --> iam.domain.Tenant
+edu.domain.Enrollment --> edu.domain.Offering : offering
+edu.domain.Enrollment --> hr.domain.Colaborador : colaborador
+edu.domain.Enrollment --> edu.enums.AttemptStatus
+edu.domain.Attempt --> iam.domain.Tenant
+edu.domain.Attempt --> edu.domain.Enrollment : enrollment
+edu.domain.Attempt --> edu.domain.CourseItem : courseItem
+edu.domain.Attempt --> edu.enums.AttemptStatus
+edu.domain.Attendance --> iam.domain.Tenant
+edu.domain.Attendance --> edu.domain.Session : session
+edu.domain.Attendance --> hr.domain.Colaborador : colaborador
+edu.domain.TrainingResource --> iam.domain.Tenant
+edu.domain.ResourceBooking --> iam.domain.Tenant
+edu.domain.ResourceBooking --> edu.domain.TrainingResource : resource
+edu.domain.ResourceBooking --> edu.domain.Session : session
+edu.domain.ResourceBooking --> edu.enums.BookingStatus
+edu.domain.Feedback --> iam.domain.Tenant
+edu.domain.Feedback "0..1" --> edu.domain.Course : course
+edu.domain.Feedback "0..1" --> edu.domain.Session : session
+edu.domain.Feedback "0..1" --> edu.domain.CourseInstructor : instructor
+edu.domain.Feedback --> hr.domain.Colaborador : colaborador
+edu.domain.Competency --> iam.domain.Tenant
+edu.domain.UserCompetency --> iam.domain.Tenant
+edu.domain.UserCompetency --> hr.domain.Colaborador : colaborador
+edu.domain.UserCompetency --> edu.domain.Competency : competency
+edu.domain.CompetencyRubric --> iam.domain.Tenant
+edu.domain.CompetencyRubric --> edu.domain.Competency : competency
+edu.domain.RubricCriterion --> iam.domain.Tenant
+edu.domain.RubricCriterion --> edu.domain.CompetencyRubric : rubric
+edu.domain.PracticalAssessment --> iam.domain.Tenant
+edu.domain.PracticalAssessment --> edu.domain.CompetencyRubric : rubric
+edu.domain.PracticalAssessment --> hr.domain.Colaborador : colaborador
+edu.domain.PracticalAssessment --> hr.domain.Colaborador : avaliador
+edu.domain.PracticalAssessment --> iam.domain.Setor : realizadoNoSetor
+edu.domain.PracticalAssessment "0..1" -- common.domain.EvidenciaArquivo : evidencia
+edu.domain.AssessmentCriterionScore --> iam.domain.Tenant
+edu.domain.AssessmentCriterionScore --> edu.domain.PracticalAssessment : assessment
+edu.domain.AssessmentCriterionScore --> edu.domain.RubricCriterion : criterion
+edu.domain.TrainingPlan --> iam.domain.Tenant
+edu.domain.TrainingPlan --> iam.domain.Setor : setor
+edu.domain.TrainingPlan --> edu.enums.TrainingPlanStatus
+edu.domain.TrainingPlan "1" o-- " * " edu.domain.TrainingPlanItem : itens
+edu.domain.TrainingPlanItem --> iam.domain.Tenant
+edu.domain.TrainingPlanItem --> edu.domain.TrainingPlan : plan
+edu.domain.TrainingPlanItem --> edu.domain.Course : course
+edu.domain.TrainingPlanItem --> edu.enums.DeliveryMode
+edu.domain.TrainingPlanItem "0..1" --> iam.domain.Setor : publicoAlvoSetor
+edu.domain.Offering --> iam.domain.Tenant
+edu.domain.Offering --> edu.domain.Course : course
+edu.domain.Offering "0..1" --> iam.domain.Setor : setorAlvo
+edu.domain.Offering --> edu.enums.DeliveryMode
+edu.domain.Offering "0..1" --> edu.domain.TrainingPlanItem : planItem
+edu.domain.Session --> iam.domain.Tenant
+edu.domain.Session --> edu.domain.Offering : offering
+
+' ---- CORE ----
+core.domain.ExameCultura --> iam.domain.Tenant : many-to-one
+core.domain.ExameCultura --> iam.domain.User : registradoPor
+core.domain.ExameCultura --> core.enums.ExameCulturaResultado
+core.domain.Instrumento --> iam.domain.Tenant
+core.domain.KitProcedimento --> iam.domain.Tenant
+core.domain.KitVersion --> core.domain.KitProcedimento : kit
+core.domain.KitItem --> core.domain.KitVersion : versao
+core.domain.KitItem --> core.domain.Instrumento : instrumento
+
+' ---- CME ----
+cme.domain.Autoclave --> iam.domain.Tenant
+cme.domain.CicloEsterilizacao --> iam.domain.Tenant
+cme.domain.CicloEsterilizacao --> cme.domain.Autoclave : autoclave
+cme.domain.CicloEsterilizacao --> cme.domain.LoteEtiqueta : loteEtiqueta
+cme.domain.CicloEsterilizacao --> cme.enums.CicloStatus
+cme.domain.CicloEsterilizacao " * " -- " * " common.domain.EvidenciaArquivo : evidencias
+cme.domain.CicloEsterilizacao --> iam.domain.User : liberadoPor
+cme.domain.CicloEsterilizacao --> iam.domain.Setor : setorExecutor
+cme.domain.TesteBowieDick --> cme.domain.Autoclave : autoclave
+cme.domain.TesteBowieDick --> cme.enums.ResultadoConformidade
+cme.domain.TesteBowieDick --> iam.domain.User : executadoPor
+cme.domain.TesteBowieDick " * " -- " * " common.domain.EvidenciaArquivo : evidencias
+cme.domain.IndicadorQuimico --> cme.domain.CicloEsterilizacao : ciclo
+cme.domain.IndicadorQuimico --> cme.enums.ResultadoConformidade
+cme.domain.IndicadorQuimico " * " -- " * " common.domain.EvidenciaArquivo : evidencias
+cme.domain.IndicadorBiologico --> cme.domain.CicloEsterilizacao : ciclo
+cme.domain.IndicadorBiologico --> cme.enums.ResultadoConformidade
+cme.domain.IndicadorBiologico " * " -- " * " common.domain.EvidenciaArquivo : evidencias
+cme.domain.LoteEtiqueta --> iam.domain.Tenant
+cme.domain.LoteEtiqueta --> core.domain.KitVersion : kitVersao
+cme.domain.LoteEtiqueta --> cme.enums.LoteStatus
+cme.domain.LoteEtiqueta --> iam.domain.User : montadoPor
+cme.domain.MovimentacaoCME --> iam.domain.Tenant
+cme.domain.MovimentacaoCME --> cme.domain.LoteEtiqueta : lote
+cme.domain.MovimentacaoCME --> iam.domain.Setor : setorOrigem
+cme.domain.MovimentacaoCME --> iam.domain.Setor : setorDestino
+cme.domain.MovimentacaoCME --> cme.enums.MovimentacaoTipo
+cme.domain.MovimentacaoCME --> iam.domain.User : responsavel
+cme.domain.ManutencaoAutoclave --> cme.domain.Autoclave : autoclave
+cme.domain.ManutencaoAutoclave --> cme.enums.ManutencaoTipo
+cme.domain.ManutencaoAutoclave --> cme.enums.ManutencaoStatus
+cme.domain.ManutencaoAutoclave " * " -- " * " common.domain.EvidenciaArquivo : evidencias
+cme.domain.PlanoPreventivoAutoclave --> cme.domain.Autoclave : autoclave
+cme.domain.UsoSaneante --> cme.domain.SaneantePeraceticoLote : loteSaneante
+cme.domain.UsoSaneante --> cme.enums.UsoSaneanteEtapa
+cme.domain.UsoSaneante --> iam.domain.User : usadoPor
+cme.domain.SaneantePeraceticoLote --> iam.domain.Tenant
+cme.domain.HigienizacaoUltrassonica --> iam.domain.Tenant
+cme.domain.HigienizacaoUltrassonica --> iam.domain.User : responsavel
+cme.domain.HigienizacaoUltrassonica " * " -- " * " common.domain.EvidenciaArquivo : evidencias
+cme.domain.HigienizacaoAutoclaveProfunda --> cme.domain.Autoclave : autoclave
+cme.domain.HigienizacaoAutoclaveProfunda --> iam.domain.User : responsavel
+cme.domain.HigienizacaoAutoclaveProfunda " * " -- " * " common.domain.EvidenciaArquivo : evidencias
+
+' ---- QUALITY / NC ----
+quality.domain.NaoConformidadeCME ..|> quality.domain.NaoConformidadeBase
+quality.domain.NaoConformidadeCME --> iam.domain.Tenant
+quality.domain.NaoConformidadeCME --> quality.domain.TipoNaoConformidade : tipo
+quality.domain.NaoConformidadeCME --> quality.enums.NaoConformidadeSeveridade : severidade
+quality.domain.NaoConformidadeCME --> quality.enums.NaoConformidadeStatus : status
+quality.domain.NaoConformidadeCME --> iam.domain.User : responsavel
+quality.domain.NaoConformidadeCME "0..1" --> iam.domain.Setor : setorOrigem
+quality.domain.NaoConformidadeCME "0..1" --> iam.domain.Setor : setorResponsavel
+quality.domain.NaoConformidadeCME " * " -- " * " common.domain.EvidenciaArquivo : evidencias
+quality.domain.NaoConformidadeCME "0..*" --> "0..1" cme.domain.CicloEsterilizacao : cicloOrigem
+quality.domain.PlanoAcaoItem --> iam.domain.Tenant
+quality.domain.PlanoAcaoItem --> quality.domain.NaoConformidadeCME : nc
+quality.domain.PlanoAcaoItem "0..1" --> iam.domain.User : quem
+quality.domain.NCEficaciaAvaliacao --> iam.domain.Tenant
+quality.domain.NCEficaciaAvaliacao --> quality.domain.NaoConformidadeCME : nc
+quality.domain.NCEficaciaAvaliacao --> iam.domain.User : avaliador
+
+' ---- SECURITY ----
+security.domain.Policy --> iam.domain.Tenant
+security.domain.Policy --> security.enums.ResourceType
+security.domain.Policy --> security.enums.Action
+security.domain.Policy --> security.enums.Effect
+security.domain.Policy "1" o-- " * " security.domain.PolicyCondition : conditions
+security.domain.PolicyCondition --> security.domain.Policy
+security.domain.Role --> iam.domain.Tenant
+security.domain.Permission --> iam.domain.Tenant
+security.domain.Permission --> security.enums.ResourceType
+security.domain.Permission --> security.enums.Action
+security.domain.RolePermission --> security.domain.Role
+security.domain.RolePermission --> security.domain.Permission
+security.domain.RolePermission --> iam.domain.Tenant
+security.domain.UserPermissionOverride --> iam.domain.User
+security.domain.UserPermissionOverride --> iam.domain.Tenant
+security.domain.UserPermissionOverride --> security.enums.ResourceType
+security.domain.UserPermissionOverride --> security.enums.Action
+security.domain.UserPermissionOverride --> security.enums.Effect
+security.domain.UserPermissionOverride "0..1" --> iam.domain.Setor : targetSetor
+security.domain.UserPermissionOverride "0..1" --> iam.domain.User  : requestedByUser
+security.domain.UserPermissionOverride "0..1" --> iam.domain.User  : approvedByUser
+
+' ---- OBSERVABILITY ----
+observability.audit.AuditRevisionEntity --> observability.audit.AuditRevisionListener : @RevisionEntity
+observability.security.SecurityAuditEvent --> observability.security.SecurityAuditEventType : eventType
+observability.logging.RequestLog --> observability.audit.AuditRevisionEntity : traceId (conceitual)
+
+' ---- APPROVAL ↔ TARGETS ----
+approval.core.domain.ApprovalRequest --> cme.domain.CicloEsterilizacao : targetKey="cmeCycle:{id}"
+approval.core.domain.ApprovalRequest --> quality.domain.NaoConformidadeCME : targetKey="ncCME:{id}"
+approval.core.domain.ApprovalRequest --> ged.domain.DocumentVersion   : targetKey="docVer:{id}"
+approval.core.domain.ApprovalRequest --> edu.domain.TrainingPlan      : targetKey="tplan:{id}"
+
+' ---- Escopo por Setor nas aprovações (ex.: quem pode aprovar) ----
+iam.domain.OrgRoleAssignment --> approval.core.domain.ApprovalRequest : controlaAprovacaoPorSetor >
+
+' ============================================================
+' NOTAS GERAIS (tenancy, índices, exclusão/imuta, políticas)
+' ============================================================
+note as N_TENANCY
+TENANCY
+1) Aggregate Roots contêm Tenant (entidade iam.domain.Tenant).
+2) Children não repetem Tenant (FK obrigatória ao root).
+3) Repositórios usam filtro global por tenant.
+4) Índices/UNIQUE incluem tenant quando aplicável.
+end note
+
+note as N_IMMUT
+EXCLUSÃO / IMUTABILIDADE
+- Proibir DELETE físico de registros críticos (Ciclo, NC, DocumentVersion).
+- Evidências (EvidenciaArquivo) e versões GED nunca têm binário deletado; apenas inativar/substituir.
+- FK ON DELETE RESTRICT em vínculos críticos.
+end note
+
+note as N_APPROVAL
+POLÍTICAS DE APROVAÇÃO
+- Semântica baseada em (ApprovalDomain, Setor, OrgRoleType).
+- OrgRoleType é setorial (ex.: QUALIDADE_GERENTE), preservando o vínculo com o Setor.
+- ApproverResolver avalia assignments válidos por (tenant, setor, roleType, vigência).
+end note
+
+N_TENANCY -[dotted]-> approval.core.domain.ApprovalRequest
+N_TENANCY -[dotted]-> cme.domain.CicloEsterilizacao
+N_TENANCY -[dotted]-> quality.domain.NaoConformidadeCME
+N_TENANCY -[dotted]-> ged.domain.Document
+N_IMMUT  -[dotted]-> ged.domain.DocumentVersion
+N_IMMUT  -[dotted]-> cme.domain.CicloEsterilizacao
+N_APPROVAL -[dotted]-> approval.core.domain.ApprovalFlowDef
+
+@enduml
