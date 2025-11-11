@@ -30,5 +30,16 @@ class TenantAccessControllerSecurityTest {
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON));
     }
+
+    @Test
+    @DisplayName("should ignore invalid bearer token for public tenant lookup")
+    void shouldIgnoreInvalidTokenWhenEndpointIsPublic() throws Exception {
+        mockMvc.perform(get("/api/auth/tenants")
+                        .header("Authorization", "Bearer invalid-token")
+                        .param("username", "any.user@example.com")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON));
+    }
 }
 
