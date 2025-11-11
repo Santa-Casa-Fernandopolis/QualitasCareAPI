@@ -1,6 +1,6 @@
 package com.erp.qualitascareapi.hr.domain;
 
-import com.erp.qualitascareapi.core.domain.Setor;
+import com.erp.qualitascareapi.iam.domain.Setor;
 import com.erp.qualitascareapi.hr.enums.ColaboradorStatus;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.domain.User;

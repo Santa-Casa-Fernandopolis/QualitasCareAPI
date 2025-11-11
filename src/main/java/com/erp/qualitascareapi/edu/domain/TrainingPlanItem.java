@@ -1,6 +1,6 @@
 package com.erp.qualitascareapi.edu.domain;
 
-import com.erp.qualitascareapi.core.domain.Setor;
+import com.erp.qualitascareapi.iam.domain.Setor;
 import com.erp.qualitascareapi.edu.enums.DeliveryMode;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import jakarta.persistence.*;

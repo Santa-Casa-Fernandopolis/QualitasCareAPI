@@ -1,4 +1,4 @@
-package com.erp.qualitascareapi.approval.core.enums;
+package com.erp.qualitascareapi.iam.enums;
 
 public enum OrgRoleType {
     QUALIDADE_GERENTE,

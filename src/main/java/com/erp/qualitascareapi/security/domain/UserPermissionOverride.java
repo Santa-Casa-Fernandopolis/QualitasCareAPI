@@ -2,7 +2,7 @@ package com.erp.qualitascareapi.security.domain;
 
 import com.erp.qualitascareapi.approval.core.contracts.ApprovableTarget;
 import com.erp.qualitascareapi.approval.core.enums.ApprovalDomain;
-import com.erp.qualitascareapi.core.domain.Setor;
+import com.erp.qualitascareapi.iam.domain.Setor;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.domain.User;
 import com.erp.qualitascareapi.security.enums.Action;
@@ -100,7 +100,7 @@ public class UserPermissionOverride implements ApprovableTarget {
 
     @Override
     public ApprovalDomain getApprovalDomain() {
-        return ApprovalDomain.USER_PERMISSION_OVERRIDE;
+        return ApprovalDomain.PERMISSAO_USUARIO;
     }
 
     @Override

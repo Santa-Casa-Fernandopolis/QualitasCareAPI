@@ -59,7 +59,7 @@ Lista itens de kit cadastrados.
 ## Gestão de Setores, Lotes e Movimentações
 
 ### `POST /api/cme/setores`
-Registra um setor assistencial para rastreabilidade logística. O corpo deve informar o campo `tipo` (enum `core.enums.TipoSetor`) para classificar o setor hospitalar.
+Registra um setor assistencial para rastreabilidade logística. O corpo deve informar o campo `tipo` (enum `iam.enums.TipoSetor`) para classificar o setor hospitalar.
 
 ### `GET /api/cme/setores`
 Lista setores cadastrados.

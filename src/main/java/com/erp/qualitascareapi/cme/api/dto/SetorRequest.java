@@ -1,6 +1,6 @@
 package com.erp.qualitascareapi.cme.api.dto;
 
-import com.erp.qualitascareapi.core.enums.TipoSetor;
+import com.erp.qualitascareapi.iam.enums.TipoSetor;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 

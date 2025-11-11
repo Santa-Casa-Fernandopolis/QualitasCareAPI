@@ -1,7 +1,7 @@
 package com.erp.qualitascareapi.cme.domain;
 
 import com.erp.qualitascareapi.cme.enums.MovimentacaoTipo;
-import com.erp.qualitascareapi.core.domain.Setor;
+import com.erp.qualitascareapi.iam.domain.Setor;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.domain.User;
 import jakarta.persistence.*;

@@ -3,7 +3,7 @@ package com.erp.qualitascareapi.quality.domain;
 import com.erp.qualitascareapi.approval.core.contracts.ApprovableTarget;
 import com.erp.qualitascareapi.approval.core.enums.ApprovalDomain;
 import com.erp.qualitascareapi.common.domain.EvidenciaArquivo;
-import com.erp.qualitascareapi.core.domain.Setor;
+import com.erp.qualitascareapi.iam.domain.Setor;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.domain.User;
 import com.erp.qualitascareapi.quality.enums.NaoConformidadeSeveridade;

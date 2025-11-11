@@ -2,7 +2,7 @@
 package com.erp.qualitascareapi.approval.core.contracts;
 
 import com.erp.qualitascareapi.approval.core.enums.ApprovalDomain;
-import com.erp.qualitascareapi.core.domain.Setor;
+import com.erp.qualitascareapi.iam.domain.Setor;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 
 public interface ApprovableTarget {
