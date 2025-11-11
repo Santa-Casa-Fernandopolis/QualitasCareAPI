@@ -83,13 +83,13 @@ public class DevTestDataInitializer implements ApplicationRunner {
         Role scjNurse = roleRepository.save(new Role(null, "ENFERMEIRO", scj, "Profissional de enfermagem"));
 
         Permission scfNcRead = permissionRepository.save(
-                new Permission(null, ResourceType.NC, Action.READ, "LISTA", scf, "NC_READ@LISTA"));
+                new Permission(null, ResourceType.NAO_CONFORMIDADE, Action.READ, "LISTA", scf, "NC_READ@LISTA"));
         Permission scfNcCreate = permissionRepository.save(
-                new Permission(null, ResourceType.NC, Action.CREATE, null, scf, "NC_CREATE"));
+                new Permission(null, ResourceType.NAO_CONFORMIDADE, Action.CREATE, null, scf, "NC_CREATE"));
         Permission scjNcRead = permissionRepository.save(
-                new Permission(null, ResourceType.NC, Action.READ, "LISTA", scj, "NC_READ@LISTA"));
+                new Permission(null, ResourceType.NAO_CONFORMIDADE, Action.READ, "LISTA", scj, "NC_READ@LISTA"));
         Permission scjNcCreate = permissionRepository.save(
-                new Permission(null, ResourceType.NC, Action.CREATE, null, scj, "NC_CREATE"));
+                new Permission(null, ResourceType.NAO_CONFORMIDADE, Action.CREATE, null, scj, "NC_CREATE"));
 
         rolePermissionRepository.saveAll(List.of(
                 new RolePermission(null, scfSystemAdmin, scfNcRead, scf),
@@ -107,7 +107,7 @@ public class DevTestDataInitializer implements ApplicationRunner {
         policyRepository.save(buildPolicy(
                 scf,
                 Set.of(scfAdmin),
-                ResourceType.NC,
+                ResourceType.NAO_CONFORMIDADE,
                 Action.UPDATE,
                 null,
                 Effect.ALLOW,
@@ -118,7 +118,7 @@ public class DevTestDataInitializer implements ApplicationRunner {
         Policy scfNursePolicy = buildPolicy(
                 scf,
                 Set.of(scfNurse),
-                ResourceType.NC,
+                ResourceType.NAO_CONFORMIDADE,
                 Action.READ,
                 "LISTA",
                 Effect.ALLOW,
@@ -132,7 +132,7 @@ public class DevTestDataInitializer implements ApplicationRunner {
         policyRepository.save(buildPolicy(
                 scj,
                 Set.of(scjAdmin),
-                ResourceType.NC,
+                ResourceType.NAO_CONFORMIDADE,
                 Action.APPROVE,
                 null,
                 Effect.ALLOW,
@@ -143,7 +143,7 @@ public class DevTestDataInitializer implements ApplicationRunner {
         Policy scjNursePolicy = buildPolicy(
                 scj,
                 Set.of(scjNurse),
-                ResourceType.NC,
+                ResourceType.NAO_CONFORMIDADE,
                 Action.READ,
                 "LISTA",
                 Effect.ALLOW,

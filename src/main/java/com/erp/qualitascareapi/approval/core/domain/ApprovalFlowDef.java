@@ -1,4 +1,4 @@
-﻿// approval.core.domain
+// approval.core.domain
 package com.erp.qualitascareapi.approval.core.domain;
 
 import com.erp.qualitascareapi.approval.core.enums.ApprovalDomain;

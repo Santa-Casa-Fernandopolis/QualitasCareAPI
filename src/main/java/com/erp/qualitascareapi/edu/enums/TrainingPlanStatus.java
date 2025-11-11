@@ -1,4 +1,4 @@
-﻿package com.erp.qualitascareapi.edu.enums;
+package com.erp.qualitascareapi.edu.enums;
 
 public enum TrainingPlanStatus {
     RASCUNHO,
