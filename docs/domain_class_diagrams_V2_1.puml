@@ -148,7 +148,8 @@ package "quality.enums" {
     BAIXA;
     MEDIA;
     ALTA;
-    CRITICA }
+    CRITICA
+  }
 
   enum NaoConformidadeStatus {
     ABERTA;
