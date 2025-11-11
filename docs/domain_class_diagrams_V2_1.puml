@@ -39,31 +39,31 @@ package "common.vo" {
 ' ============================================================
 package "approval.core.enums" {
   enum ApprovalDomain {
-    DOCUMENT_VERSION
-    TRAINING_PLAN
-    USER_PERMISSION_OVERRIDE
-    NAO_CONFORMIDADE
-    CME_CYCLE_RELEASE
+    VERSAO_DOCUMENTO;
+    PLANO_TRAINAMENTO;
+    PERMISSAO_USUARIO;
+    NAO_CONFORMIDADE;
+    CICLO_ESTERILIZACAO
   }
 
   enum ApprovalRequestStatus {
-    OPEN;
-    APPROVED;
-    REJECTED;
-    CANCELED
+    ABERTA;
+    APROVADA;
+    REJEITADA;
+    CANCELADA
   }
 
   enum ApprovalStepStatus {
-    PENDING;
-    APPROVED;
-    REJECTED;
-    SKIPPED
+    PENDENTE;
+    APROVADA;
+    REJEITADA;
+    PULADA
   }
 
   enum ApprovalDecision {
-    APPROVE;
-    REJECT;
-    REQUEST_CHANGES
+    APPROVAR;
+    REJEITAR;
+    SOLICITAR_AJUSTES
   }
 }
 
@@ -93,7 +93,7 @@ package "security.enums" {
   enum ResourceType {
       INDICADOR;
       AUDITORIA;
-      NC;
+      NAO_CONFORMIDADE;
       PROTOCOLO;
       CAPACITACAO;
       PGRSS;
@@ -1024,6 +1024,24 @@ package "edu.domain" {
     -publicoAlvoSetor: Setor;
     -observacoes: String
   }
+    class UserCompetency <<Entity, Audited>> {
+      -id: Long
+      -tenant: Tenant
+      -colaborador: Colaborador
+      -competency: Competency
+      -obtidaEm: LocalDate
+      -origem: String        ' curso/avaliação/experiência
+      -validadeAte: LocalDate
+    }
+
+    note right of UserCompetency
+      VALIDATIONS
+      - tenant, colaborador, competency != null
+      - validadeAte >= obtidaEm (quando informada)
+
+      INDEXES/UNIQUES
+      - Index : (tenant_id, colaborador_id, competency_id)
+    end note
 }
 
 ' ============================================================
@@ -1034,19 +1052,40 @@ package "core.domain" {
     +id: Long;
     +origemAmostra: String;
     +dataColeta: LocalDate;
-    +responsavelColeta: String; +resultado: ExameCulturaResultado; +observacoes: String
+    +responsavelColeta: String;
+    +resultado: ExameCulturaResultado;
+    +observacoes: String
   }
   class Instrumento <<Entity, Audited>> {
-    -id: Long; -tenant: Tenant; -nome: String; -codigoHospitalar: String; -descricao: String
+    -id: Long;
+    -tenant: Tenant;
+    -nome: String;
+    -codigoHospitalar: String;
+    -descricao: String
   }
   class KitProcedimento <<Entity, Audited>> {
-    -id: Long; -tenant: Tenant; -nome: String; -codigo: String; -observacoes: String; -ativo: Boolean
+    -id: Long;
+    -tenant: Tenant;
+    -nome: String;
+    -codigo: String;
+    -observacoes: String;
+    -ativo: Boolean
   }
   class KitVersion <<Entity, Audited>> {
-    -id: Long; -kit: KitProcedimento; -numeroVersao: Integer; -vigenciaInicio: LocalDate; -validadeDias: Integer; -ativo: Boolean; -observacoes: String
+    -id: Long;
+    -kit: KitProcedimento;
+    -numeroVersao: Integer;
+    -vigenciaInicio: LocalDate;
+    -validadeDias: Integer;
+    -ativo: Boolean;
+    -observacoes: String
   }
   class KitItem <<Entity, Audited>> {
-    -id: Long; -versao: KitVersion; -instrumento: Instrumento; -quantidade: Integer; -observacoes: String
+    -id: Long;
+    -versao: KitVersion;
+    -instrumento: Instrumento;
+    -quantidade: Integer;
+    -observacoes: String
   }
 }
 
@@ -1055,16 +1094,35 @@ package "core.domain" {
 ' ============================================================
 package "cme.domain" {
   class Autoclave <<Entity, Audited>> {
-    -id: Long; -tenant: Tenant; -nome: String; -fabricante: String; -modelo: String; -numeroSerie: String;
-    -localizacao: String; -ultimaHigienizacaoProfunda: LocalDate; -ativo: Boolean
+    -id: Long;
+    -tenant: Tenant;
+    -nome: String;
+    -fabricante: String;
+    -modelo: String;
+    -numeroSerie: String;
+    -localizacao: String;
+    -ultimaHigienizacaoProfunda: LocalDate;
+    -ativo: Boolean
   }
 
   class CicloEsterilizacao <<Entity, Audited, ApprovableTarget>> {
-    -id: Long; -tenant: Tenant; -autoclave: Autoclave; -loteEtiqueta: LoteEtiqueta;
-    -inicio: LocalDateTime; -fim: LocalDateTime; -duracaoMinutos: Integer;
-    -temperaturaMaxima: Double; -pressaoMaxima: Double; -status: CicloStatus;
-    -liberadoPor: User; -observacoes: String; -setorExecutor: Setor;
-    -parametrosOk: Boolean; -iqOk: Boolean; -ibExigido: Boolean; -ibOk: Boolean
+    -id: Long;
+    -tenant: Tenant;
+    -autoclave: Autoclave;
+    -loteEtiqueta: LoteEtiqueta;
+    -inicio: LocalDateTime;
+    -fim: LocalDateTime;
+    -duracaoMinutos: Integer;
+    -temperaturaMaxima: Double;
+    -pressaoMaxima: Double;
+    -status: CicloStatus;
+    -liberadoPor: User;
+    -observacoes: String;
+    -setorExecutor: Setor;
+    -parametrosOk: Boolean;
+    -iqOk: Boolean;
+    -ibExigido: Boolean;
+    -ibOk: Boolean
     +getTenant(): Tenant
     +getApprovalDomain(): ApprovalDomain
     +getApprovalKey(): String
@@ -1081,50 +1139,116 @@ package "cme.domain" {
   end note
 
   class LoteEtiqueta <<Entity, Audited>> {
-    -id: Long; -tenant: Tenant; -codigo: String; -kitVersao: core.domain.KitVersion; -dataEmpacotamento: LocalDate;
-    -validade: LocalDate; -status: LoteStatus; -qrCode: String; -montadoPor: User; -observacoes: String; -criadoEm: LocalDateTime
+    -id: Long;
+    -tenant: Tenant;
+    -codigo: String;
+    -kitVersao: core.domain.KitVersion;
+    -dataEmpacotamento: LocalDate;
+    -validade: LocalDate;
+    -status: LoteStatus;
+    -qrCode: String;
+    -montadoPor: User;
+    -observacoes: String;
+    -criadoEm: LocalDateTime
   }
 
   class TesteBowieDick <<Entity, Audited>> {
-    -id: Long; -autoclave: Autoclave; -dataExecucao: LocalDate; -resultado: ResultadoConformidade; -executadoPor: User; -observacoes: String
+    -id: Long;
+    -autoclave: Autoclave;
+    -dataExecucao: LocalDate;
+    -resultado: ResultadoConformidade;
+    -executadoPor: User;
+    -observacoes: String
   }
 
   class IndicadorQuimico <<Entity, Audited>> {
-    -id: Long; -ciclo: CicloEsterilizacao; -tipo: String; -resultado: ResultadoConformidade; -observacoes: String
+    -id: Long;
+    -ciclo: CicloEsterilizacao;
+    -tipo: String;
+    -resultado: ResultadoConformidade;
+    -observacoes: String
   }
 
   class IndicadorBiologico <<Entity, Audited>> {
-    -id: Long; -ciclo: CicloEsterilizacao; -loteIndicador: String; -incubadora: String; -leituraEm: LocalDate; -resultado: ResultadoConformidade; -observacoes: String
+    -id: Long;
+    -ciclo: CicloEsterilizacao;
+    -loteIndicador: String;
+    -incubadora: String;
+    -leituraEm: LocalDate;
+    -resultado: ResultadoConformidade;
+    -observacoes: String
   }
 
   class ManutencaoAutoclave <<Entity, Audited>> {
-    -id: Long; -autoclave: Autoclave; -tipo: ManutencaoTipo; -status: ManutencaoStatus; -dataAgendamento: LocalDate; -dataExecucao: LocalDate; -responsavelTecnico: String; -observacoes: String
+    -id: Long;
+    -autoclave: Autoclave;
+    -tipo: ManutencaoTipo;
+    -status: ManutencaoStatus;
+    -dataAgendamento: LocalDate;
+    -dataExecucao: LocalDate;
+    -responsavelTecnico: String;
+    -observacoes: String
   }
 
   class PlanoPreventivoAutoclave <<Entity, Audited>> {
-    -id: Long; -autoclave: Autoclave; -periodicidadeDias: Integer; -limiteCiclos: Integer; -proximaExecucaoPrevista: LocalDate; -descricao: String
+    -id: Long;
+    -autoclave: Autoclave;
+    -periodicidadeDias: Integer;
+    -limiteCiclos: Integer;
+    -proximaExecucaoPrevista: LocalDate;
+    -descricao: String
   }
 
   class MovimentacaoCME <<Entity, Audited>> {
-    -id: Long; -tenant: Tenant; -lote: LoteEtiqueta; -setorOrigem: Setor; -setorDestino: Setor; -tipo: MovimentacaoTipo; -dataHora: LocalDateTime; -responsavel: User; -observacoes: String
+    -id: Long;
+    -tenant: Tenant;
+    -lote: LoteEtiqueta;
+    -setorOrigem: Setor;
+    -setorDestino: Setor;
+    -tipo: MovimentacaoTipo;
+    -dataHora: LocalDateTime;
+    -responsavel: User;
+    -observacoes: String
   }
 
   class UsoSaneante <<Entity, Audited>> {
-    -id: Long; -loteSaneante: SaneantePeraceticoLote; -dataUso: LocalDate; -etapa: UsoSaneanteEtapa;
-    -volumeUtilizadoMl: Double; -diluicao: String; -usadoPor: User; -observacoes: String
+    -id: Long;
+    -loteSaneante: SaneantePeraceticoLote;
+    -dataUso: LocalDate;
+    -etapa: UsoSaneanteEtapa;
+    -volumeUtilizadoMl: Double;
+    -diluicao: String;
+    -usadoPor: User;
+    -observacoes: String
   }
 
   class SaneantePeraceticoLote <<Entity, Audited>> {
-    -id: Long; -tenant: Tenant; -numeroLote: String; -fabricante: String; -concentracao: String; -dataValidade: LocalDate;
-    -dataAbertura: LocalDate; -volumeInicialMl: Double; -observacoes: String
+    -id: Long;
+    -tenant: Tenant;
+    -numeroLote: String;
+    -fabricante: String;
+    -concentracao: String;
+    -dataValidade: LocalDate;
+    -dataAbertura: LocalDate;
+    -volumeInicialMl: Double;
+    -observacoes: String
   }
 
   class HigienizacaoUltrassonica <<Entity, Audited>> {
-    -id: Long; -tenant: Tenant; -dataRealizacao: LocalDate; -equipamentoDescricao: String; -responsavel: User; -observacoes: String
+    -id: Long;
+    -tenant: Tenant;
+    -dataRealizacao: LocalDate;
+    -equipamentoDescricao: String;
+    -responsavel: User;
+    -observacoes: String
   }
 
   class HigienizacaoAutoclaveProfunda <<Entity, Audited>> {
-    -id: Long; -autoclave: Autoclave; -dataRealizacao: LocalDate; -responsavel: User; -observacoes: String
+    -id: Long;
+    -autoclave: Autoclave;
+    -dataRealizacao: LocalDate;
+    -responsavel: User;
+    -observacoes: String
   }
 }
 
@@ -1157,9 +1281,19 @@ package "quality.domain" {
   }
 
   class NaoConformidadeCME <<Entity, Audited, ApprovableTarget>> {
-    -id: Long; -tenant: Tenant; -tipo: TipoNaoConformidade; -titulo: String; -descricao: String;
-    -severidade: NaoConformidadeSeveridade; -status: NaoConformidadeStatus; -dataAbertura: LocalDate; -dataEncerramento: LocalDate;
-    -responsavel: User; -setorOrigem: Setor; -setorResponsavel: Setor; -planoAcaoResumo: String; -cicloOrigem: cme.domain.CicloEsterilizacao
+    -id: Long;
+    -tenant: Tenant;
+    -tipo: TipoNaoConformidade;
+    -titulo: String; -descricao: String;
+    -severidade: NaoConformidadeSeveridade;
+    -status: NaoConformidadeStatus;
+    -dataAbertura: LocalDate;
+    -dataEncerramento: LocalDate;
+    -responsavel: User;
+    -setorOrigem: Setor;
+    -setorResponsavel: Setor;
+    -planoAcaoResumo: String;
+    -cicloOrigem: cme.domain.CicloEsterilizacao
     +getTenant(): Tenant
     +getApprovalDomain(): ApprovalDomain
     +getApprovalKey(): String
@@ -1167,13 +1301,30 @@ package "quality.domain" {
   }
 
   class PlanoAcaoItem <<Entity, Audited>> {
-    -id: Long; -tenant: Tenant; -nc: NaoConformidadeCME;
-    -oQue: String; -porQue: String; -quem: User; -onde: String; -quando: LocalDate; -como: String; -quanto: BigDecimal;
-    -prazo: LocalDate; -statusExecucao: String; -evidencias: String
+    -id: Long;
+    -tenant: Tenant;
+    -nc: NaoConformidadeCME;
+    -oQue: String;
+    -porQue: String;
+    -quem: User;
+    -onde: String;
+    -quando: LocalDate;
+    -como: String;
+    -quanto: BigDecimal;
+    -prazo: LocalDate;
+    -statusExecucao: String;
+    -evidencias: String
   }
 
   class NCEficaciaAvaliacao <<Entity, Audited>> {
-    -id: Long; -tenant: Tenant; -nc: NaoConformidadeCME; -avaliador: User; -avaliadoEm: LocalDateTime; -metodo: String; -resultado: String; -eficaz: Boolean
+    -id: Long;
+    -tenant: Tenant;
+    -nc: NaoConformidadeCME;
+    -avaliador: User;
+    -avaliadoEm: LocalDateTime;
+    -metodo: String;
+    -resultado: String;
+    -eficaz: Boolean
   }
 }
 
@@ -1182,24 +1333,60 @@ package "quality.domain" {
 ' ============================================================
 package "security.domain" {
   class Policy <<Entity, Audited>> {
-    -id: Long; -tenant: Tenant; -resource: ResourceType; -action: Action; -feature: String; -effect: Effect; -enabled: boolean = true; -priority: int = 100; -description: String
+    -id: Long;
+    -tenant: Tenant;
+    -resource: ResourceType;
+    -action: Action;
+    -feature: String;
+    -effect: Effect;
+    -enabled: boolean = true;
+    -priority: int = 100;
+    -description: String
   }
   class PolicyCondition <<Entity, Audited>> {
-    -id: Long; -policy: Policy; -type: String; -operator: String; -value: String
+    -id: Long;
+    -policy: Policy;
+    -type: String;
+    -operator: String;
+    -value: String
   }
   class Role <<Entity, Audited>> {
-    -id: Long; -name: String; -tenant: Tenant; -description: String
+    -id: Long;
+    -name: String;
+    -tenant: Tenant;
+    -description: String
   }
   class Permission <<Entity, Audited>> {
-    -id: Long; -resource: ResourceType; -action: Action; -feature: String; -tenant: Tenant; -code: String
+    -id: Long;
+    -resource: ResourceType;
+    -action: Action;
+    -feature: String;
+    -tenant: Tenant;
+    -code: String
   }
   class RolePermission <<Entity, Audited>> {
-    -id: Long; -role: Role; -permission: Permission; -tenant: Tenant
+    -id: Long;
+    -role: Role;
+    -permission: Permission;
+    -tenant: Tenant
   }
   class UserPermissionOverride <<Entity, Audited, ApprovableTarget>> {
-    -id: Long; -user: User; -tenant: Tenant; -resource: ResourceType; -action: Action; -feature: String; -effect: Effect; -priority: int = 100;
-    -reason: String; -validFrom: LocalDateTime; -validUntil: LocalDateTime;
-    -targetSetor: Setor; -requestedByUser: User; -requestedAt: LocalDateTime; -approvedByUser: User; -approvedAt: LocalDateTime
+    -id: Long;
+    -user: User;
+    -tenant: Tenant;
+    -resource: ResourceType;
+    -action: Action;
+    -feature: String;
+    -effect: Effect;
+    -priority: int = 100;
+    -reason: String;
+    -validFrom: LocalDateTime;
+    -validUntil: LocalDateTime;
+    -targetSetor: Setor;
+    -requestedByUser: User;
+    -requestedAt: LocalDateTime;
+    -approvedByUser: User;
+    -approvedAt: LocalDateTime
   }
 }
 
@@ -1219,7 +1406,17 @@ package "observability.audit" {
 
 package "observability.logging" {
   class RequestLog <<Entity>> {
-    -id: Long; -timestamp: Instant; -method: String; -path: String; -status: int; -durationMs: long; -traceId: String; -userId: String; -clientIp: String; -httpVersion: String; -contentLength: Long
+    -id: Long;
+    -timestamp: Instant;
+    -method: String;
+    -path: String;
+    -status: int;
+    -durationMs: long;
+    -traceId: String;
+    -userId: String;
+    -clientIp: String;
+    -httpVersion: String;
+    -contentLength: Long
   }
 }
 
@@ -1246,8 +1443,15 @@ package "observability.security" {
 ' ============================================================
 package "environmental.domain" {
   class GeracaoResiduo <<Entity, Audited>> {
-    -id: Long; -tenant: Tenant; -dataRegistro: LocalDate; -classeResiduo: ClasseResiduo; -pesoEstimadoKg: Double;
-    -destinoFinal: String; -loteRelacionada: cme.domain.LoteEtiqueta; -saneanteRelacionado: cme.domain.SaneantePeraceticoLote; -observacoes: String
+    -id: Long;
+    -tenant: Tenant;
+    -dataRegistro: LocalDate;
+    -classeResiduo: ClasseResiduo;
+    -pesoEstimadoKg: Double;
+    -destinoFinal: String;
+    -loteRelacionada: cme.domain.LoteEtiqueta;
+    -saneanteRelacionado: cme.domain.SaneantePeraceticoLote;
+    -observacoes: String
   }
 }
 
