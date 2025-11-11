@@ -1,7 +1,7 @@
 package com.erp.qualitascareapi.approval.core.services;
 
-import com.erp.qualitascareapi.approval.core.enums.OrgRoleType;
-import com.erp.qualitascareapi.core.domain.Setor;
+import com.erp.qualitascareapi.iam.enums.OrgRoleType;
+import com.erp.qualitascareapi.iam.domain.Setor;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.domain.User;
 

@@ -5,7 +5,7 @@ import com.erp.qualitascareapi.approval.core.contracts.ApprovableTarget;
 import com.erp.qualitascareapi.approval.core.enums.ApprovalDomain;
 import com.erp.qualitascareapi.common.domain.EvidenciaArquivo;
 import com.erp.qualitascareapi.core.domain.KitVersion;
-import com.erp.qualitascareapi.core.domain.Setor;
+import com.erp.qualitascareapi.iam.domain.Setor;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.domain.User;
 import jakarta.persistence.*;
@@ -86,7 +86,7 @@ public class CicloEsterilizacao implements ApprovableTarget {
 
     // ApprovableTarget
     @Override public Tenant getTenant() { return tenant; }
-    @Override public ApprovalDomain getApprovalDomain() { return ApprovalDomain.CME_CYCLE_RELEASE; }
+    @Override public ApprovalDomain getApprovalDomain() { return ApprovalDomain.CICLO_ESTERILIZACAO; }
     @Override public String getApprovalKey() { return id == null ? null : "cmeCycle:" + id; }
     @Override public Setor getScopeSetor() { return setorExecutor; }
 

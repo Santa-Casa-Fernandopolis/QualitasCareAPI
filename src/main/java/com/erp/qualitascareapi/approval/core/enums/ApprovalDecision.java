@@ -1,3 +1,7 @@
 package com.erp.qualitascareapi.approval.core.enums;
 
-public enum ApprovalDecision { APPROVE, REJECT, REQUEST_CHANGES }
+public enum ApprovalDecision {
+    APPROVAR,
+    REJEITAR,
+    SOLICITAR_AJUSTES
+}

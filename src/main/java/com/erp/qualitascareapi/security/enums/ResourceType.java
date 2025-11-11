@@ -3,7 +3,7 @@ package com.erp.qualitascareapi.security.enums;
 public enum ResourceType {
     INDICADOR,
     AUDITORIA,
-    NC,
+    NAO_CONFORMIDADE,
     PROTOCOLO,
     CAPACITACAO,
     PGRSS,

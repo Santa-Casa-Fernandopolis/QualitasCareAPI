@@ -3,7 +3,7 @@ package com.erp.qualitascareapi.ged.domain;
 import com.erp.qualitascareapi.approval.core.contracts.ApprovableTarget;
 import com.erp.qualitascareapi.approval.core.enums.ApprovalDomain;
 import com.erp.qualitascareapi.common.domain.EvidenciaArquivo;
-import com.erp.qualitascareapi.core.domain.Setor;
+import com.erp.qualitascareapi.iam.domain.Setor;
 import com.erp.qualitascareapi.ged.enums.DocumentStatus;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import jakarta.persistence.*;
@@ -99,7 +99,7 @@ public class DocumentVersion implements ApprovableTarget {
 
     @Override
     public ApprovalDomain getApprovalDomain() {
-        return ApprovalDomain.DOCUMENT_VERSION;
+        return ApprovalDomain.VERSAO_DOCUMENTO;
     }
 
     @Override

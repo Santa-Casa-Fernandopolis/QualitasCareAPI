@@ -1,7 +1,7 @@
 package com.erp.qualitascareapi.edu.domain;
 
 import com.erp.qualitascareapi.common.domain.EvidenciaArquivo;
-import com.erp.qualitascareapi.core.domain.Setor;
+import com.erp.qualitascareapi.iam.domain.Setor;
 import com.erp.qualitascareapi.hr.domain.Colaborador;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import jakarta.persistence.*;
