@@ -2,8 +2,10 @@ package com.erp.qualitascareapi.security.application;
 
 import com.erp.qualitascareapi.common.exception.BadRequestException;
 import com.erp.qualitascareapi.common.exception.ResourceNotFoundException;
+import com.erp.qualitascareapi.iam.domain.Setor;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.domain.User;
+import com.erp.qualitascareapi.iam.repo.SetorRepository;
 import com.erp.qualitascareapi.iam.repo.TenantRepository;
 import com.erp.qualitascareapi.iam.repo.UserRepository;
 import com.erp.qualitascareapi.security.api.dto.UserPermissionOverrideDto;
@@ -23,13 +25,16 @@ public class UserPermissionOverrideService {
     private final UserPermissionOverrideRepository overrideRepository;
     private final UserRepository userRepository;
     private final TenantRepository tenantRepository;
+    private final SetorRepository setorRepository;
 
     public UserPermissionOverrideService(UserPermissionOverrideRepository overrideRepository,
                                          UserRepository userRepository,
-                                         TenantRepository tenantRepository) {
+                                         TenantRepository tenantRepository,
+                                         SetorRepository setorRepository) {
         this.overrideRepository = overrideRepository;
         this.userRepository = userRepository;
         this.tenantRepository = tenantRepository;
+        this.setorRepository = setorRepository;
     }
 
     @Transactional(readOnly = true)
@@ -99,15 +104,30 @@ public class UserPermissionOverrideService {
         override.setReason(request.reason());
         override.setValidFrom(request.validFrom());
         override.setValidUntil(request.validUntil());
-        if (request.approved() != null) {
-            override.setApproved(request.approved());
-        }
-        if (request.dualApprovalRequired() != null) {
-            override.setDualApprovalRequired(request.dualApprovalRequired());
-        }
-        override.setRequestedBy(request.requestedBy());
-        override.setApprovedBy(request.approvedBy());
+        override.setRequestedAt(request.requestedAt());
         override.setApprovedAt(request.approvedAt());
+
+        Tenant tenant = override.getTenant();
+        if (tenant == null) {
+            throw new BadRequestException("Tenant must be defined before applying request",
+                    Map.of("userId", override.getUser() != null ? override.getUser().getId() : null));
+        }
+
+        if (request.targetSetorId() != null) {
+            Setor targetSetor = setorRepository.findById(request.targetSetorId())
+                    .orElseThrow(() -> new BadRequestException("Target setor not found",
+                            Map.of("targetSetorId", request.targetSetorId())));
+            if (!targetSetor.getTenant().getId().equals(tenant.getId())) {
+                throw new BadRequestException("Target setor does not belong to tenant",
+                        Map.of("targetSetorId", request.targetSetorId(), "tenantId", tenant.getId()));
+            }
+            override.setTargetSetor(targetSetor);
+        } else {
+            override.setTargetSetor(null);
+        }
+
+        override.setRequestedByUser(resolveUser(request.requestedByUserId(), "requestedByUserId", tenant));
+        override.setApprovedByUser(resolveUser(request.approvedByUserId(), "approvedByUserId", tenant));
     }
 
     private UserPermissionOverrideDto toDto(UserPermissionOverride override) {
@@ -123,11 +143,24 @@ public class UserPermissionOverrideService {
                 override.getReason(),
                 override.getValidFrom(),
                 override.getValidUntil(),
-                override.isApproved(),
-                override.isDualApprovalRequired(),
-                override.getRequestedBy(),
-                override.getApprovedBy(),
+                override.getTargetSetor() != null ? override.getTargetSetor().getId() : null,
+                override.getRequestedByUser() != null ? override.getRequestedByUser().getId() : null,
+                override.getRequestedAt(),
+                override.getApprovedByUser() != null ? override.getApprovedByUser().getId() : null,
                 override.getApprovedAt()
         );
+    }
+
+    private User resolveUser(Long userId, String fieldName, Tenant tenant) {
+        if (userId == null) {
+            return null;
+        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BadRequestException("User not found", Map.of(fieldName, userId)));
+        if (!user.getTenant().getId().equals(tenant.getId())) {
+            throw new BadRequestException("Tenant mismatch for " + fieldName,
+                    Map.of("tenantId", tenant.getId(), fieldName, userId));
+        }
+        return user;
     }
 }

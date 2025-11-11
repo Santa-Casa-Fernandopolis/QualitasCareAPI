@@ -19,7 +19,7 @@ public interface UserPermissionOverrideRepository extends JpaRepository<UserPerm
          and o.resource  = :res
          and o.action    = :act
          and (o.feature  = :feature or o.feature is null)
-         and o.approved = true
+         and o.approvedAt is not null
          and (o.validFrom is null or o.validFrom <= :now)
          and (o.validUntil is null or o.validUntil >= :now)
        order by o.priority asc
