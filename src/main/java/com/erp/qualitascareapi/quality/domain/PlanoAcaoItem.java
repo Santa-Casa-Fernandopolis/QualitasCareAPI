@@ -2,6 +2,7 @@ package com.erp.qualitascareapi.quality.domain;
 
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.domain.User;
+import com.erp.qualitascareapi.quality.enums.PlanoAcaoItemStatus;
 import jakarta.persistence.*;
 import org.hibernate.envers.Audited;
 
@@ -45,7 +46,7 @@ public class PlanoAcaoItem {
     private LocalDate prazo;
 
     @Column(length = 60)
-    private String statusExecucao;
+    private PlanoAcaoItemStatus statusExecucao;
 
     @Column(length = 1000)
     private String evidencias;
@@ -85,8 +86,8 @@ public class PlanoAcaoItem {
     public LocalDate getPrazo() { return prazo; }
     public void setPrazo(LocalDate prazo) { this.prazo = prazo; }
 
-    public String getStatusExecucao() { return statusExecucao; }
-    public void setStatusExecucao(String statusExecucao) { this.statusExecucao = statusExecucao; }
+    public PlanoAcaoItemStatus getStatusExecucao() { return statusExecucao; }
+    public void setStatusExecucao(PlanoAcaoItemStatus statusExecucao) { this.statusExecucao = statusExecucao; }
 
     public String getEvidencias() { return evidencias; }
     public void setEvidencias(String evidencias) { this.evidencias = evidencias; }

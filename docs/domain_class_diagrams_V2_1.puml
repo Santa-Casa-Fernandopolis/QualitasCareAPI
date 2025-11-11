@@ -151,6 +151,16 @@ package "quality.enums" {
     CRITICA
   }
 
+  enum PlanoAcaoItemStatus {
+      PLANEJADO;
+      EM_ANDAMENTO;
+      AGUARDANDO_RECURSO;
+      BLOQUEADO;
+      REPROGRAMADO;
+      CONCLUIDO;
+      CANCELADO
+  }
+
   enum NaoConformidadeStatus {
     ABERTA;
     EM_INVESTIGACAO;
@@ -1313,7 +1323,7 @@ package "quality.domain" {
     -como: String;
     -quanto: BigDecimal;
     -prazo: LocalDate;
-    -statusExecucao: String;
+    -statusExecucao: PlanoAcaoItemStatus;
     -evidencias: String
   }
 
@@ -1639,6 +1649,7 @@ cme.domain.HigienizacaoAutoclaveProfunda --> cme.domain.Autoclave : autoclave
 cme.domain.HigienizacaoAutoclaveProfunda --> iam.domain.User : responsavel
 cme.domain.HigienizacaoAutoclaveProfunda " * " -- " * " common.domain.EvidenciaArquivo : evidencias
 
+
 ' ---- QUALITY / NC ----
 quality.domain.NaoConformidadeCME ..|> quality.domain.NaoConformidadeBase
 quality.domain.NaoConformidadeCME --> iam.domain.Tenant
@@ -1653,6 +1664,7 @@ quality.domain.NaoConformidadeCME "0..*" --> "0..1" cme.domain.CicloEsterilizaca
 quality.domain.PlanoAcaoItem --> iam.domain.Tenant
 quality.domain.PlanoAcaoItem --> quality.domain.NaoConformidadeCME : nc
 quality.domain.PlanoAcaoItem "0..1" --> iam.domain.User : quem
+quality.domain.PlanoAcaoItem --> quality.enums.PlanoAcaoItemStatus : statusExecucao >
 quality.domain.NCEficaciaAvaliacao --> iam.domain.Tenant
 quality.domain.NCEficaciaAvaliacao --> quality.domain.NaoConformidadeCME : nc
 quality.domain.NCEficaciaAvaliacao --> iam.domain.User : avaliador
