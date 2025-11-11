@@ -59,7 +59,7 @@ class AccessDecisionServiceIntegrationTest {
         AuthContext context = authContextFrom(nurseScf);
         NcProjection target = new NcProjection(nurseScf.getDepartment(), nurseScf.getTenant().getId(), String.valueOf(nurseScf.getId()));
 
-        boolean allowed = accessDecisionService.isAllowed(context, ResourceType.NC, Action.READ, "LISTA", target);
+        boolean allowed = accessDecisionService.isAllowed(context, ResourceType.NAO_CONFORMIDADE, Action.READ, "LISTA", target);
 
         assertThat(allowed).isTrue();
     }
@@ -69,7 +69,7 @@ class AccessDecisionServiceIntegrationTest {
         AuthContext context = authContextFrom(nurseScf);
         NcProjection target = new NcProjection("Pronto Atendimento", nurseScf.getTenant().getId(), String.valueOf(nurseScf.getId()));
 
-        boolean allowed = accessDecisionService.isAllowed(context, ResourceType.NC, Action.READ, "LISTA", target);
+        boolean allowed = accessDecisionService.isAllowed(context, ResourceType.NAO_CONFORMIDADE, Action.READ, "LISTA", target);
 
         assertThat(allowed).isFalse();
     }
@@ -78,7 +78,7 @@ class AccessDecisionServiceIntegrationTest {
     void adminShouldUpdateNcViaPolicy() {
         AuthContext ctx = authContextFrom(adminScf);
 
-        boolean allowed = accessDecisionService.isAllowed(ctx, ResourceType.NC, Action.UPDATE, null, null);
+        boolean allowed = accessDecisionService.isAllowed(ctx, ResourceType.NAO_CONFORMIDADE, Action.UPDATE, null, null);
 
         assertThat(allowed).isTrue();
     }
@@ -87,7 +87,7 @@ class AccessDecisionServiceIntegrationTest {
     void adminReceivesRbacGrantForCreateAction() {
         AuthContext context = authContextFrom(adminScf);
 
-        boolean allowed = accessDecisionService.isAllowed(context, ResourceType.NC, Action.CREATE, null, null);
+        boolean allowed = accessDecisionService.isAllowed(context, ResourceType.NAO_CONFORMIDADE, Action.CREATE, null, null);
 
         assertThat(allowed).isTrue();
     }
@@ -96,7 +96,7 @@ class AccessDecisionServiceIntegrationTest {
     void nurseShouldBeDeniedNcUpdateWithoutOverride() {
         AuthContext ctx = authContextFrom(nurseScf);
 
-        boolean allowed = accessDecisionService.isAllowed(ctx, ResourceType.NC, Action.UPDATE, null, null);
+        boolean allowed = accessDecisionService.isAllowed(ctx, ResourceType.NAO_CONFORMIDADE, Action.UPDATE, null, null);
 
         assertThat(allowed).isFalse();
     }
@@ -106,7 +106,7 @@ class AccessDecisionServiceIntegrationTest {
         UserPermissionOverride override = new UserPermissionOverride();
         override.setUser(nurseScf);
         override.setTenant(nurseScf.getTenant());
-        override.setResource(ResourceType.NC);
+        override.setResource(ResourceType.NAO_CONFORMIDADE);
         override.setAction(Action.UPDATE);
         override.setEffect(Effect.ALLOW);
         override.setPriority(1);
@@ -119,7 +119,7 @@ class AccessDecisionServiceIntegrationTest {
 
         AuthContext ctx = authContextFrom(nurseScf);
 
-        boolean allowed = accessDecisionService.isAllowed(ctx, ResourceType.NC, Action.UPDATE, null, null);
+        boolean allowed = accessDecisionService.isAllowed(ctx, ResourceType.NAO_CONFORMIDADE, Action.UPDATE, null, null);
 
         assertThat(allowed).isTrue();
     }
@@ -131,7 +131,7 @@ class AccessDecisionServiceIntegrationTest {
         UserPermissionOverride deny = new UserPermissionOverride();
         deny.setUser(nurseScf);
         deny.setTenant(nurseScf.getTenant());
-        deny.setResource(ResourceType.NC);
+        deny.setResource(ResourceType.NAO_CONFORMIDADE);
         deny.setAction(Action.READ);
         deny.setFeature("LISTA");
         deny.setEffect(Effect.DENY);
@@ -144,7 +144,7 @@ class AccessDecisionServiceIntegrationTest {
         overrideRepository.saveAndFlush(deny);
 
         NcProjection target = new NcProjection(nurseScf.getDepartment(), nurseScf.getTenant().getId(), String.valueOf(nurseScf.getId()));
-        boolean allowed = accessDecisionService.isAllowed(context, ResourceType.NC, Action.READ, "LISTA", target);
+        boolean allowed = accessDecisionService.isAllowed(context, ResourceType.NAO_CONFORMIDADE, Action.READ, "LISTA", target);
 
         assertThat(allowed).isFalse();
     }
@@ -154,7 +154,7 @@ class AccessDecisionServiceIntegrationTest {
         Policy policy = new Policy(
                 null,
                 nurseScf.getTenant(),
-                ResourceType.NC,
+                ResourceType.NAO_CONFORMIDADE,
                 Action.UPDATE,
                 null,
                 Effect.ALLOW,
@@ -170,7 +170,7 @@ class AccessDecisionServiceIntegrationTest {
         AuthContext ctx = authContextFrom(nurseScf);
         NcRecord target = new NcRecord(nurseScf.getDepartment());
 
-        boolean allowed = accessDecisionService.isAllowed(ctx, ResourceType.NC, Action.UPDATE, null, target);
+        boolean allowed = accessDecisionService.isAllowed(ctx, ResourceType.NAO_CONFORMIDADE, Action.UPDATE, null, target);
 
         assertThat(allowed).isTrue();
     }

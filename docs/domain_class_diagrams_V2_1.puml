@@ -4,11 +4,11 @@
 ' Data: 2025-11-10 (America/Sao_Paulo)
 ' Escopo: CME, Qualidade/NC, Aprovação, IAM, GED, Segurança/Obs, EDU, RH, Ambiental
 ' Diretrizes:
-'  - Aggregate Root carrega Tenant (multi-tenant).
-'  - Filhas (children) não repetem tenant e possuem FK obrigatória.
-'  - Evidências (GED) são imutáveis/versões; nunca deletar binário.
-'  - Máquinas de estado documentadas por notas (guards/invariantes).
-'  - Políticas/fluxos de aprovação orientadas a domínio + setor + papel.
+' - Aggregate Root carrega Tenant (multi-tenant).
+' - Filhas (children) não repetem tenant e possuem FK obrigatória.
+' - Evidências (GED) são imutáveis/versões; nunca deletar binário.
+' - Máquinas de estado documentadas por notas (guards/invariantes).
+' - Políticas/fluxos de aprovação orientadas a domínio + setor + papel.
 ' ============================================================
 
 skinparam defaultFontName Arial
