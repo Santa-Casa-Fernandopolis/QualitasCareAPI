@@ -5,6 +5,7 @@ import com.erp.qualitascareapi.common.exception.ResourceNotFoundException;
 import com.erp.qualitascareapi.iam.api.dto.RoleSummaryDto;
 import com.erp.qualitascareapi.iam.api.dto.UserCreateRequest;
 import com.erp.qualitascareapi.iam.api.dto.UserDto;
+import com.erp.qualitascareapi.iam.api.dto.UserProfileUpdateRequest;
 import com.erp.qualitascareapi.iam.api.dto.UserUpdateRequest;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.domain.User;
@@ -104,6 +105,24 @@ public class UserService {
         }
 
         applyRoles(user, user.getTenant().getId(), request.roleIds());
+
+        return toDto(user);
+    }
+
+    @Transactional
+    public UserDto updateProfile(Long id, UserProfileUpdateRequest request) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User", id));
+
+        if (request.fullName() != null) {
+            user.setFullName(request.fullName());
+        }
+        if (request.department() != null) {
+            user.setDepartment(request.department());
+        }
+        if (request.password() != null && !request.password().isBlank()) {
+            user.setPasswordHash(passwordEncoder.encode(request.password()));
+        }
 
         return toDto(user);
     }
