@@ -63,7 +63,14 @@ public class PolicyService {
     public PolicyDto update(Long id, PolicyRequest request) {
         Policy policy = policyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Policy", id));
-        Long tenantId = policy.getTenant().getId();
+        Long tenantId = policy.getTenant() != null ? policy.getTenant().getId() : null;
+        if (tenantId == null) {
+            throw new BadRequestException("Policy tenant not defined", Map.of("policyId", id));
+        }
+        if (!tenantId.equals(request.tenantId())) {
+            throw new BadRequestException("Tenant mismatch for policy",
+                    Map.of("policyId", id, "policyTenantId", tenantId, "requestTenantId", request.tenantId()));
+        }
         applyRequest(policy, tenantId, request);
         return toDto(policy);
     }
