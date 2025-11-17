@@ -43,9 +43,10 @@ public class RolePermissionService {
     }
 
     @Transactional(readOnly = true)
-    public Page<RolePermissionDto> list(Pageable pageable) {
+    public Page<RolePermissionDto> list(Long roleId, Long permissionId, Pageable pageable) {
         Long tenantId = requireTenant();
-        return rolePermissionRepository.findAllByTenant_Id(tenantId, pageable).map(this::toDto);
+        return rolePermissionRepository.search(tenantId, roleId, permissionId, pageable)
+                .map(this::toDto);
     }
 
     @Transactional(readOnly = true)

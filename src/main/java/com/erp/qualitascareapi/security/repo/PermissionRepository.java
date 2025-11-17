@@ -16,6 +16,21 @@ public interface PermissionRepository extends JpaRepository<Permission, Long> {
     Page<Permission> findAllByTenant_Id(Long tenantId, Pageable pageable);
 
     @Query("""
+        select p from Permission p
+        where p.tenant.id = :tenantId
+          and (:resource is null or p.resource = :resource)
+          and (:action is null or p.action = :action)
+          and (:feature is null or lower(p.feature) like lower(concat('%', :feature, '%')))
+          and (:code is null or lower(p.code) like lower(concat('%', :code, '%')))
+    """)
+    Page<Permission> search(@Param("tenantId") Long tenantId,
+                            @Param("resource") ResourceType resource,
+                            @Param("action") Action action,
+                            @Param("feature") String feature,
+                            @Param("code") String code,
+                            Pageable pageable);
+
+    @Query("""
       select p from Permission p
        where p.tenant.id = :tenantId
          and p.resource = :res

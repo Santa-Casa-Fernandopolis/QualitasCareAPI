@@ -9,6 +9,9 @@ import com.erp.qualitascareapi.security.application.TenantScopeGuard;
 import com.erp.qualitascareapi.security.domain.Policy;
 import com.erp.qualitascareapi.security.domain.PolicyCondition;
 import com.erp.qualitascareapi.security.domain.Role;
+import com.erp.qualitascareapi.security.enums.Action;
+import com.erp.qualitascareapi.security.enums.Effect;
+import com.erp.qualitascareapi.security.enums.ResourceType;
 import com.erp.qualitascareapi.security.repo.PolicyRepository;
 import com.erp.qualitascareapi.security.repo.RoleRepository;
 import org.springframework.data.domain.Page;
@@ -42,9 +45,23 @@ public class PolicyService {
     }
 
     @Transactional(readOnly = true)
-    public Page<PolicyDto> list(Pageable pageable) {
+    public Page<PolicyDto> list(ResourceType resource,
+                                Action action,
+                                String feature,
+                                Effect effect,
+                                Boolean enabled,
+                                String description,
+                                Pageable pageable) {
         Long tenantId = requireTenant();
-        return policyRepository.findAllByTenant_Id(tenantId, pageable).map(this::toDto);
+        return policyRepository.search(tenantId,
+                        resource,
+                        action,
+                        emptyToNull(feature),
+                        effect,
+                        enabled,
+                        emptyToNull(description),
+                        pageable)
+                .map(this::toDto);
     }
 
     @Transactional(readOnly = true)
@@ -154,5 +171,9 @@ public class PolicyService {
             throw new AccessDeniedException("Tenant context not available");
         }
         return tenantId;
+    }
+
+    private String emptyToNull(String value) {
+        return (value == null || value.isBlank()) ? null : value;
     }
 }
