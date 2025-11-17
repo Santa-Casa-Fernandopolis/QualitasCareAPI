@@ -30,6 +30,18 @@ public interface RolePermissionRepository extends JpaRepository<RolePermission, 
                                   @Param("act") Action act,
                                   @Param("feature") String feature);
 
+    @Query("""
+      select distinct p.code
+        from RolePermission rp
+        join rp.role r
+        join rp.permission p
+       where rp.tenant.id = :tenantId
+         and upper(r.name) in :roleNames
+         and p.code is not null
+    """)
+    Set<String> findPermissionCodesByRolesAndTenant(@Param("roleNames") Set<String> roleNames,
+                                                    @Param("tenantId") Long tenantId);
+
     boolean existsByRoleAndPermissionAndTenant(Role role, Permission permission, Tenant tenant);
 }
 
