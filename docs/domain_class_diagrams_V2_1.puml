@@ -102,7 +102,20 @@ package "security.enums" {
       DOCUMENTO;
       DOCUMENTO_VERSAO;
       DOCUMENTO_ACK;
-      DOCUMENTO_ALTERACAO
+      DOCUMENTO_ALTERACAO;
+      CME_AUTOCLAVE;
+      IAM_TENANT;
+      IAM_USER;
+      IAM_SETOR;
+      IAM_ORG_ROLE_ASSIGNMENT;
+      IAM_PROFILE;
+      HR_CARGO;
+      HR_COLABORADOR;
+      SECURITY_ROLE;
+      SECURITY_PERMISSION;
+      SECURITY_ROLE_PERMISSION;
+      SECURITY_POLICY;
+      SECURITY_USER_PERMISSION_OVERRIDE
   }
 
   enum UserStatus {
@@ -137,6 +150,7 @@ package "iam.enums" {
     MANUTENCAO;
     PS;
     QUALIDADE;
+    ENFERMAGEM;
     EDUCACAO_PERMANENTE;
     CCIH;
     NIR
@@ -281,23 +295,11 @@ package "core.enums" {
 }
 
 package "cme.enums" {
-  ' Consolidado (superset) para não perder estados prévios
   enum CicloStatus {
-    RASCUNHO;
     AGENDADO;
     EM_ANDAMENTO;
-    AGUARDANDO_VALIDACAO_PARAMETROS;
-    REPROVADO_PARAMETROS;
-    AGUARDANDO_TESTE_IQ;
-    IQ_REPROVADO;
-    AVALIAR_EXIGENCIA_IB;
-    AGUARDANDO_IB;
-    IB_REPROVADO;
-    PRONTO_PARA_LIBERACAO;
     CONCLUIDO;
-    LIBERADO;
-    BLOQUEADO;
-    CANCELADO
+    BLOQUEADO
   }
 
   enum UsoSaneanteEtapa {
@@ -359,29 +361,38 @@ package "iam.domain" {
   note right of Tenant
     VALIDATIONS
     - name: not blank
-    - cnpj: formato válido (quando informado)
+    - cnpj: formato válido e obrigatório
     - active != null
 
     INDEXES/UNIQUES
     - Unique: (code)
+    - Unique: (cnpj)
     - Index : (active)
   end note
 
   class User <<Entity, Audited>> {
     +id: Long
-    +userName: String
+    +tenant: Tenant
+    +username: String
     +passwordHash: String
     +fullName: String
+    +department: String
+    +status: UserStatus
     +origin: IdentityOrigin
+    +createdAt: LocalDateTime
+    +activatedAt: LocalDateTime
+    +expiresAt: LocalDateTime
+    +updatedAt: LocalDateTime
+    +roles: Set<Role>
   }
   note right of User
     VALIDATIONS
-    - userName: not blank, normalizado
+    - username: not blank, normalizado
     - passwordHash: not blank
     - fullName: not blank
 
     INDEXES/UNIQUES
-    - Unique: (userName)
+    - Unique: (tenant_id, username)
   end note
 
   class Setor <<Entity, Audited>> {
@@ -533,14 +544,14 @@ package "approval.core.domain" {
     -request: ApprovalRequest
     -stepOrder: Integer
     -event: String
-    -when: LocalDateTime
+    -whenOccurred: LocalDateTime
     -who: User
     -data: String
   }
   note right of ApprovalAuditLog
     INDEXES/UNIQUES
     - Index: (request_id, step_order)
-    - Index: (when)
+    - Index: (when_occurred)
     - Index: (who_id)
   end note
 }
@@ -554,7 +565,6 @@ package "approval.core.services" {
   class ApprovalEngine {
     +start(target:ApprovableTarget, requestedBy:User): ApprovalRequest
     +decide(stepId:Long, user:User, decision:ApprovalDecision, comment:String): void
-    +currentStep(requestId:Long): ApprovalStep
   }
 }
 
@@ -577,7 +587,7 @@ package "common.domain" {
   note right of EvidenciaArquivo
     VALIDATIONS
     - nomeArquivo, uri, contentType: not blank
-    - tamanhoBytes >= 0; hashSha256 64 hex (quando informado)
+    - tamanhoBytes >= 0; hashSha256 64 hex obrigatório
     INDEXES/UNIQUES
     - Unique (opcional): (hash_sha256)
     - Index : (tenant_id, autor_id)
@@ -1060,12 +1070,15 @@ package "edu.domain" {
 ' ============================================================
 package "core.domain" {
   class ExameCultura <<Entity, Audited>> {
-    +id: Long;
-    +origemAmostra: String;
-    +dataColeta: LocalDate;
-    +responsavelColeta: String;
-    +resultado: ExameCulturaResultado;
-    +observacoes: String
+    -id: Long;
+    -tenant: Tenant;
+    -origemAmostra: String;
+    -dataColeta: LocalDate;
+    -responsavelColeta: String;
+    -resultado: ExameCulturaResultado;
+    -registradoPor: User;
+    -observacoes: String;
+    -evidencias: Set<EvidenciaArquivo>
   }
   class Instrumento <<Entity, Audited>> {
     -id: Long;
@@ -1304,7 +1317,6 @@ package "quality.domain" {
     -setorOrigem: Setor;
     -setorResponsavel: Setor;
     -planoAcaoResumo: String;
-    -cicloOrigem: cme.domain.CicloEsterilizacao
     +getTenant(): Tenant
     +getApprovalDomain(): ApprovalDomain
     +getApprovalKey(): String
@@ -1352,7 +1364,8 @@ package "security.domain" {
     -effect: Effect;
     -enabled: boolean = true;
     -priority: int = 100;
-    -description: String
+    -description: String;
+    -roles: Set<Role>
   }
   class PolicyCondition <<Entity, Audited>> {
     -id: Long;
@@ -1469,6 +1482,10 @@ package "environmental.domain" {
 ' ============================================================
 ' RELACIONAMENTOS (chaves principais entre pacotes)
 ' ============================================================
+' ---- IAM ----
+iam.domain.User --> iam.domain.Tenant
+iam.domain.User " * " -- " * " security.domain.Role : roles
+
 ' ---- GED ----
 ged.domain.DocCategory --> iam.domain.Tenant
 ged.domain.DocTag --> iam.domain.Tenant
@@ -1598,6 +1615,7 @@ edu.domain.Session --> edu.domain.Offering : offering
 core.domain.ExameCultura --> iam.domain.Tenant : many-to-one
 core.domain.ExameCultura --> iam.domain.User : registradoPor
 core.domain.ExameCultura --> core.enums.ExameCulturaResultado
+core.domain.ExameCultura " * " -- " * " common.domain.EvidenciaArquivo : evidencias
 core.domain.Instrumento --> iam.domain.Tenant
 core.domain.KitProcedimento --> iam.domain.Tenant
 core.domain.KitVersion --> core.domain.KitProcedimento : kit
@@ -1660,7 +1678,6 @@ quality.domain.NaoConformidadeCME --> iam.domain.User : responsavel
 quality.domain.NaoConformidadeCME "0..1" --> iam.domain.Setor : setorOrigem
 quality.domain.NaoConformidadeCME "0..1" --> iam.domain.Setor : setorResponsavel
 quality.domain.NaoConformidadeCME " * " -- " * " common.domain.EvidenciaArquivo : evidencias
-quality.domain.NaoConformidadeCME "0..*" --> "0..1" cme.domain.CicloEsterilizacao : cicloOrigem
 quality.domain.PlanoAcaoItem --> iam.domain.Tenant
 quality.domain.PlanoAcaoItem --> quality.domain.NaoConformidadeCME : nc
 quality.domain.PlanoAcaoItem "0..1" --> iam.domain.User : quem
@@ -1675,6 +1692,7 @@ security.domain.Policy --> security.enums.ResourceType
 security.domain.Policy --> security.enums.Action
 security.domain.Policy --> security.enums.Effect
 security.domain.Policy "1" o-- " * " security.domain.PolicyCondition : conditions
+security.domain.Policy " * " o-- " * " security.domain.Role : roles
 security.domain.PolicyCondition --> security.domain.Policy
 security.domain.Role --> iam.domain.Tenant
 security.domain.Permission --> iam.domain.Tenant
