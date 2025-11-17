@@ -33,9 +33,10 @@ public class RoleService {
     }
 
     @Transactional(readOnly = true)
-    public Page<RoleDto> list(Pageable pageable) {
+    public Page<RoleDto> list(String name, String description, Pageable pageable) {
         Long tenantId = requireTenant();
-        return roleRepository.findAllByTenant_Id(tenantId, pageable).map(this::toDto);
+        return roleRepository.search(tenantId, emptyToNull(name), emptyToNull(description), pageable)
+                .map(this::toDto);
     }
 
     @Transactional(readOnly = true)
@@ -89,6 +90,10 @@ public class RoleService {
             throw new AccessDeniedException("Tenant context not available");
         }
         return tenantId;
+    }
+
+    private String emptyToNull(String value) {
+        return (value == null || value.isBlank()) ? null : value;
     }
 
     private RoleDto toDto(Role role) {

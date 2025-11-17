@@ -24,8 +24,12 @@ public class PermissionController {
 
     @RequiresPermission(resource = ResourceType.SECURITY_PERMISSION, action = Action.READ)
     @GetMapping
-    public Page<PermissionDto> list(Pageable pageable) {
-        return permissionService.list(pageable);
+    public Page<PermissionDto> list(@RequestParam(required = false) ResourceType resource,
+                                    @RequestParam(required = false) Action action,
+                                    @RequestParam(required = false) String feature,
+                                    @RequestParam(required = false) String code,
+                                    Pageable pageable) {
+        return permissionService.list(resource, action, feature, code, pageable);
     }
 
     @RequiresPermission(resource = ResourceType.SECURITY_PERMISSION, action = Action.READ)

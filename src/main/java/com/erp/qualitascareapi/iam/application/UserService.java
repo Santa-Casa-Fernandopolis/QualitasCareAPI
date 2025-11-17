@@ -49,12 +49,24 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public Page<UserDto> list(Pageable pageable) {
-        Long tenantId = tenantScopeGuard.currentTenantId();
-        if (tenantId != null) {
-            return userRepository.findAllByTenant_Id(tenantId, pageable).map(this::toDto);
+    public Page<UserDto> list(String username,
+                              String fullName,
+                              UserStatus status,
+                              IdentityOrigin origin,
+                              Long tenantId,
+                              Pageable pageable) {
+        Long contextTenantId = tenantScopeGuard.currentTenantId();
+        Long effectiveTenantId = contextTenantId != null ? contextTenantId : tenantId;
+        if (contextTenantId != null) {
+            tenantScopeGuard.checkTenantAccess(effectiveTenantId);
         }
-        return userRepository.findAll(pageable).map(this::toDto);
+        return userRepository.search(effectiveTenantId,
+                        emptyToNull(username),
+                        emptyToNull(fullName),
+                        status,
+                        origin,
+                        pageable)
+                .map(this::toDto);
     }
 
     @Transactional(readOnly = true)
@@ -182,5 +194,9 @@ public class UserService {
                 tenant != null ? tenant.getCode() : null,
                 roles
         );
+    }
+
+    private String emptyToNull(String value) {
+        return (value == null || value.isBlank()) ? null : value;
     }
 }

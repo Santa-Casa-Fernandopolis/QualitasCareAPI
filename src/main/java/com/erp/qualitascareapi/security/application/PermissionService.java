@@ -8,6 +8,8 @@ import com.erp.qualitascareapi.security.api.dto.PermissionDto;
 import com.erp.qualitascareapi.security.api.dto.PermissionRequest;
 import com.erp.qualitascareapi.security.application.TenantScopeGuard;
 import com.erp.qualitascareapi.security.domain.Permission;
+import com.erp.qualitascareapi.security.enums.Action;
+import com.erp.qualitascareapi.security.enums.ResourceType;
 import com.erp.qualitascareapi.security.repo.PermissionRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -33,9 +35,19 @@ public class PermissionService {
     }
 
     @Transactional(readOnly = true)
-    public Page<PermissionDto> list(Pageable pageable) {
+    public Page<PermissionDto> list(ResourceType resource,
+                                    Action action,
+                                    String feature,
+                                    String code,
+                                    Pageable pageable) {
         Long tenantId = requireTenant();
-        return permissionRepository.findAllByTenant_Id(tenantId, pageable).map(this::toDto);
+        return permissionRepository.search(tenantId,
+                        resource,
+                        action,
+                        emptyToNull(feature),
+                        emptyToNull(code),
+                        pageable)
+                .map(this::toDto);
     }
 
     @Transactional(readOnly = true)
@@ -99,5 +111,9 @@ public class PermissionService {
             throw new AccessDeniedException("Tenant context not available");
         }
         return tenantId;
+    }
+
+    private String emptyToNull(String value) {
+        return (value == null || value.isBlank()) ? null : value;
     }
 }

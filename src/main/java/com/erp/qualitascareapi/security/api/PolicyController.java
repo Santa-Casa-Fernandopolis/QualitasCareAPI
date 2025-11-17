@@ -5,6 +5,7 @@ import com.erp.qualitascareapi.security.api.dto.PolicyRequest;
 import com.erp.qualitascareapi.security.application.PolicyService;
 import com.erp.qualitascareapi.security.annotation.RequiresPermission;
 import com.erp.qualitascareapi.security.enums.Action;
+import com.erp.qualitascareapi.security.enums.Effect;
 import com.erp.qualitascareapi.security.enums.ResourceType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,8 +25,14 @@ public class PolicyController {
 
     @RequiresPermission(resource = ResourceType.SECURITY_POLICY, action = Action.READ)
     @GetMapping
-    public Page<PolicyDto> list(Pageable pageable) {
-        return policyService.list(pageable);
+    public Page<PolicyDto> list(@RequestParam(required = false) ResourceType resource,
+                                @RequestParam(required = false) Action action,
+                                @RequestParam(required = false) String feature,
+                                @RequestParam(required = false) Effect effect,
+                                @RequestParam(required = false) Boolean enabled,
+                                @RequestParam(required = false) String description,
+                                Pageable pageable) {
+        return policyService.list(resource, action, feature, effect, enabled, description, pageable);
     }
 
     @RequiresPermission(resource = ResourceType.SECURITY_POLICY, action = Action.READ)

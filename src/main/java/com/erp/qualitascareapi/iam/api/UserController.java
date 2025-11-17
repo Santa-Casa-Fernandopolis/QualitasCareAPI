@@ -6,7 +6,9 @@ import com.erp.qualitascareapi.iam.api.dto.UserUpdateRequest;
 import com.erp.qualitascareapi.iam.application.UserService;
 import com.erp.qualitascareapi.security.annotation.RequiresPermission;
 import com.erp.qualitascareapi.security.enums.Action;
+import com.erp.qualitascareapi.security.enums.IdentityOrigin;
 import com.erp.qualitascareapi.security.enums.ResourceType;
+import com.erp.qualitascareapi.security.enums.UserStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -25,8 +27,13 @@ public class UserController {
 
     @RequiresPermission(resource = ResourceType.IAM_USER, action = Action.READ)
     @GetMapping
-    public Page<UserDto> list(Pageable pageable) {
-        return userService.list(pageable);
+    public Page<UserDto> list(@RequestParam(required = false) String username,
+                              @RequestParam(required = false) String fullName,
+                              @RequestParam(required = false) UserStatus status,
+                              @RequestParam(required = false) IdentityOrigin origin,
+                              @RequestParam(required = false) Long tenantId,
+                              Pageable pageable) {
+        return userService.list(username, fullName, status, origin, tenantId, pageable);
     }
 
     @RequiresPermission(resource = ResourceType.IAM_USER, action = Action.READ)

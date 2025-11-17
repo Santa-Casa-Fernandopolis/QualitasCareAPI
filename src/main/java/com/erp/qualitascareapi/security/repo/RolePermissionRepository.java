@@ -18,6 +18,17 @@ public interface RolePermissionRepository extends JpaRepository<RolePermission, 
     Page<RolePermission> findAllByTenant_Id(Long tenantId, Pageable pageable);
 
     @Query("""
+        select rp from RolePermission rp
+        where rp.tenant.id = :tenantId
+          and (:roleId is null or rp.role.id = :roleId)
+          and (:permissionId is null or rp.permission.id = :permissionId)
+    """)
+    Page<RolePermission> search(@Param("tenantId") Long tenantId,
+                                @Param("roleId") Long roleId,
+                                @Param("permissionId") Long permissionId,
+                                Pageable pageable);
+
+    @Query("""
       select case when count(rp) > 0 then true else false end
         from RolePermission rp
         join rp.role r

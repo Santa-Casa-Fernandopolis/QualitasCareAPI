@@ -24,8 +24,10 @@ public class RolePermissionController {
 
     @RequiresPermission(resource = ResourceType.SECURITY_ROLE_PERMISSION, action = Action.READ)
     @GetMapping
-    public Page<RolePermissionDto> list(Pageable pageable) {
-        return rolePermissionService.list(pageable);
+    public Page<RolePermissionDto> list(@RequestParam(required = false) Long roleId,
+                                        @RequestParam(required = false) Long permissionId,
+                                        Pageable pageable) {
+        return rolePermissionService.list(roleId, permissionId, pageable);
     }
 
     @RequiresPermission(resource = ResourceType.SECURITY_ROLE_PERMISSION, action = Action.READ)
