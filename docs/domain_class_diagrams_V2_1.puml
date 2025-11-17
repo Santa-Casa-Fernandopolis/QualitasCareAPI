@@ -296,10 +296,21 @@ package "core.enums" {
 
 package "cme.enums" {
   enum CicloStatus {
+    RASCUNHO;
     AGENDADO;
     EM_ANDAMENTO;
+    AGUARDANDO_VALIDACAO_PARAMETROS;
+    REPROVADO_PARAMETROS;
+    AGUARDANDO_TESTE_IQ;
+    IQ_REPROVADO;
+    AVALIAR_EXIGENCIA_IB;
+    AGUARDANDO_IB;
+    IB_REPROVADO;
+    PRONTO_PARA_LIBERACAO;
     CONCLUIDO;
-    BLOQUEADO
+    LIBERADO;
+    BLOQUEADO;
+    CANCELADO
   }
 
   enum UsoSaneanteEtapa {
