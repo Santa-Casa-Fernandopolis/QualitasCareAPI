@@ -1237,11 +1237,9 @@ package "security.enums" {
   }
 
   enum ResourceType {
-      IAM
-      SECURITY
       INDICADOR
       AUDITORIA
-      NC
+      NAO_CONFORMIDADE
       PROTOCOLO
       CAPACITACAO
       PGRSS
@@ -1251,6 +1249,19 @@ package "security.enums" {
       DOCUMENTO_VERSAO
       DOCUMENTO_ACK
       DOCUMENTO_ALTERACAO
+      CME_AUTOCLAVE,
+      IAM_TENANT,
+      IAM_USER,
+      IAM_SETOR,
+      IAM_ORG_ROLE_ASSIGNMENT,
+      IAM_PROFILE,
+      HR_CARGO,
+      HR_COLABORADOR,
+      SECURITY_ROLE,
+      SECURITY_PERMISSION,
+      SECURITY_ROLE_PERMISSION,
+      SECURITY_POLICY,
+      SECURITY_USER_PERMISSION_OVERRIDE
   }
 
     enum IdentityOrigin {

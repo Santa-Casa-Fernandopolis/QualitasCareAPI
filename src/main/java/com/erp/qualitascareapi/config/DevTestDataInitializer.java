@@ -131,7 +131,351 @@ public class DevTestDataInitializer implements ApplicationRunner {
         createUserIfMissing("sup.cme.scj",      "Supervisora CME",     "CME",             scj, scjOperador,         now, createdUsers);
         createUserIfMissing("enf.cme.scj",      "Enfermeira CME",      "CME",             scj, scjOperador,         now, createdUsers);
 
+        // ===== PERMISSÕES BASE – IAM / SECURITY (SCF) =====
+        // IAM_TENANT – gestão de tenants
+        Permission scfIamTenantRead = findOrCreatePermission(
+                scf, ResourceType.IAM_TENANT, Action.READ, "LISTA", "IAM_TENANT_READ@LISTA");
+        Permission scfIamTenantCreate = findOrCreatePermission(
+                scf, ResourceType.IAM_TENANT, Action.CREATE, "FORM", "IAM_TENANT_CREATE@FORM");
+        Permission scfIamTenantUpdate = findOrCreatePermission(
+                scf, ResourceType.IAM_TENANT, Action.UPDATE, "FORM", "IAM_TENANT_UPDATE@FORM");
+        Permission scfIamTenantDelete = findOrCreatePermission(
+                scf, ResourceType.IAM_TENANT, Action.DELETE, "FORM", "IAM_TENANT_DELETE@FORM");
 
+        // IAM_USER – gestão de usuários
+        Permission scfIamUserRead = findOrCreatePermission(
+                scf, ResourceType.IAM_USER, Action.READ, "LISTA", "IAM_USER_READ@LISTA");
+        Permission scfIamUserCreate = findOrCreatePermission(
+                scf, ResourceType.IAM_USER, Action.CREATE, "FORM", "IAM_USER_CREATE@FORM");
+        Permission scfIamUserUpdate = findOrCreatePermission(
+                scf, ResourceType.IAM_USER, Action.UPDATE, "FORM", "IAM_USER_UPDATE@FORM");
+        Permission scfIamUserDelete = findOrCreatePermission(
+                scf, ResourceType.IAM_USER, Action.DELETE, "FORM", "IAM_USER_DELETE@FORM");
+
+        // IAM_SETOR – gestão de setores organizacionais
+        Permission scfIamSetorRead = findOrCreatePermission(
+                scf, ResourceType.IAM_SETOR, Action.READ, "LISTA", "IAM_SETOR_READ@LISTA");
+        Permission scfIamSetorCreate = findOrCreatePermission(
+                scf, ResourceType.IAM_SETOR, Action.CREATE, "FORM", "IAM_SETOR_CREATE@FORM");
+        Permission scfIamSetorUpdate = findOrCreatePermission(
+                scf, ResourceType.IAM_SETOR, Action.UPDATE, "FORM", "IAM_SETOR_UPDATE@FORM");
+        Permission scfIamSetorDelete = findOrCreatePermission(
+                scf, ResourceType.IAM_SETOR, Action.DELETE, "FORM", "IAM_SETOR_DELETE@FORM");
+
+        // IAM_ORG_ROLE_ASSIGNMENT – quem é gerente / supervisor / diretor
+        Permission scfIamOrgRoleAssignRead = findOrCreatePermission(
+                scf, ResourceType.IAM_ORG_ROLE_ASSIGNMENT, Action.READ, "LISTA", "IAM_ORG_ROLE_ASSIGN_READ@LISTA");
+        Permission scfIamOrgRoleAssignCreate = findOrCreatePermission(
+                scf, ResourceType.IAM_ORG_ROLE_ASSIGNMENT, Action.CREATE, "FORM", "IAM_ORG_ROLE_ASSIGN_CREATE@FORM");
+        Permission scfIamOrgRoleAssignUpdate = findOrCreatePermission(
+                scf, ResourceType.IAM_ORG_ROLE_ASSIGNMENT, Action.UPDATE, "FORM", "IAM_ORG_ROLE_ASSIGN_UPDATE@FORM");
+        Permission scfIamOrgRoleAssignDelete = findOrCreatePermission(
+                scf, ResourceType.IAM_ORG_ROLE_ASSIGNMENT, Action.DELETE, "FORM", "IAM_ORG_ROLE_ASSIGN_DELETE@FORM");
+
+        // SECURITY_ROLE – cadastro de roles técnicas
+        Permission scfSecRoleRead = findOrCreatePermission(
+                scf, ResourceType.SECURITY_ROLE, Action.READ, "LISTA", "SEC_ROLE_READ@LISTA");
+        Permission scfSecRoleCreate = findOrCreatePermission(
+                scf, ResourceType.SECURITY_ROLE, Action.CREATE, "FORM", "SEC_ROLE_CREATE@FORM");
+        Permission scfSecRoleUpdate = findOrCreatePermission(
+                scf, ResourceType.SECURITY_ROLE, Action.UPDATE, "FORM", "SEC_ROLE_UPDATE@FORM");
+        Permission scfSecRoleDelete = findOrCreatePermission(
+                scf, ResourceType.SECURITY_ROLE, Action.DELETE, "FORM", "SEC_ROLE_DELETE@FORM");
+
+        // SECURITY_PERMISSION – catálogo de permissões
+        Permission scfSecPermRead = findOrCreatePermission(
+                scf, ResourceType.SECURITY_PERMISSION, Action.READ, "LISTA", "SEC_PERMISSION_READ@LISTA");
+        Permission scfSecPermCreate = findOrCreatePermission(
+                scf, ResourceType.SECURITY_PERMISSION, Action.CREATE, "FORM", "SEC_PERMISSION_CREATE@FORM");
+        Permission scfSecPermUpdate = findOrCreatePermission(
+                scf, ResourceType.SECURITY_PERMISSION, Action.UPDATE, "FORM", "SEC_PERMISSION_UPDATE@FORM");
+        Permission scfSecPermDelete = findOrCreatePermission(
+                scf, ResourceType.SECURITY_PERMISSION, Action.DELETE, "FORM", "SEC_PERMISSION_DELETE@FORM");
+
+        // SECURITY_ROLE_PERMISSION – vincular role ↔ permission
+        Permission scfSecRolePermRead = findOrCreatePermission(
+                scf, ResourceType.SECURITY_ROLE_PERMISSION, Action.READ, "LISTA", "SEC_ROLE_PERMISSION_READ@LISTA");
+        Permission scfSecRolePermCreate = findOrCreatePermission(
+                scf, ResourceType.SECURITY_ROLE_PERMISSION, Action.CREATE, "FORM", "SEC_ROLE_PERMISSION_CREATE@FORM");
+        Permission scfSecRolePermUpdate = findOrCreatePermission(
+                scf, ResourceType.SECURITY_ROLE_PERMISSION, Action.UPDATE, "FORM", "SEC_ROLE_PERMISSION_UPDATE@FORM");
+        Permission scfSecRolePermDelete = findOrCreatePermission(
+                scf, ResourceType.SECURITY_ROLE_PERMISSION, Action.DELETE, "FORM", "SEC_ROLE_PERMISSION_DELETE@FORM");
+
+        // SECURITY_POLICY – regras ABAC (negócio + técnico)
+        Permission scfSecPolicyRead = findOrCreatePermission(
+                scf, ResourceType.SECURITY_POLICY, Action.READ, "LISTA", "SEC_POLICY_READ@LISTA");
+        Permission scfSecPolicyCreate = findOrCreatePermission(
+                scf, ResourceType.SECURITY_POLICY, Action.CREATE, "FORM", "SEC_POLICY_CREATE@FORM");
+        Permission scfSecPolicyUpdate = findOrCreatePermission(
+                scf, ResourceType.SECURITY_POLICY, Action.UPDATE, "FORM", "SEC_POLICY_UPDATE@FORM");
+        Permission scfSecPolicyDelete = findOrCreatePermission(
+                scf, ResourceType.SECURITY_POLICY, Action.DELETE, "FORM", "SEC_POLICY_DELETE@FORM");
+
+        // SECURITY_USER_PERMISSION_OVERRIDE – exceções
+        Permission scfSecUserOverrideRead = findOrCreatePermission(
+                scf, ResourceType.SECURITY_USER_PERMISSION_OVERRIDE, Action.READ, "LISTA", "SEC_USER_OVERRIDE_READ@LISTA");
+        Permission scfSecUserOverrideCreate = findOrCreatePermission(
+                scf, ResourceType.SECURITY_USER_PERMISSION_OVERRIDE, Action.CREATE, "FORM", "SEC_USER_OVERRIDE_CREATE@FORM");
+        Permission scfSecUserOverrideUpdate = findOrCreatePermission(
+                scf, ResourceType.SECURITY_USER_PERMISSION_OVERRIDE, Action.UPDATE, "FORM", "SEC_USER_OVERRIDE_UPDATE@FORM");
+        Permission scfSecUserOverrideDelete = findOrCreatePermission(
+                scf, ResourceType.SECURITY_USER_PERMISSION_OVERRIDE, Action.DELETE, "FORM", "SEC_USER_OVERRIDE_DELETE@FORM");
+
+        // ===== PERMISSÕES BASE – IAM / SECURITY (SCJ) =====
+        Permission scjIamTenantRead = findOrCreatePermission(
+                scj, ResourceType.IAM_TENANT, Action.READ, "LISTA", "IAM_TENANT_READ@LISTA");
+        Permission scjIamTenantCreate = findOrCreatePermission(
+                scj, ResourceType.IAM_TENANT, Action.CREATE, "FORM", "IAM_TENANT_CREATE@FORM");
+        Permission scjIamTenantUpdate = findOrCreatePermission(
+                scj, ResourceType.IAM_TENANT, Action.UPDATE, "FORM", "IAM_TENANT_UPDATE@FORM");
+        Permission scjIamTenantDelete = findOrCreatePermission(
+                scj, ResourceType.IAM_TENANT, Action.DELETE, "FORM", "IAM_TENANT_DELETE@FORM");
+
+        Permission scjIamUserRead = findOrCreatePermission(
+                scj, ResourceType.IAM_USER, Action.READ, "LISTA", "IAM_USER_READ@LISTA");
+        Permission scjIamUserCreate = findOrCreatePermission(
+                scj, ResourceType.IAM_USER, Action.CREATE, "FORM", "IAM_USER_CREATE@FORM");
+        Permission scjIamUserUpdate = findOrCreatePermission(
+                scj, ResourceType.IAM_USER, Action.UPDATE, "FORM", "IAM_USER_UPDATE@FORM");
+        Permission scjIamUserDelete = findOrCreatePermission(
+                scj, ResourceType.IAM_USER, Action.DELETE, "FORM", "IAM_USER_DELETE@FORM");
+
+        Permission scjIamSetorRead = findOrCreatePermission(
+                scj, ResourceType.IAM_SETOR, Action.READ, "LISTA", "IAM_SETOR_READ@LISTA");
+        Permission scjIamSetorCreate = findOrCreatePermission(
+                scj, ResourceType.IAM_SETOR, Action.CREATE, "FORM", "IAM_SETOR_CREATE@FORM");
+        Permission scjIamSetorUpdate = findOrCreatePermission(
+                scj, ResourceType.IAM_SETOR, Action.UPDATE, "FORM", "IAM_SETOR_UPDATE@FORM");
+        Permission scjIamSetorDelete = findOrCreatePermission(
+                scj, ResourceType.IAM_SETOR, Action.DELETE, "FORM", "IAM_SETOR_DELETE@FORM");
+
+        Permission scjIamOrgRoleAssignRead = findOrCreatePermission(
+                scj, ResourceType.IAM_ORG_ROLE_ASSIGNMENT, Action.READ, "LISTA", "IAM_ORG_ROLE_ASSIGN_READ@LISTA");
+        Permission scjIamOrgRoleAssignCreate = findOrCreatePermission(
+                scj, ResourceType.IAM_ORG_ROLE_ASSIGNMENT, Action.CREATE, "FORM", "IAM_ORG_ROLE_ASSIGN_CREATE@FORM");
+        Permission scjIamOrgRoleAssignUpdate = findOrCreatePermission(
+                scj, ResourceType.IAM_ORG_ROLE_ASSIGNMENT, Action.UPDATE, "FORM", "IAM_ORG_ROLE_ASSIGN_UPDATE@FORM");
+        Permission scjIamOrgRoleAssignDelete = findOrCreatePermission(
+                scj, ResourceType.IAM_ORG_ROLE_ASSIGNMENT, Action.DELETE, "FORM", "IAM_ORG_ROLE_ASSIGN_DELETE@FORM");
+
+        Permission scjSecRoleRead = findOrCreatePermission(
+                scj, ResourceType.SECURITY_ROLE, Action.READ, "LISTA", "SEC_ROLE_READ@LISTA");
+        Permission scjSecRoleCreate = findOrCreatePermission(
+                scj, ResourceType.SECURITY_ROLE, Action.CREATE, "FORM", "SEC_ROLE_CREATE@FORM");
+        Permission scjSecRoleUpdate = findOrCreatePermission(
+                scj, ResourceType.SECURITY_ROLE, Action.UPDATE, "FORM", "SEC_ROLE_UPDATE@FORM");
+        Permission scjSecRoleDelete = findOrCreatePermission(
+                scj, ResourceType.SECURITY_ROLE, Action.DELETE, "FORM", "SEC_ROLE_DELETE@FORM");
+
+        Permission scjSecPermRead = findOrCreatePermission(
+                scj, ResourceType.SECURITY_PERMISSION, Action.READ, "LISTA", "SEC_PERMISSION_READ@LISTA");
+        Permission scjSecPermCreate = findOrCreatePermission(
+                scj, ResourceType.SECURITY_PERMISSION, Action.CREATE, "FORM", "SEC_PERMISSION_CREATE@FORM");
+        Permission scjSecPermUpdate = findOrCreatePermission(
+                scj, ResourceType.SECURITY_PERMISSION, Action.UPDATE, "FORM", "SEC_PERMISSION_UPDATE@FORM");
+        Permission scjSecPermDelete = findOrCreatePermission(
+                scj, ResourceType.SECURITY_PERMISSION, Action.DELETE, "FORM", "SEC_PERMISSION_DELETE@FORM");
+
+        Permission scjSecRolePermRead = findOrCreatePermission(
+                scj, ResourceType.SECURITY_ROLE_PERMISSION, Action.READ, "LISTA", "SEC_ROLE_PERMISSION_READ@LISTA");
+        Permission scjSecRolePermCreate = findOrCreatePermission(
+                scj, ResourceType.SECURITY_ROLE_PERMISSION, Action.CREATE, "FORM", "SEC_ROLE_PERMISSION_CREATE@FORM");
+        Permission scjSecRolePermUpdate = findOrCreatePermission(
+                scj, ResourceType.SECURITY_ROLE_PERMISSION, Action.UPDATE, "FORM", "SEC_ROLE_PERMISSION_UPDATE@FORM");
+        Permission scjSecRolePermDelete = findOrCreatePermission(
+                scj, ResourceType.SECURITY_ROLE_PERMISSION, Action.DELETE, "FORM", "SEC_ROLE_PERMISSION_DELETE@FORM");
+
+        Permission scjSecPolicyRead = findOrCreatePermission(
+                scj, ResourceType.SECURITY_POLICY, Action.READ, "LISTA", "SEC_POLICY_READ@LISTA");
+        Permission scjSecPolicyCreate = findOrCreatePermission(
+                scj, ResourceType.SECURITY_POLICY, Action.CREATE, "FORM", "SEC_POLICY_CREATE@FORM");
+        Permission scjSecPolicyUpdate = findOrCreatePermission(
+                scj, ResourceType.SECURITY_POLICY, Action.UPDATE, "FORM", "SEC_POLICY_UPDATE@FORM");
+        Permission scjSecPolicyDelete = findOrCreatePermission(
+                scj, ResourceType.SECURITY_POLICY, Action.DELETE, "FORM", "SEC_POLICY_DELETE@FORM");
+
+        Permission scjSecUserOverrideRead = findOrCreatePermission(
+                scj, ResourceType.SECURITY_USER_PERMISSION_OVERRIDE, Action.READ, "LISTA", "SEC_USER_OVERRIDE_READ@LISTA");
+        Permission scjSecUserOverrideCreate = findOrCreatePermission(
+                scj, ResourceType.SECURITY_USER_PERMISSION_OVERRIDE, Action.CREATE, "FORM", "SEC_USER_OVERRIDE_CREATE@FORM");
+        Permission scjSecUserOverrideUpdate = findOrCreatePermission(
+                scj, ResourceType.SECURITY_USER_PERMISSION_OVERRIDE, Action.UPDATE, "FORM", "SEC_USER_OVERRIDE_UPDATE@FORM");
+        Permission scjSecUserOverrideDelete = findOrCreatePermission(
+                scj, ResourceType.SECURITY_USER_PERMISSION_OVERRIDE, Action.DELETE, "FORM", "SEC_USER_OVERRIDE_DELETE@FORM");
+
+
+        // ===== ROLE-PERMISSION – IAM / SECURITY (SCF) =====
+
+        // SYSTEM_ADMIN (SCF) – acesso total IAM / SECURITY
+        ensureRolePermission(scfSystemAdmin, scfIamTenantRead,   scf);
+        ensureRolePermission(scfSystemAdmin, scfIamTenantCreate, scf);
+        ensureRolePermission(scfSystemAdmin, scfIamTenantUpdate, scf);
+        ensureRolePermission(scfSystemAdmin, scfIamTenantDelete, scf);
+
+        ensureRolePermission(scfSystemAdmin, scfIamUserRead,   scf);
+        ensureRolePermission(scfSystemAdmin, scfIamUserCreate, scf);
+        ensureRolePermission(scfSystemAdmin, scfIamUserUpdate, scf);
+        ensureRolePermission(scfSystemAdmin, scfIamUserDelete, scf);
+
+        ensureRolePermission(scfSystemAdmin, scfIamSetorRead,   scf);
+        ensureRolePermission(scfSystemAdmin, scfIamSetorCreate, scf);
+        ensureRolePermission(scfSystemAdmin, scfIamSetorUpdate, scf);
+        ensureRolePermission(scfSystemAdmin, scfIamSetorDelete, scf);
+
+        ensureRolePermission(scfSystemAdmin, scfIamOrgRoleAssignRead,   scf);
+        ensureRolePermission(scfSystemAdmin, scfIamOrgRoleAssignCreate, scf);
+        ensureRolePermission(scfSystemAdmin, scfIamOrgRoleAssignUpdate, scf);
+        ensureRolePermission(scfSystemAdmin, scfIamOrgRoleAssignDelete, scf);
+
+        ensureRolePermission(scfSystemAdmin, scfSecRoleRead,   scf);
+        ensureRolePermission(scfSystemAdmin, scfSecRoleCreate, scf);
+        ensureRolePermission(scfSystemAdmin, scfSecRoleUpdate, scf);
+        ensureRolePermission(scfSystemAdmin, scfSecRoleDelete, scf);
+
+        ensureRolePermission(scfSystemAdmin, scfSecPermRead,   scf);
+        ensureRolePermission(scfSystemAdmin, scfSecPermCreate, scf);
+        ensureRolePermission(scfSystemAdmin, scfSecPermUpdate, scf);
+        ensureRolePermission(scfSystemAdmin, scfSecPermDelete, scf);
+
+        ensureRolePermission(scfSystemAdmin, scfSecRolePermRead,   scf);
+        ensureRolePermission(scfSystemAdmin, scfSecRolePermCreate, scf);
+        ensureRolePermission(scfSystemAdmin, scfSecRolePermUpdate, scf);
+        ensureRolePermission(scfSystemAdmin, scfSecRolePermDelete, scf);
+
+        ensureRolePermission(scfSystemAdmin, scfSecPolicyRead,   scf);
+        ensureRolePermission(scfSystemAdmin, scfSecPolicyCreate, scf);
+        ensureRolePermission(scfSystemAdmin, scfSecPolicyUpdate, scf);
+        ensureRolePermission(scfSystemAdmin, scfSecPolicyDelete, scf);
+
+        ensureRolePermission(scfSystemAdmin, scfSecUserOverrideRead,   scf);
+        ensureRolePermission(scfSystemAdmin, scfSecUserOverrideCreate, scf);
+        ensureRolePermission(scfSystemAdmin, scfSecUserOverrideUpdate, scf);
+        ensureRolePermission(scfSystemAdmin, scfSecUserOverrideDelete, scf);
+
+
+        // ADMIN_TI (SCF) – quase tudo, com restrições em tenant / org-role / override
+
+        // Tenants: só leitura
+        ensureRolePermission(scfAdminTI, scfIamTenantRead, scf);
+
+        // Users: CRUD sem delete (mais seguro)
+        ensureRolePermission(scfAdminTI, scfIamUserRead,   scf);
+        ensureRolePermission(scfAdminTI, scfIamUserCreate, scf);
+        ensureRolePermission(scfAdminTI, scfIamUserUpdate, scf);
+        // (delete só via SYSTEM_ADMIN)
+
+        // Setores: pode gerenciar estruturalmente
+        ensureRolePermission(scfAdminTI, scfIamSetorRead,   scf);
+        ensureRolePermission(scfAdminTI, scfIamSetorCreate, scf);
+        ensureRolePermission(scfAdminTI, scfIamSetorUpdate, scf);
+        // opcional: se quiser permitir delete, acrescentar a linha abaixo
+        // ensureRolePermission(scfAdminTI, scfIamSetorDelete, scf);
+
+        // OrgRoleAssignment: só leitura (governança assistencial)
+        ensureRolePermission(scfAdminTI, scfIamOrgRoleAssignRead, scf);
+
+        // Roles / Permissions / RolePermission / Policies: pode configurar tecnicamente
+        ensureRolePermission(scfAdminTI, scfSecRoleRead,   scf);
+        ensureRolePermission(scfAdminTI, scfSecRoleCreate, scf);
+        ensureRolePermission(scfAdminTI, scfSecRoleUpdate, scf);
+
+        ensureRolePermission(scfAdminTI, scfSecPermRead,   scf);
+        ensureRolePermission(scfAdminTI, scfSecPermCreate, scf);
+        ensureRolePermission(scfAdminTI, scfSecPermUpdate, scf);
+
+        ensureRolePermission(scfAdminTI, scfSecRolePermRead,   scf);
+        ensureRolePermission(scfAdminTI, scfSecRolePermCreate, scf);
+        ensureRolePermission(scfAdminTI, scfSecRolePermUpdate, scf);
+
+        ensureRolePermission(scfAdminTI, scfSecPolicyRead,   scf);
+        ensureRolePermission(scfAdminTI, scfSecPolicyCreate, scf);
+        ensureRolePermission(scfAdminTI, scfSecPolicyUpdate, scf);
+        // delete de policy deixamos só para SYSTEM_ADMIN
+
+        // UserPermissionOverride: só leitura (overrides sensíveis)
+        ensureRolePermission(scfAdminTI, scfSecUserOverrideRead, scf);
+
+        // ===== ROLE-PERMISSION – IAM / SECURITY (SCJ) =====
+        // SYSTEM_ADMIN (SCJ)
+        ensureRolePermission(scjSystemAdmin, scjIamTenantRead,   scj);
+        ensureRolePermission(scjSystemAdmin, scjIamTenantCreate, scj);
+        ensureRolePermission(scjSystemAdmin, scjIamTenantUpdate, scj);
+        ensureRolePermission(scjSystemAdmin, scjIamTenantDelete, scj);
+
+        ensureRolePermission(scjSystemAdmin, scjIamUserRead,   scj);
+        ensureRolePermission(scjSystemAdmin, scjIamUserCreate, scj);
+        ensureRolePermission(scjSystemAdmin, scjIamUserUpdate, scj);
+        ensureRolePermission(scjSystemAdmin, scjIamUserDelete, scj);
+
+        ensureRolePermission(scjSystemAdmin, scjIamSetorRead,   scj);
+        ensureRolePermission(scjSystemAdmin, scjIamSetorCreate, scj);
+        ensureRolePermission(scjSystemAdmin, scjIamSetorUpdate, scj);
+        ensureRolePermission(scjSystemAdmin, scjIamSetorDelete, scj);
+
+        ensureRolePermission(scjSystemAdmin, scjIamOrgRoleAssignRead,   scj);
+        ensureRolePermission(scjSystemAdmin, scjIamOrgRoleAssignCreate, scj);
+        ensureRolePermission(scjSystemAdmin, scjIamOrgRoleAssignUpdate, scj);
+        ensureRolePermission(scjSystemAdmin, scjIamOrgRoleAssignDelete, scj);
+
+        ensureRolePermission(scjSystemAdmin, scjSecRoleRead,   scj);
+        ensureRolePermission(scjSystemAdmin, scjSecRoleCreate, scj);
+        ensureRolePermission(scjSystemAdmin, scjSecRoleUpdate, scj);
+        ensureRolePermission(scjSystemAdmin, scjSecRoleDelete, scj);
+
+        ensureRolePermission(scjSystemAdmin, scjSecPermRead,   scj);
+        ensureRolePermission(scjSystemAdmin, scjSecPermCreate, scj);
+        ensureRolePermission(scjSystemAdmin, scjSecPermUpdate, scj);
+        ensureRolePermission(scjSystemAdmin, scjSecPermDelete, scj);
+
+        ensureRolePermission(scjSystemAdmin, scjSecRolePermRead,   scj);
+        ensureRolePermission(scjSystemAdmin, scjSecRolePermCreate, scj);
+        ensureRolePermission(scjSystemAdmin, scjSecRolePermUpdate, scj);
+        ensureRolePermission(scjSystemAdmin, scjSecRolePermDelete, scj);
+
+        ensureRolePermission(scjSystemAdmin, scjSecPolicyRead,   scj);
+        ensureRolePermission(scjSystemAdmin, scjSecPolicyCreate, scj);
+        ensureRolePermission(scjSystemAdmin, scjSecPolicyUpdate, scj);
+        ensureRolePermission(scjSystemAdmin, scjSecPolicyDelete, scj);
+
+        ensureRolePermission(scjSystemAdmin, scjSecUserOverrideRead,   scj);
+        ensureRolePermission(scjSystemAdmin, scjSecUserOverrideCreate, scj);
+        ensureRolePermission(scjSystemAdmin, scjSecUserOverrideUpdate, scj);
+        ensureRolePermission(scjSystemAdmin, scjSecUserOverrideDelete, scj);
+
+        // ADMIN_TI (SCJ)
+        ensureRolePermission(scjAdminTI, scjIamTenantRead, scj);
+
+        ensureRolePermission(scjAdminTI, scjIamUserRead,   scj);
+        ensureRolePermission(scjAdminTI, scjIamUserCreate, scj);
+        ensureRolePermission(scjAdminTI, scjIamUserUpdate, scj);
+
+        ensureRolePermission(scjAdminTI, scjIamSetorRead,   scj);
+        ensureRolePermission(scjAdminTI, scjIamSetorCreate, scj);
+        ensureRolePermission(scjAdminTI, scjIamSetorUpdate, scj);
+        // opcional: ensureRolePermission(scjAdminTI, scjIamSetorDelete, scj);
+
+        ensureRolePermission(scjAdminTI, scjIamOrgRoleAssignRead, scj);
+
+        ensureRolePermission(scjAdminTI, scjSecRoleRead,   scj);
+        ensureRolePermission(scjAdminTI, scjSecRoleCreate, scj);
+        ensureRolePermission(scjAdminTI, scjSecRoleUpdate, scj);
+
+        ensureRolePermission(scjAdminTI, scjSecPermRead,   scj);
+        ensureRolePermission(scjAdminTI, scjSecPermCreate, scj);
+        ensureRolePermission(scjAdminTI, scjSecPermUpdate, scj);
+
+        ensureRolePermission(scjAdminTI, scjSecRolePermRead,   scj);
+        ensureRolePermission(scjAdminTI, scjSecRolePermCreate, scj);
+        ensureRolePermission(scjAdminTI, scjSecRolePermUpdate, scj);
+
+        ensureRolePermission(scjAdminTI, scjSecPolicyRead,   scj);
+        ensureRolePermission(scjAdminTI, scjSecPolicyCreate, scj);
+        ensureRolePermission(scjAdminTI, scjSecPolicyUpdate, scj);
+
+        ensureRolePermission(scjAdminTI, scjSecUserOverrideRead, scj);
+
+        //=========================== AUTOCLAVE ==========================================================
         //PERMISSION - Recurso - CME_AUTOCLAVE
         // ===== PERMISSÕES – CME AUTOCLAVE (SCF) =====
         Permission scfAutoclaveRead = findOrCreatePermission(scf,ResourceType.CME_AUTOCLAVE,Action.READ,"LISTA","CME_AUTOCLAVE_READ@LISTA");
@@ -291,8 +635,8 @@ public class DevTestDataInitializer implements ApplicationRunner {
             userPermissionOverrideRepository.save(override);
         });
 
-
-        //PAPEIS ORGANIZACIONAIS
+        
+        //=========================== PAPEIS ORGANIZACIONAIS =========================================================
         // ===== SETORES (IAM / ORG) =====
         Setor setorCmeScf = setorRepository.save(
                 new Setor(null, scf, "Central de Material Esterilização", TipoSetor.CME, "CME")
