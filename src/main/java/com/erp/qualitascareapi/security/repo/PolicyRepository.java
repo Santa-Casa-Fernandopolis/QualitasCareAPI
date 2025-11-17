@@ -3,12 +3,16 @@ package com.erp.qualitascareapi.security.repo;
 import com.erp.qualitascareapi.security.domain.Policy;
 import com.erp.qualitascareapi.security.enums.Action;
 import com.erp.qualitascareapi.security.enums.ResourceType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
 public interface PolicyRepository extends JpaRepository<Policy, Long> {
+
+    Page<Policy> findAllByTenant_Id(Long tenantId, Pageable pageable);
 
     @Query("""
       select distinct pol from Policy pol

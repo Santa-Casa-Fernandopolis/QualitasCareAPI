@@ -6,6 +6,7 @@ import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.repo.TenantRepository;
 import com.erp.qualitascareapi.security.api.dto.RolePermissionDto;
 import com.erp.qualitascareapi.security.api.dto.RolePermissionRequest;
+import com.erp.qualitascareapi.security.application.TenantScopeGuard;
 import com.erp.qualitascareapi.security.domain.Permission;
 import com.erp.qualitascareapi.security.domain.Role;
 import com.erp.qualitascareapi.security.domain.RolePermission;
@@ -14,6 +15,7 @@ import com.erp.qualitascareapi.security.repo.RolePermissionRepository;
 import com.erp.qualitascareapi.security.repo.RoleRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,33 +28,39 @@ public class RolePermissionService {
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
     private final TenantRepository tenantRepository;
+    private final TenantScopeGuard tenantScopeGuard;
 
     public RolePermissionService(RolePermissionRepository rolePermissionRepository,
                                  RoleRepository roleRepository,
                                  PermissionRepository permissionRepository,
-                                 TenantRepository tenantRepository) {
+                                 TenantRepository tenantRepository,
+                                 TenantScopeGuard tenantScopeGuard) {
         this.rolePermissionRepository = rolePermissionRepository;
         this.roleRepository = roleRepository;
         this.permissionRepository = permissionRepository;
         this.tenantRepository = tenantRepository;
+        this.tenantScopeGuard = tenantScopeGuard;
     }
 
     @Transactional(readOnly = true)
     public Page<RolePermissionDto> list(Pageable pageable) {
-        return rolePermissionRepository.findAll(pageable).map(this::toDto);
+        Long tenantId = requireTenant();
+        return rolePermissionRepository.findAllByTenant_Id(tenantId, pageable).map(this::toDto);
     }
 
     @Transactional(readOnly = true)
     public RolePermissionDto get(Long id) {
-        return rolePermissionRepository.findById(id)
-                .map(this::toDto)
+        RolePermission rolePermission = rolePermissionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("RolePermission", id));
+        tenantScopeGuard.checkTenantAccess(rolePermission.getTenant() != null ? rolePermission.getTenant().getId() : null);
+        return toDto(rolePermission);
     }
 
     @Transactional
     public RolePermissionDto create(RolePermissionRequest request) {
         Tenant tenant = tenantRepository.findById(request.tenantId())
                 .orElseThrow(() -> new BadRequestException("Tenant not found", Map.of("tenantId", request.tenantId())));
+        tenantScopeGuard.checkRequestedTenant(tenant.getId());
         Role role = roleRepository.findById(request.roleId())
                 .orElseThrow(() -> new BadRequestException("Role not found", Map.of("roleId", request.roleId())));
         Permission permission = permissionRepository.findById(request.permissionId())
@@ -71,9 +79,11 @@ public class RolePermissionService {
     public RolePermissionDto update(Long id, RolePermissionRequest request) {
         RolePermission rolePermission = rolePermissionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("RolePermission", id));
+        tenantScopeGuard.checkTenantAccess(rolePermission.getTenant() != null ? rolePermission.getTenant().getId() : null);
 
         Tenant tenant = tenantRepository.findById(request.tenantId())
                 .orElseThrow(() -> new BadRequestException("Tenant not found", Map.of("tenantId", request.tenantId())));
+        tenantScopeGuard.checkRequestedTenant(tenant.getId());
         Role role = roleRepository.findById(request.roleId())
                 .orElseThrow(() -> new BadRequestException("Role not found", Map.of("roleId", request.roleId())));
         Permission permission = permissionRepository.findById(request.permissionId())
@@ -89,10 +99,10 @@ public class RolePermissionService {
 
     @Transactional
     public void delete(Long id) {
-        if (!rolePermissionRepository.existsById(id)) {
-            throw new ResourceNotFoundException("RolePermission", id);
-        }
-        rolePermissionRepository.deleteById(id);
+        RolePermission rolePermission = rolePermissionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("RolePermission", id));
+        tenantScopeGuard.checkTenantAccess(rolePermission.getTenant() != null ? rolePermission.getTenant().getId() : null);
+        rolePermissionRepository.delete(rolePermission);
     }
 
     private void validateTenant(Tenant tenant, Tenant roleTenant, Tenant permissionTenant) {
@@ -106,5 +116,13 @@ public class RolePermissionService {
                 rolePermission.getTenant() != null ? rolePermission.getTenant().getId() : null,
                 rolePermission.getRole() != null ? rolePermission.getRole().getId() : null,
                 rolePermission.getPermission() != null ? rolePermission.getPermission().getId() : null);
+    }
+
+    private Long requireTenant() {
+        Long tenantId = tenantScopeGuard.currentTenantId();
+        if (tenantId == null) {
+            throw new AccessDeniedException("Tenant context not available");
+        }
+        return tenantId;
     }
 }
