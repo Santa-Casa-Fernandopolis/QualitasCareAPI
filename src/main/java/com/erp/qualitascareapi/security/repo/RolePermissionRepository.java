@@ -6,12 +6,16 @@ import com.erp.qualitascareapi.security.domain.Permission;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.security.enums.Action;
 import com.erp.qualitascareapi.security.enums.ResourceType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Set;
 
 public interface RolePermissionRepository extends JpaRepository<RolePermission, Long> {
+
+    Page<RolePermission> findAllByTenant_Id(Long tenantId, Pageable pageable);
 
     @Query("""
       select case when count(rp) > 0 then true else false end

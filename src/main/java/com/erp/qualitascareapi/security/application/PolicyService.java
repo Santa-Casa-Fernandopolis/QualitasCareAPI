@@ -5,6 +5,7 @@ import com.erp.qualitascareapi.common.exception.ResourceNotFoundException;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.repo.TenantRepository;
 import com.erp.qualitascareapi.security.api.dto.*;
+import com.erp.qualitascareapi.security.application.TenantScopeGuard;
 import com.erp.qualitascareapi.security.domain.Policy;
 import com.erp.qualitascareapi.security.domain.PolicyCondition;
 import com.erp.qualitascareapi.security.domain.Role;
@@ -12,6 +13,7 @@ import com.erp.qualitascareapi.security.repo.PolicyRepository;
 import com.erp.qualitascareapi.security.repo.RoleRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,31 +29,37 @@ public class PolicyService {
     private final PolicyRepository policyRepository;
     private final TenantRepository tenantRepository;
     private final RoleRepository roleRepository;
+    private final TenantScopeGuard tenantScopeGuard;
 
     public PolicyService(PolicyRepository policyRepository,
                          TenantRepository tenantRepository,
-                         RoleRepository roleRepository) {
+                         RoleRepository roleRepository,
+                         TenantScopeGuard tenantScopeGuard) {
         this.policyRepository = policyRepository;
         this.tenantRepository = tenantRepository;
         this.roleRepository = roleRepository;
+        this.tenantScopeGuard = tenantScopeGuard;
     }
 
     @Transactional(readOnly = true)
     public Page<PolicyDto> list(Pageable pageable) {
-        return policyRepository.findAll(pageable).map(this::toDto);
+        Long tenantId = requireTenant();
+        return policyRepository.findAllByTenant_Id(tenantId, pageable).map(this::toDto);
     }
 
     @Transactional(readOnly = true)
     public PolicyDto get(Long id) {
-        return policyRepository.findById(id)
-                .map(this::toDto)
+        Policy policy = policyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Policy", id));
+        tenantScopeGuard.checkTenantAccess(policy.getTenant() != null ? policy.getTenant().getId() : null);
+        return toDto(policy);
     }
 
     @Transactional
     public PolicyDto create(PolicyRequest request) {
         Tenant tenant = tenantRepository.findById(request.tenantId())
                 .orElseThrow(() -> new BadRequestException("Tenant not found", Map.of("tenantId", request.tenantId())));
+        tenantScopeGuard.checkRequestedTenant(tenant.getId());
 
         Policy policy = new Policy();
         policy.setTenant(tenant);
@@ -67,6 +75,8 @@ public class PolicyService {
         if (tenantId == null) {
             throw new BadRequestException("Policy tenant not defined", Map.of("policyId", id));
         }
+        tenantScopeGuard.checkTenantAccess(tenantId);
+        tenantScopeGuard.checkRequestedTenant(request.tenantId());
         if (!tenantId.equals(request.tenantId())) {
             throw new BadRequestException("Tenant mismatch for policy",
                     Map.of("policyId", id, "policyTenantId", tenantId, "requestTenantId", request.tenantId()));
@@ -77,10 +87,10 @@ public class PolicyService {
 
     @Transactional
     public void delete(Long id) {
-        if (!policyRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Policy", id);
-        }
-        policyRepository.deleteById(id);
+        Policy policy = policyRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Policy", id));
+        tenantScopeGuard.checkTenantAccess(policy.getTenant() != null ? policy.getTenant().getId() : null);
+        policyRepository.delete(policy);
     }
 
     private void applyRequest(Policy policy, Long tenantId, PolicyRequest request) {
@@ -136,5 +146,13 @@ public class PolicyService {
         return new PolicyDto(policy.getId(), tenant != null ? tenant.getId() : null,
                 policy.getResource(), policy.getAction(), policy.getFeature(), policy.getEffect(),
                 policy.isEnabled(), policy.getPriority(), policy.getDescription(), roles, conditions);
+    }
+
+    private Long requireTenant() {
+        Long tenantId = tenantScopeGuard.currentTenantId();
+        if (tenantId == null) {
+            throw new AccessDeniedException("Tenant context not available");
+        }
+        return tenantId;
     }
 }
