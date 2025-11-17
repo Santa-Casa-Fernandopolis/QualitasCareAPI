@@ -1,6 +1,8 @@
 package com.erp.qualitascareapi.security.enums;
 
 public enum ResourceType {
+    IAM,
+    SECURITY,
     INDICADOR,
     AUDITORIA,
     NAO_CONFORMIDADE,
@@ -12,5 +14,6 @@ public enum ResourceType {
     DOCUMENTO,
     DOCUMENTO_VERSAO,
     DOCUMENTO_ACK,
-    DOCUMENTO_ALTERACAO
+    DOCUMENTO_ALTERACAO,
+    CME_AUTOCLAVE
 }

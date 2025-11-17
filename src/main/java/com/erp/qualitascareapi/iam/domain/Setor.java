@@ -33,6 +33,13 @@ public class Setor {
 
     public Setor() {
     }
+    public Setor(Long id, Tenant tenant, String nome, TipoSetor tipo, String descricao) {
+        this.id = id;
+        this.tenant = tenant;
+        this.nome = nome;
+        this.tipo = tipo;
+        this.descricao = descricao;
+    }
 
     public Long getId() {
         return id;

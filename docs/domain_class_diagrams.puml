@@ -1213,6 +1213,11 @@ package "core.enums" {
         HOTELARIA
         MANUTENCAO
         PS
+        QUALIDADE
+        ENFERMAGEM
+        EDUCACAO_PERMANENTE
+        CCIH
+        NIR
     }
 }
 
@@ -1232,6 +1237,8 @@ package "security.enums" {
   }
 
   enum ResourceType {
+      IAM
+      SECURITY
       INDICADOR
       AUDITORIA
       NC

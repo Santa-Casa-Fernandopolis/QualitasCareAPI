@@ -6,4 +6,5 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 public interface OrgRoleAssignmentRepository extends JpaRepository<OrgRoleAssignment, Long>,
         JpaSpecificationExecutor<OrgRoleAssignment> {
+
 }

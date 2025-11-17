@@ -10,6 +10,7 @@ public enum TipoSetor {
     MANUTENCAO,
     PS,
     QUALIDADE,
+    ENFERMAGEM,
     EDUCACAO_PERMANENTE,
     CCIH,
     NIR
