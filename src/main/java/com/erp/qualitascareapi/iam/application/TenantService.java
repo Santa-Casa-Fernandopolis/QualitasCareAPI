@@ -8,7 +8,9 @@ import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.domain.User;
 import com.erp.qualitascareapi.iam.repo.TenantRepository;
 import com.erp.qualitascareapi.iam.repo.UserRepository;
+import com.erp.qualitascareapi.security.application.TenantScopeGuard;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,22 +29,34 @@ public class TenantService {
 
     private final TenantRepository tenantRepository;
     private final UserRepository userRepository;
+    private final TenantScopeGuard tenantScopeGuard;
 
-    public TenantService(TenantRepository tenantRepository, UserRepository userRepository) {
+    public TenantService(TenantRepository tenantRepository,
+                         UserRepository userRepository,
+                         TenantScopeGuard tenantScopeGuard) {
         this.tenantRepository = tenantRepository;
         this.userRepository = userRepository;
+        this.tenantScopeGuard = tenantScopeGuard;
     }
 
     @Transactional(readOnly = true)
     public Page<TenantDto> list(Pageable pageable) {
+        Long tenantId = tenantScopeGuard.currentTenantId();
+        if (tenantId != null) {
+            return tenantRepository.findById(tenantId)
+                    .map(this::toDto)
+                    .map(dto -> new PageImpl<>(List.of(dto), pageable, 1))
+                    .orElseGet(() -> new PageImpl<>(List.of(), pageable, 0));
+        }
         return tenantRepository.findAll(pageable).map(this::toDto);
     }
 
     @Transactional(readOnly = true)
     public TenantDto get(Long id) {
-        return tenantRepository.findById(id)
-                .map(this::toDto)
+        Tenant tenant = tenantRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Tenant", id));
+        tenantScopeGuard.checkTenantAccess(tenant.getId());
+        return toDto(tenant);
     }
 
     @Transactional
@@ -56,16 +70,17 @@ public class TenantService {
     public TenantDto update(Long id, TenantRequest request) {
         Tenant tenant = tenantRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Tenant", id));
+        tenantScopeGuard.checkTenantAccess(tenant.getId());
         applyRequest(request, tenant);
         return toDto(tenant);
     }
 
     @Transactional
     public void delete(Long id) {
-        if (!tenantRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Tenant", id);
-        }
-        tenantRepository.deleteById(id);
+        Tenant tenant = tenantRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Tenant", id));
+        tenantScopeGuard.checkTenantAccess(tenant.getId());
+        tenantRepository.delete(tenant);
     }
 
     private void applyRequest(TenantRequest request, Tenant tenant) {
