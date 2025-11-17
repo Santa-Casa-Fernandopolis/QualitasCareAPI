@@ -11,6 +11,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.erp.qualitascareapi.security.application.TenantScopeGuard;
+
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -26,11 +28,14 @@ class TenantServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private TenantScopeGuard tenantScopeGuard;
+
     private TenantService tenantService;
 
     @BeforeEach
     void setUp() {
-        this.tenantService = new TenantService(tenantRepository, userRepository);
+        this.tenantService = new TenantService(tenantRepository, userRepository, tenantScopeGuard);
     }
 
     @Test
