@@ -21,11 +21,11 @@ public class Permission {
     private Long id;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable=false, length=30)
+    @Column(nullable=false, length=40)
     private ResourceType resource;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable=false, length=30)
+    @Column(nullable=false, length=40)
     private Action action;
 
     @Column(length=80) // NULL = coringa
