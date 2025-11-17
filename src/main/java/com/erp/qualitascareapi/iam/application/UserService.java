@@ -11,6 +11,7 @@ import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.domain.User;
 import com.erp.qualitascareapi.iam.repo.TenantRepository;
 import com.erp.qualitascareapi.iam.repo.UserRepository;
+import com.erp.qualitascareapi.security.application.TenantScopeGuard;
 import com.erp.qualitascareapi.security.domain.Role;
 import com.erp.qualitascareapi.security.enums.IdentityOrigin;
 import com.erp.qualitascareapi.security.enums.UserStatus;
@@ -33,33 +34,42 @@ public class UserService {
     private final TenantRepository tenantRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
+    private final TenantScopeGuard tenantScopeGuard;
 
     public UserService(UserRepository userRepository,
                        TenantRepository tenantRepository,
                        RoleRepository roleRepository,
-                       PasswordEncoder passwordEncoder) {
+                       PasswordEncoder passwordEncoder,
+                       TenantScopeGuard tenantScopeGuard) {
         this.userRepository = userRepository;
         this.tenantRepository = tenantRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
+        this.tenantScopeGuard = tenantScopeGuard;
     }
 
     @Transactional(readOnly = true)
     public Page<UserDto> list(Pageable pageable) {
+        Long tenantId = tenantScopeGuard.currentTenantId();
+        if (tenantId != null) {
+            return userRepository.findAllByTenant_Id(tenantId, pageable).map(this::toDto);
+        }
         return userRepository.findAll(pageable).map(this::toDto);
     }
 
     @Transactional(readOnly = true)
     public UserDto get(Long id) {
-        return userRepository.findById(id)
-                .map(this::toDto)
+        User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User", id));
+        tenantScopeGuard.checkTenantAccess(user.getTenant() != null ? user.getTenant().getId() : null);
+        return toDto(user);
     }
 
     @Transactional
     public UserDto create(UserCreateRequest request) {
         Tenant tenant = tenantRepository.findById(request.tenantId())
                 .orElseThrow(() -> new BadRequestException("Tenant not found", Map.of("tenantId", request.tenantId())));
+        tenantScopeGuard.checkTenantAccess(tenant.getId());
 
         User user = new User();
         user.setTenant(tenant);
@@ -81,6 +91,7 @@ public class UserService {
     public UserDto update(Long id, UserUpdateRequest request) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User", id));
+        tenantScopeGuard.checkTenantAccess(user.getTenant() != null ? user.getTenant().getId() : null);
 
         if (request.fullName() != null) {
             user.setFullName(request.fullName());
@@ -113,6 +124,7 @@ public class UserService {
     public UserDto updateProfile(Long id, UserProfileUpdateRequest request) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User", id));
+        tenantScopeGuard.checkTenantAccess(user.getTenant() != null ? user.getTenant().getId() : null);
 
         if (request.fullName() != null) {
             user.setFullName(request.fullName());
@@ -129,10 +141,10 @@ public class UserService {
 
     @Transactional
     public void delete(Long id) {
-        if (!userRepository.existsById(id)) {
-            throw new ResourceNotFoundException("User", id);
-        }
-        userRepository.deleteById(id);
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User", id));
+        tenantScopeGuard.checkTenantAccess(user.getTenant() != null ? user.getTenant().getId() : null);
+        userRepository.delete(user);
     }
 
     private void applyRoles(User user, Long tenantId, Set<Long> roleIds) {
