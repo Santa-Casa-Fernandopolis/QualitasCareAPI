@@ -6,7 +6,7 @@ import com.erp.qualitascareapi.iam.enums.TipoSetor;
 public record OrgRoleAssignmentDto(
         Long id,
         Long tenantId,
-        Long tenantCode,
+        String tenantCode,
         String tenantName,
         OrgRoleType roleType,
         Long userId,
