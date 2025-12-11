@@ -39,14 +39,14 @@ class LocalUserDetailsServiceTest {
     @BeforeEach
     void setUp() {
         this.service = new LocalUserDetailsService(userRepository);
-        this.tenant = new Tenant(1L, 1001L, "Santa Casa Felicidade",
+        this.tenant = new Tenant(1L, "1001", "Santa Casa Felicidade",
                 "12345678000100", "https://cdn.qualitascare.com/logos/scf.png", true);
     }
 
     @Test
     void loadUserByUsername_resolvesTenantSuffixWithAtSymbol() {
         User user = buildUser("enf.scf");
-        when(userRepository.findByUsernameIgnoreCaseAndTenant_Code("enf.scf", 1001L))
+        when(userRepository.findByUsernameIgnoreCaseAndTenant_Code("enf.scf", "1001"))
                 .thenReturn(Optional.of(user));
 
         UserDetails details = service.loadUserByUsername("  enf.scf@1001  ");
@@ -54,23 +54,23 @@ class LocalUserDetailsServiceTest {
         assertThat(details).isInstanceOf(AuthenticatedUserDetails.class);
         assertThat(details.getUsername()).isEqualTo("enf.scf");
 
-        verify(userRepository).findByUsernameIgnoreCaseAndTenant_Code("enf.scf", 1001L);
+        verify(userRepository).findByUsernameIgnoreCaseAndTenant_Code("enf.scf", "1001");
         verify(userRepository, never()).findByUsernameIgnoreCase("enf.scf");
     }
 
     @Test
     void loadUserByUsername_resolvesTenantPrefixSeparatedByPipe() {
         User user = buildUser("admin.scf");
-        when(userRepository.findByUsernameIgnoreCaseAndTenant_Code("admin.scf", 1001L))
+        when(userRepository.findByUsernameIgnoreCaseAndTenant_Code("admin.scf", "1001"))
                 .thenReturn(Optional.of(user));
 
         UserDetails details = service.loadUserByUsername("1001|admin.scf");
 
         assertThat(details.getUsername()).isEqualTo("admin.scf");
 
-        ArgumentCaptor<Long> tenantCaptor = ArgumentCaptor.forClass(Long.class);
+        ArgumentCaptor<String> tenantCaptor = ArgumentCaptor.forClass(String.class);
         verify(userRepository).findByUsernameIgnoreCaseAndTenant_Code(eq("admin.scf"), tenantCaptor.capture());
-        assertThat(tenantCaptor.getValue()).isEqualTo(1001L);
+        assertThat(tenantCaptor.getValue()).isEqualTo("1001");
         verify(userRepository, never()).findByUsernameIgnoreCase("admin.scf");
     }
 

@@ -48,9 +48,9 @@ class TenantServiceTest {
 
     @Test
     void findAvailableTenantsForUsername_returnsUniqueActiveTenantsSortedByName() {
-        Tenant alpha = new Tenant(1L, 2002L, "Alpha Clinic", "11111111000100", "logo-alpha.png", true);
-        Tenant beta = new Tenant(2L, 2001L, "beta hospital", "22222222000100", "logo-beta.png", true);
-        Tenant inactive = new Tenant(3L, 2003L, "Gamma Labs", "33333333000100", "logo-gamma.png", false);
+        Tenant alpha = new Tenant(1L, "2002", "Alpha Clinic", "11111111000100", "logo-alpha.png", true);
+        Tenant beta = new Tenant(2L, "2001", "beta hospital", "22222222000100", "logo-beta.png", true);
+        Tenant inactive = new Tenant(3L, "2003", "Gamma Labs", "33333333000100", "logo-gamma.png", false);
 
         User userAlpha = new User();
         userAlpha.setTenant(alpha);
@@ -71,6 +71,6 @@ class TenantServiceTest {
                 .containsExactly("Alpha Clinic", "beta hospital");
         assertThat(tenants)
                 .extracting(TenantLoginOptionDto::code)
-                .containsExactly(2002L, 2001L);
+                .containsExactly("2002", "2001");
     }
 }
