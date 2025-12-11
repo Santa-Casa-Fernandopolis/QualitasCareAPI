@@ -20,7 +20,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByUsernameIgnoreCase(String username);
 
     @EntityGraph(attributePaths = {"roles", "tenant"})
-    Optional<User> findByUsernameIgnoreCaseAndTenant_Code(String username, Long tenantCode);
+    Optional<User> findByUsernameIgnoreCaseAndTenant_Code(String username, String tenantCode);
 
     @EntityGraph(attributePaths = {"tenant"})
     List<User> findAllByUsernameIgnoreCase(String username);

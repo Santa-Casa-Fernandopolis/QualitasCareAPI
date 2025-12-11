@@ -74,16 +74,16 @@ public class DevTestDataInitializer implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        if (tenantRepository.count() > 0) {
-            log.info("Skipping dev/test data initialization because the database is not empty.");
+        if (isDatabaseAlreadyInitialized()) {
+            log.info("Skipping dev/test data initialization because the database already has tenant data.");
             return;
         }
 
         log.info("Bootstrapping reference data for dev/test environment...");
 
-        Tenant scf = tenantRepository.save(new Tenant(null, 1001L, "Santa Casa Felicidade",
+        Tenant scf = tenantRepository.save(new Tenant(null, "1001", "Santa Casa Felicidade",
                 "12345678000100", "https://cdn.qualitascare.com/logos/scf.png", true));
-        Tenant scj = tenantRepository.save(new Tenant(null, 1002L, "Santa Casa Jacarandá",
+        Tenant scj = tenantRepository.save(new Tenant(null, "1002", "Santa Casa Jacarandá",
                 "12345678000290", "https://cdn.qualitascare.com/logos/scj.png", true));
 
 
@@ -812,6 +812,17 @@ public class DevTestDataInitializer implements ApplicationRunner {
         user.getRoles().add(role);
         userRepository.save(user);
         createdUsers.add(username + "/" + defaultPassword);
+    }
+
+    private boolean isDatabaseAlreadyInitialized() {
+        long tenantCount = tenantRepository.count();
+        if (tenantCount == 0) {
+            return false;
+        }
+        if (tenantCount == 1) {
+            return tenantRepository.findByCode("DEFAULT").isEmpty();
+        }
+        return true;
     }
 
     private String defaultPasswordFor(String username) {

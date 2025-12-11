@@ -51,14 +51,13 @@ public class LocalUserDetailsService implements UserDetailsService {
 
     private User resolveUser(String username, String tenantCode) {
         if (StringUtils.hasText(tenantCode)) {
-            try {
-                Long code = Long.parseLong(tenantCode.trim());
-                return userRepository
-                        .findByUsernameIgnoreCaseAndTenant_Code(username, code)
-                        .orElseThrow(() -> new UsernameNotFoundException("User not found for tenant"));
-            } catch (NumberFormatException ex) {
-                throw new UsernameNotFoundException("Tenant code must be numeric");
+            String normalizedCode = tenantCode.trim();
+            if (normalizedCode.isEmpty()) {
+                throw new UsernameNotFoundException("Tenant code must be provided when using tenant/username format");
             }
+            return userRepository
+                    .findByUsernameIgnoreCaseAndTenant_Code(username, normalizedCode)
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found for tenant"));
         }
 
         var user = userRepository.findByUsernameIgnoreCase(username)
