@@ -90,7 +90,7 @@ public class AuthenticatedUserDetails implements UserDetails {
     }
 
     public String getTenantCode() {
-        return tenant != null && tenant.getCode() != null ? tenant.getCode().toString() : null;
+        return tenant != null ? tenant.getCode() : null;
     }
 
     public Tenant getTenant() {
