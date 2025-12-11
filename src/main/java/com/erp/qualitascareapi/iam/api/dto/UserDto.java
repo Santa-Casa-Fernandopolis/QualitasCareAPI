@@ -18,7 +18,7 @@ public record UserDto(
         LocalDateTime expiresAt,
         LocalDateTime updatedAt,
         Long tenantId,
-        Long tenantCode,
+        String tenantCode,
         Set<RoleSummaryDto> roles
 ) {
 }
