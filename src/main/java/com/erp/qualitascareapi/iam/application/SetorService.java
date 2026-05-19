@@ -8,6 +8,7 @@ import com.erp.qualitascareapi.iam.domain.Setor;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.repo.SetorRepository;
 import com.erp.qualitascareapi.iam.repo.TenantRepository;
+import com.erp.qualitascareapi.security.application.TenantScopeGuard;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -22,16 +23,22 @@ public class SetorService {
 
     private final SetorRepository setorRepository;
     private final TenantRepository tenantRepository;
+    private final TenantScopeGuard tenantScopeGuard;
 
-    public SetorService(SetorRepository setorRepository, TenantRepository tenantRepository) {
+    public SetorService(SetorRepository setorRepository,
+                        TenantRepository tenantRepository,
+                        TenantScopeGuard tenantScopeGuard) {
         this.setorRepository = setorRepository;
         this.tenantRepository = tenantRepository;
+        this.tenantScopeGuard = tenantScopeGuard;
     }
 
     @Transactional(readOnly = true)
     public Page<SetorDto> list(Long tenantId, Pageable pageable) {
-        Page<Setor> setores = tenantId != null
-                ? setorRepository.findAllByTenantId(tenantId, pageable)
+        Long contextTenantId = tenantScopeGuard.currentTenantId();
+        Long effectiveTenantId = contextTenantId != null ? contextTenantId : tenantId;
+        Page<Setor> setores = effectiveTenantId != null
+                ? setorRepository.findAllByTenantId(effectiveTenantId, pageable)
                 : setorRepository.findAll(pageable);
         return setores.map(this::toDto);
     }

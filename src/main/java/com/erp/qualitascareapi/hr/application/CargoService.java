@@ -8,6 +8,7 @@ import com.erp.qualitascareapi.hr.domain.Cargo;
 import com.erp.qualitascareapi.hr.repo.CargoRepository;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.repo.TenantRepository;
+import com.erp.qualitascareapi.security.application.TenantScopeGuard;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -22,16 +23,22 @@ public class CargoService {
 
     private final CargoRepository cargoRepository;
     private final TenantRepository tenantRepository;
+    private final TenantScopeGuard tenantScopeGuard;
 
-    public CargoService(CargoRepository cargoRepository, TenantRepository tenantRepository) {
+    public CargoService(CargoRepository cargoRepository,
+                        TenantRepository tenantRepository,
+                        TenantScopeGuard tenantScopeGuard) {
         this.cargoRepository = cargoRepository;
         this.tenantRepository = tenantRepository;
+        this.tenantScopeGuard = tenantScopeGuard;
     }
 
     @Transactional(readOnly = true)
     public Page<CargoDto> list(Long tenantId, Pageable pageable) {
-        Page<Cargo> cargos = tenantId != null
-                ? cargoRepository.findAllByTenant_Id(tenantId, pageable)
+        Long contextTenantId = tenantScopeGuard.currentTenantId();
+        Long effectiveTenantId = contextTenantId != null ? contextTenantId : tenantId;
+        Page<Cargo> cargos = effectiveTenantId != null
+                ? cargoRepository.findAllByTenant_Id(effectiveTenantId, pageable)
                 : cargoRepository.findAll(pageable);
         return cargos.map(this::toDto);
     }
