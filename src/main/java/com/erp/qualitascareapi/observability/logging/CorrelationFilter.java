@@ -7,8 +7,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.MDC;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -40,12 +38,7 @@ public class CorrelationFilter extends OncePerRequestFilter {
 
         MDC.put(TRACE_ID, traceId);
         MDC.put(CLIENT_IP, clientIp);
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null) {
-            MDC.put(USER_ID, authentication.getName());
-        } else {
-            MDC.put(USER_ID, "anonymous");
-        }
+        MDC.put(USER_ID, "anonymous"); // updated by RequestLoggingFilter after JWT resolution
 
         request.setAttribute(CLIENT_IP, clientIp);
         try {

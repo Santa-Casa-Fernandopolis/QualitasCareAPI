@@ -19,6 +19,7 @@ import com.erp.qualitascareapi.iam.repo.TenantRepository;
 import com.erp.qualitascareapi.iam.repo.UserRepository;
 import com.erp.qualitascareapi.quality.domain.TipoNaoConformidade;
 import com.erp.qualitascareapi.quality.repo.TipoNaoConformidadeRepository;
+import com.erp.qualitascareapi.security.application.TenantScopeGuard;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -43,6 +44,7 @@ public class QualidadeService {
     private final LoteEtiquetaRepository loteEtiquetaRepository;
     private final SaneantePeraceticoLoteRepository saneanteRepository;
     private final EvidenciaArquivoRepository evidenciaArquivoRepository;
+    private final TenantScopeGuard tenantScopeGuard;
 
     public QualidadeService(TenantRepository tenantRepository,
                             UserRepository userRepository,
@@ -52,7 +54,8 @@ public class QualidadeService {
                             GeracaoResiduoRepository geracaoResiduoRepository,
                             LoteEtiquetaRepository loteEtiquetaRepository,
                             SaneantePeraceticoLoteRepository saneanteRepository,
-                            EvidenciaArquivoRepository evidenciaArquivoRepository) {
+                            EvidenciaArquivoRepository evidenciaArquivoRepository,
+                            TenantScopeGuard tenantScopeGuard) {
         this.tenantRepository = tenantRepository;
         this.userRepository = userRepository;
         this.exameCulturaRepository = exameCulturaRepository;
@@ -62,9 +65,11 @@ public class QualidadeService {
         this.loteEtiquetaRepository = loteEtiquetaRepository;
         this.saneanteRepository = saneanteRepository;
         this.evidenciaArquivoRepository = evidenciaArquivoRepository;
+        this.tenantScopeGuard = tenantScopeGuard;
     }
 
     public ExameCulturaDto registrarExame(ExameCulturaRequest request) {
+        tenantScopeGuard.checkRequestedTenant(request.tenantId());
         Tenant tenant = tenantRepository.findById(request.tenantId())
                 .orElseThrow(() -> new EntityNotFoundException("Tenant não encontrado"));
         ExameCultura exame = new ExameCultura();
@@ -90,7 +95,7 @@ public class QualidadeService {
     }
 
     public Page<ExameCulturaDto> listExames(Pageable pageable) {
-        return exameCulturaRepository.findAll(pageable)
+        return exameCulturaRepository.findAllByTenantId(tenantScopeGuard.currentTenantId(), pageable)
                 .map(exame -> new ExameCulturaDto(exame.getId(), exame.getTenant().getId(),
                         exame.getOrigemAmostra(), exame.getDataColeta(), exame.getResponsavelColeta(),
                         exame.getResultado(),
@@ -99,6 +104,7 @@ public class QualidadeService {
     }
 
     public NaoConformidadeDto registrarNaoConformidade(NaoConformidadeRequest request) {
+        tenantScopeGuard.checkRequestedTenant(request.tenantId());
         Tenant tenant = tenantRepository.findById(request.tenantId())
                 .orElseThrow(() -> new EntityNotFoundException("Tenant não encontrado"));
         TipoNaoConformidade tipo = tipoNaoConformidadeRepository.findById(request.tipoId())
@@ -150,7 +156,7 @@ public class QualidadeService {
     }
 
     public Page<NaoConformidadeDto> listNaoConformidades(Pageable pageable) {
-        return naoConformidadeRepository.findAll(pageable)
+        return naoConformidadeRepository.findAllByTenantId(tenantScopeGuard.currentTenantId(), pageable)
                 .map(nc -> new NaoConformidadeDto(nc.getId(), nc.getTenant().getId(), nc.getTitulo(), nc.getDescricao(),
                         nc.getSeveridade(), nc.getStatus(), nc.getDataAbertura(), nc.getDataEncerramento(),
                         nc.getResponsavel() != null ? nc.getResponsavel().getId() : null,
@@ -159,6 +165,7 @@ public class QualidadeService {
     }
 
     public GeracaoResiduoDto registrarGeracaoResiduo(GeracaoResiduoRequest request) {
+        tenantScopeGuard.checkRequestedTenant(request.tenantId());
         Tenant tenant = tenantRepository.findById(request.tenantId())
                 .orElseThrow(() -> new EntityNotFoundException("Tenant não encontrado"));
         GeracaoResiduo residuo = new GeracaoResiduo();
@@ -187,7 +194,7 @@ public class QualidadeService {
     }
 
     public Page<GeracaoResiduoDto> listGeracoesResiduo(Pageable pageable) {
-        return geracaoResiduoRepository.findAll(pageable)
+        return geracaoResiduoRepository.findAllByTenantId(tenantScopeGuard.currentTenantId(), pageable)
                 .map(g -> new GeracaoResiduoDto(g.getId(), g.getTenant().getId(), g.getDataRegistro(), g.getClasseResiduo(),
                         g.getPesoEstimadoKg(), g.getDestinoFinal(),
                         g.getLoteRelacionada() != null ? g.getLoteRelacionada().getId() : null,

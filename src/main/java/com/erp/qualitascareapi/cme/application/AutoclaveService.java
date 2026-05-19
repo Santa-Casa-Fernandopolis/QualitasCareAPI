@@ -10,6 +10,7 @@ import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.domain.User;
 import com.erp.qualitascareapi.iam.repo.TenantRepository;
 import com.erp.qualitascareapi.iam.repo.UserRepository;
+import com.erp.qualitascareapi.security.application.TenantScopeGuard;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -38,6 +39,7 @@ public class AutoclaveService {
     private final LoteEtiquetaRepository loteEtiquetaRepository;
     private final ProcessoReprocessamentoRepository processoRepository;
     private final EvidenciaArquivoRepository evidenciaArquivoRepository;
+    private final TenantScopeGuard tenantScopeGuard;
 
     public AutoclaveService(TenantRepository tenantRepository,
                             UserRepository userRepository,
@@ -52,7 +54,8 @@ public class AutoclaveService {
                             IndicadorBiologicoRepository indicadorBiologicoRepository,
                             LoteEtiquetaRepository loteEtiquetaRepository,
                             ProcessoReprocessamentoRepository processoRepository,
-                            EvidenciaArquivoRepository evidenciaArquivoRepository) {
+                            EvidenciaArquivoRepository evidenciaArquivoRepository,
+                            TenantScopeGuard tenantScopeGuard) {
         this.tenantRepository = tenantRepository;
         this.userRepository = userRepository;
         this.autoclaveRepository = autoclaveRepository;
@@ -67,6 +70,7 @@ public class AutoclaveService {
         this.loteEtiquetaRepository = loteEtiquetaRepository;
         this.processoRepository = processoRepository;
         this.evidenciaArquivoRepository = evidenciaArquivoRepository;
+        this.tenantScopeGuard = tenantScopeGuard;
     }
 
     public AutoclaveDto findAutoclaveById(Long id) {
@@ -131,6 +135,7 @@ public class AutoclaveService {
     }
 
     public AutoclaveDto createAutoclave(AutoclaveRequest request) {
+        tenantScopeGuard.checkRequestedTenant(request.tenantId());
         Tenant tenant = tenantRepository.findById(request.tenantId())
                 .orElseThrow(() -> new EntityNotFoundException("Tenant não encontrado"));
         Autoclave autoclave = new Autoclave();
@@ -147,7 +152,7 @@ public class AutoclaveService {
     }
 
     public Page<AutoclaveDto> listAutoclaves(Pageable pageable) {
-        return autoclaveRepository.findAll(pageable).map(this::toDto);
+        return autoclaveRepository.findAllByTenantId(tenantScopeGuard.currentTenantId(), pageable).map(this::toDto);
     }
 
     private CicloEsterilizacaoDto toCicloDto(CicloEsterilizacao c) {
@@ -182,7 +187,7 @@ public class AutoclaveService {
     }
 
     public Page<PlanoPreventivoDto> listPlanos(Pageable pageable) {
-        return planoPreventivoAutoclaveRepository.findAll(pageable)
+        return planoPreventivoAutoclaveRepository.findAllByAutoclave_TenantId(tenantScopeGuard.currentTenantId(), pageable)
                 .map(p -> new PlanoPreventivoDto(p.getId(), p.getAutoclave().getId(),
                         p.getPeriodicidadeDias(), p.getLimiteCiclos(),
                         p.getProximaExecucaoPrevista(), p.getDescricao()));
@@ -209,7 +214,7 @@ public class AutoclaveService {
     }
 
     public Page<ManutencaoDto> listManutencoes(Pageable pageable) {
-        return manutencaoAutoclaveRepository.findAll(pageable)
+        return manutencaoAutoclaveRepository.findAllByAutoclave_TenantId(tenantScopeGuard.currentTenantId(), pageable)
                 .map(m -> new ManutencaoDto(m.getId(), m.getAutoclave().getId(), m.getTipo(), m.getStatus(),
                         m.getDataAgendamento(), m.getDataExecucao(), m.getResponsavelTecnico(),
                         m.getObservacoes(), toIdSet(m.getEvidencias())));
@@ -238,13 +243,14 @@ public class AutoclaveService {
     }
 
     public Page<HigienizacaoAutoclaveProfundaDto> listHigienizacoesAutoclave(Pageable pageable) {
-        return higienizacaoAutoclaveProfundaRepository.findAll(pageable)
+        return higienizacaoAutoclaveProfundaRepository.findAllByAutoclave_TenantId(tenantScopeGuard.currentTenantId(), pageable)
                 .map(h -> new HigienizacaoAutoclaveProfundaDto(h.getId(), h.getAutoclave().getId(),
                         h.getDataRealizacao(), h.getResponsavel() != null ? h.getResponsavel().getId() : null,
                         h.getObservacoes(), toIdSet(h.getEvidencias())));
     }
 
     public HigienizacaoUltrassonicaDto registrarHigienizacaoUltrassonica(HigienizacaoUltrassonicaRequest request) {
+        tenantScopeGuard.checkRequestedTenant(request.tenantId());
         Tenant tenant = tenantRepository.findById(request.tenantId())
                 .orElseThrow(() -> new EntityNotFoundException("Tenant não encontrado"));
         HigienizacaoUltrassonica higienizacao = new HigienizacaoUltrassonica();
@@ -275,7 +281,7 @@ public class AutoclaveService {
     }
 
     public Page<HigienizacaoUltrassonicaDto> listHigienizacoesUltrassonica(Pageable pageable) {
-        return higienizacaoUltrassonicaRepository.findAll(pageable)
+        return higienizacaoUltrassonicaRepository.findAllByTenantId(tenantScopeGuard.currentTenantId(), pageable)
                 .map(h -> new HigienizacaoUltrassonicaDto(h.getId(), h.getTenant().getId(),
                         h.getProcesso() != null ? h.getProcesso().getId() : null,
                         h.getDataRealizacao(), h.getDataHoraInicio(), h.getDataHoraFim(),
@@ -305,13 +311,14 @@ public class AutoclaveService {
     }
 
     public Page<TesteBowieDickDto> listTestesBowieDick(Pageable pageable) {
-        return testeBowieDickRepository.findAll(pageable)
+        return testeBowieDickRepository.findAllByAutoclave_TenantId(tenantScopeGuard.currentTenantId(), pageable)
                 .map(t -> new TesteBowieDickDto(t.getId(), t.getAutoclave().getId(), t.getDataExecucao(), t.getResultado(),
                         t.getExecutadoPor() != null ? t.getExecutadoPor().getId() : null,
                         t.getObservacoes(), toIdSet(t.getEvidencias())));
     }
 
     public CicloEsterilizacaoDto registrarCiclo(CicloEsterilizacaoRequest request) {
+        tenantScopeGuard.checkRequestedTenant(request.tenantId());
         Tenant tenant = tenantRepository.findById(request.tenantId())
                 .orElseThrow(() -> new EntityNotFoundException("Tenant não encontrado"));
         Autoclave autoclave = autoclaveRepository.findById(request.autoclaveId())
@@ -345,7 +352,7 @@ public class AutoclaveService {
     }
 
     public Page<CicloEsterilizacaoDto> listCiclos(Pageable pageable) {
-        return cicloEsterilizacaoRepository.findAll(pageable).map(this::toCicloDto);
+        return cicloEsterilizacaoRepository.findAllByTenantId(tenantScopeGuard.currentTenantId(), pageable).map(this::toCicloDto);
     }
 
     public IndicadorQuimicoDto registrarIndicadorQuimico(IndicadorQuimicoRequest request) {
@@ -363,7 +370,7 @@ public class AutoclaveService {
     }
 
     public Page<IndicadorQuimicoDto> listIndicadoresQuimicos(Pageable pageable) {
-        return indicadorQuimicoRepository.findAll(pageable)
+        return indicadorQuimicoRepository.findAllByCiclo_TenantId(tenantScopeGuard.currentTenantId(), pageable)
                 .map(i -> new IndicadorQuimicoDto(i.getId(), i.getCiclo().getId(), i.getTipo(), i.getResultado(),
                         i.getObservacoes(), toIdSet(i.getEvidencias())));
     }
@@ -385,7 +392,7 @@ public class AutoclaveService {
     }
 
     public Page<IndicadorBiologicoDto> listIndicadoresBiologicos(Pageable pageable) {
-        return indicadorBiologicoRepository.findAll(pageable)
+        return indicadorBiologicoRepository.findAllByCiclo_TenantId(tenantScopeGuard.currentTenantId(), pageable)
                 .map(i -> new IndicadorBiologicoDto(i.getId(), i.getCiclo().getId(), i.getLoteIndicador(),
                         i.getIncubadora(), i.getLeituraEm(), i.getResultado(), i.getObservacoes(),
                         toIdSet(i.getEvidencias())));

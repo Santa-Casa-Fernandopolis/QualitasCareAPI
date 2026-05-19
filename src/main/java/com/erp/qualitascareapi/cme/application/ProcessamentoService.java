@@ -16,6 +16,7 @@ import com.erp.qualitascareapi.iam.domain.User;
 import com.erp.qualitascareapi.iam.repo.SetorRepository;
 import com.erp.qualitascareapi.iam.repo.TenantRepository;
 import com.erp.qualitascareapi.iam.repo.UserRepository;
+import com.erp.qualitascareapi.security.application.TenantScopeGuard;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -38,6 +39,7 @@ public class ProcessamentoService {
     private final RecebimentoMaterialRepository recebimentoRepository;
     private final CicloLavadoraRepository cicloLavadoraRepository;
     private final MonitoramentoAmbientalRepository monitoramentoRepository;
+    private final TenantScopeGuard tenantScopeGuard;
 
     public ProcessamentoService(TenantRepository tenantRepository,
                                 UserRepository userRepository,
@@ -45,7 +47,8 @@ public class ProcessamentoService {
                                 EvidenciaArquivoRepository evidenciaArquivoRepository,
                                 RecebimentoMaterialRepository recebimentoRepository,
                                 CicloLavadoraRepository cicloLavadoraRepository,
-                                MonitoramentoAmbientalRepository monitoramentoRepository) {
+                                MonitoramentoAmbientalRepository monitoramentoRepository,
+                                TenantScopeGuard tenantScopeGuard) {
         this.tenantRepository = tenantRepository;
         this.userRepository = userRepository;
         this.setorRepository = setorRepository;
@@ -53,11 +56,13 @@ public class ProcessamentoService {
         this.recebimentoRepository = recebimentoRepository;
         this.cicloLavadoraRepository = cicloLavadoraRepository;
         this.monitoramentoRepository = monitoramentoRepository;
+        this.tenantScopeGuard = tenantScopeGuard;
     }
 
     // ---- Recebimento de Material ----
 
     public RecebimentoMaterialDto registrarRecebimento(RecebimentoMaterialRequest request) {
+        tenantScopeGuard.checkRequestedTenant(request.tenantId());
         Tenant tenant = tenantRepository.findById(request.tenantId())
                 .orElseThrow(() -> new EntityNotFoundException("Tenant não encontrado"));
         RecebimentoMaterial recebimento = new RecebimentoMaterial();
@@ -82,7 +87,7 @@ public class ProcessamentoService {
     }
 
     public Page<RecebimentoMaterialDto> listRecebimentos(Pageable pageable) {
-        return recebimentoRepository.findAll(pageable).map(this::toDto);
+        return recebimentoRepository.findAllByTenantId(tenantScopeGuard.currentTenantId(), pageable).map(this::toDto);
     }
 
     public RecebimentoMaterialDto findRecebimentoById(Long id) {
@@ -109,6 +114,7 @@ public class ProcessamentoService {
     // ---- Ciclo Lavadora Termodesinfetadora ----
 
     public CicloLavadoraDto registrarCicloLavadora(CicloLavadoraRequest request) {
+        tenantScopeGuard.checkRequestedTenant(request.tenantId());
         Tenant tenant = tenantRepository.findById(request.tenantId())
                 .orElseThrow(() -> new EntityNotFoundException("Tenant não encontrado"));
         CicloLavadora ciclo = new CicloLavadora();
@@ -131,7 +137,7 @@ public class ProcessamentoService {
     }
 
     public Page<CicloLavadoraDto> listCiclosLavadora(Pageable pageable) {
-        return cicloLavadoraRepository.findAll(pageable).map(this::toCicloDto);
+        return cicloLavadoraRepository.findAllByTenantId(tenantScopeGuard.currentTenantId(), pageable).map(this::toCicloDto);
     }
 
     public CicloLavadoraDto findCicloLavadoraById(Long id) {
@@ -151,6 +157,7 @@ public class ProcessamentoService {
     // ---- Monitoramento Ambiental ----
 
     public MonitoramentoAmbientalDto registrarMonitoramento(MonitoramentoAmbientalRequest request) {
+        tenantScopeGuard.checkRequestedTenant(request.tenantId());
         Tenant tenant = tenantRepository.findById(request.tenantId())
                 .orElseThrow(() -> new EntityNotFoundException("Tenant não encontrado"));
         MonitoramentoAmbiental monitoramento = new MonitoramentoAmbiental();
@@ -172,7 +179,7 @@ public class ProcessamentoService {
     }
 
     public Page<MonitoramentoAmbientalDto> listMonitoramentos(Pageable pageable) {
-        return monitoramentoRepository.findAll(pageable).map(this::toMonitoramentoDto);
+        return monitoramentoRepository.findAllByTenantId(tenantScopeGuard.currentTenantId(), pageable).map(this::toMonitoramentoDto);
     }
 
     public MonitoramentoAmbientalDto findMonitoramentoById(Long id) {
