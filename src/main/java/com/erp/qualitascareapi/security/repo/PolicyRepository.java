@@ -15,16 +15,26 @@ public interface PolicyRepository extends JpaRepository<Policy, Long> {
 
     Page<Policy> findAllByTenant_Id(Long tenantId, Pageable pageable);
 
-    @Query("""
-        select pol from Policy pol
-        where pol.tenant.id = :tenantId
+    @Query(value = """
+        select pol from Policy pol join fetch pol.tenant t
+        where (:tenantId is null or t.id = :tenantId)
           and (:resource is null or pol.resource = :resource)
           and (:action is null or pol.action = :action)
           and (:feature is null or lower(pol.feature) like lower(concat('%', :feature, '%')))
           and (:effect is null or pol.effect = :effect)
           and (:enabled is null or pol.enabled = :enabled)
           and (:description is null or lower(pol.description) like lower(concat('%', :description, '%')))
-    """)
+        """,
+        countQuery = """
+        select count(pol) from Policy pol
+        where (:tenantId is null or pol.tenant.id = :tenantId)
+          and (:resource is null or pol.resource = :resource)
+          and (:action is null or pol.action = :action)
+          and (:feature is null or lower(pol.feature) like lower(concat('%', :feature, '%')))
+          and (:effect is null or pol.effect = :effect)
+          and (:enabled is null or pol.enabled = :enabled)
+          and (:description is null or lower(pol.description) like lower(concat('%', :description, '%')))
+        """)
     Page<Policy> search(@Param("tenantId") Long tenantId,
                         @Param("resource") ResourceType resource,
                         @Param("action") Action action,

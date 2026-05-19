@@ -40,7 +40,7 @@ public class PermissionService {
                                     String feature,
                                     String code,
                                     Pageable pageable) {
-        Long tenantId = requireTenant();
+        Long tenantId = tenantScopeGuard.currentTenantId();
         return permissionRepository.search(tenantId,
                         resource,
                         action,
