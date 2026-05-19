@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 
 public record CicloEsterilizacaoRequest(@NotNull Long tenantId,
                                         @NotNull Long autoclaveId,
+                                        Long processoId,
                                         Long loteId,
                                         @NotNull LocalDateTime inicio,
                                         LocalDateTime fim,

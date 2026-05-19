@@ -1,0 +1,233 @@
+databaseChangeLog:
+
+  # V8-1: tabela principal de processos de reprocessamento
+  - changeSet:
+      id: V8-1
+      author: cme-team
+      changes:
+        - createTable:
+            tableName: cme_processos_reprocessamento
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_cme_processo
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: numero_processo
+                  type: VARCHAR(60)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(30)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: data_abertura
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: data_conclusao
+                  type: TIMESTAMP
+              - column:
+                  name: recebimento_id
+                  type: BIGINT
+              - column:
+                  name: observacoes
+                  type: VARCHAR(255)
+        - addUniqueConstraint:
+            tableName: cme_processos_reprocessamento
+            columnNames: tenant_id, numero_processo
+            constraintName: uk_processo_tenant_numero
+        - addForeignKeyConstraint:
+            baseTableName: cme_processos_reprocessamento
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_cme_processo_tenant
+        - addForeignKeyConstraint:
+            baseTableName: cme_processos_reprocessamento
+            baseColumnNames: recebimento_id
+            referencedTableName: cme_recebimentos
+            referencedColumnNames: id
+            constraintName: fk_cme_processo_recebimento
+
+  # V8-2: tabela de limpezas manuais
+  - changeSet:
+      id: V8-2
+      author: cme-team
+      changes:
+        - createTable:
+            tableName: cme_limpezas_manuais
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_cme_limpeza_manual
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: processo_id
+                  type: BIGINT
+              - column:
+                  name: responsavel_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: data_hora_inicio
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: data_hora_fim
+                  type: TIMESTAMP
+              - column:
+                  name: produto_utilizado
+                  type: VARCHAR(120)
+              - column:
+                  name: concentracao
+                  type: VARCHAR(60)
+              - column:
+                  name: metodo
+                  type: VARCHAR(30)
+              - column:
+                  name: conformidade
+                  type: VARCHAR(20)
+              - column:
+                  name: observacoes
+                  type: VARCHAR(255)
+        - addForeignKeyConstraint:
+            baseTableName: cme_limpezas_manuais
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_cme_limpeza_manual_tenant
+        - addForeignKeyConstraint:
+            baseTableName: cme_limpezas_manuais
+            baseColumnNames: processo_id
+            referencedTableName: cme_processos_reprocessamento
+            referencedColumnNames: id
+            constraintName: fk_cme_limpeza_manual_processo
+        - addForeignKeyConstraint:
+            baseTableName: cme_limpezas_manuais
+            baseColumnNames: responsavel_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_cme_limpeza_manual_responsavel
+
+  # V8-3: tabela de evidências da limpeza manual
+  - changeSet:
+      id: V8-3
+      author: cme-team
+      changes:
+        - createTable:
+            tableName: cme_limpeza_manual_evidencias
+            columns:
+              - column:
+                  name: limpeza_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: evidencia_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: cme_limpeza_manual_evidencias
+            columnNames: limpeza_id, evidencia_id
+            constraintName: pk_cme_limpeza_manual_evidencias
+        - addForeignKeyConstraint:
+            baseTableName: cme_limpeza_manual_evidencias
+            baseColumnNames: limpeza_id
+            referencedTableName: cme_limpezas_manuais
+            referencedColumnNames: id
+            constraintName: fk_cme_limpeza_manual_evidencia_limpeza
+        - addForeignKeyConstraint:
+            baseTableName: cme_limpeza_manual_evidencias
+            baseColumnNames: evidencia_id
+            referencedTableName: evidencias_arquivo
+            referencedColumnNames: id
+            constraintName: fk_cme_limpeza_manual_evidencia_arquivo
+
+  # V8-4: adiciona processo_id e timestamps de inicio/fim em higienizacao ultrassonica
+  - changeSet:
+      id: V8-4
+      author: cme-team
+      changes:
+        - addColumn:
+            tableName: cme_hig_ultrassonica
+            columns:
+              - column:
+                  name: processo_id
+                  type: BIGINT
+              - column:
+                  name: data_hora_inicio
+                  type: TIMESTAMP
+              - column:
+                  name: data_hora_fim
+                  type: TIMESTAMP
+        - addForeignKeyConstraint:
+            baseTableName: cme_hig_ultrassonica
+            baseColumnNames: processo_id
+            referencedTableName: cme_processos_reprocessamento
+            referencedColumnNames: id
+            constraintName: fk_cme_hig_ultra_processo
+
+  # V8-5: adiciona processo_id e timestamps de montagem em lotes
+  - changeSet:
+      id: V8-5
+      author: cme-team
+      changes:
+        - addColumn:
+            tableName: cme_lotes
+            columns:
+              - column:
+                  name: processo_id
+                  type: BIGINT
+              - column:
+                  name: data_hora_inicio_montagem
+                  type: TIMESTAMP
+              - column:
+                  name: data_hora_fim_montagem
+                  type: TIMESTAMP
+        - addForeignKeyConstraint:
+            baseTableName: cme_lotes
+            baseColumnNames: processo_id
+            referencedTableName: cme_processos_reprocessamento
+            referencedColumnNames: id
+            constraintName: fk_cme_lote_processo
+
+  # V8-6: adiciona processo_id em ciclos de esterilizacao
+  - changeSet:
+      id: V8-6
+      author: cme-team
+      changes:
+        - addColumn:
+            tableName: cme_ciclos
+            columns:
+              - column:
+                  name: processo_id
+                  type: BIGINT
+        - addForeignKeyConstraint:
+            baseTableName: cme_ciclos
+            baseColumnNames: processo_id
+            referencedTableName: cme_processos_reprocessamento
+            referencedColumnNames: id
+            constraintName: fk_cme_ciclo_processo

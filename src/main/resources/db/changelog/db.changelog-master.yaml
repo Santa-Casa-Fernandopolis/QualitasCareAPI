@@ -13,3 +13,5 @@
       file: db/changelog/changes/V6__cme_schema.yaml
   - include:
       file: db/changelog/changes/V7__cme_processamento.yaml
+  - include:
+      file: db/changelog/changes/V8__cme_processo_reprocessamento.yaml

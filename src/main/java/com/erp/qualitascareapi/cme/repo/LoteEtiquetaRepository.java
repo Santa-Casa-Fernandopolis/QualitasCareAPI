@@ -3,5 +3,10 @@ package com.erp.qualitascareapi.cme.repo;
 import com.erp.qualitascareapi.cme.domain.LoteEtiqueta;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
+import java.util.Optional;
+
 public interface LoteEtiquetaRepository extends JpaRepository<LoteEtiqueta, Long> {
+    List<LoteEtiqueta> findByProcessoId(Long processoId);
+    Optional<LoteEtiqueta> findFirstByProcessoId(Long processoId);
 }

@@ -5,14 +5,18 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 public record LoteEtiquetaRequest(@NotNull Long tenantId,
                                   @NotBlank String codigo,
+                                  Long processoId,
                                   Long kitVersaoId,
                                   LocalDate dataEmpacotamento,
                                   LocalDate validade,
                                   LoteStatus status,
                                   String qrCode,
                                   Long montadoPorId,
+                                  LocalDateTime dataHoraInicioMontagem,
+                                  LocalDateTime dataHoraFimMontagem,
                                   String observacoes) {
 }
