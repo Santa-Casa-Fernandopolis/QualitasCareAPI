@@ -2,6 +2,7 @@ package com.erp.qualitascareapi.cme.api;
 
 import com.erp.qualitascareapi.cme.api.dto.*;
 import com.erp.qualitascareapi.cme.application.LoteService;
+import com.erp.qualitascareapi.cme.enums.LoteStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -29,6 +30,11 @@ public class LoteController {
         return loteService.listSetores(pageable);
     }
 
+    @GetMapping("/setores/{id}")
+    public SetorDto getSetor(@PathVariable Long id) {
+        return loteService.findSetorById(id);
+    }
+
     @PostMapping("/lotes")
     @ResponseStatus(HttpStatus.CREATED)
     public LoteEtiquetaDto createLote(@Validated @RequestBody LoteEtiquetaRequest request) {
@@ -38,6 +44,16 @@ public class LoteController {
     @GetMapping("/lotes")
     public Page<LoteEtiquetaDto> listLotes(Pageable pageable) {
         return loteService.listLotes(pageable);
+    }
+
+    @GetMapping("/lotes/{id}")
+    public LoteEtiquetaDto getLote(@PathVariable Long id) {
+        return loteService.findLoteById(id);
+    }
+
+    @PatchMapping("/lotes/{id}/status")
+    public LoteEtiquetaDto updateLoteStatus(@PathVariable Long id, @RequestParam LoteStatus status) {
+        return loteService.updateLoteStatus(id, status);
     }
 
     @PostMapping("/movimentacoes")

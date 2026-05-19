@@ -128,6 +128,27 @@ public class QualidadeService {
                 saved.getPlanoAcaoResumo(), toIdSet(saved.getEvidencias()), saved.getTipo().getId());
     }
 
+    public NaoConformidadeDto findNaoConformidadeById(Long id) {
+        NaoConformidadeCME nc = naoConformidadeRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Não conformidade não encontrada"));
+        return toNcDto(nc);
+    }
+
+    public NaoConformidadeDto updateNaoConformidadeStatus(Long id, com.erp.qualitascareapi.quality.enums.NaoConformidadeStatus status) {
+        NaoConformidadeCME nc = naoConformidadeRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Não conformidade não encontrada"));
+        nc.setStatus(status);
+        return toNcDto(naoConformidadeRepository.save(nc));
+    }
+
+    private NaoConformidadeDto toNcDto(NaoConformidadeCME nc) {
+        return new NaoConformidadeDto(nc.getId(), nc.getTenant().getId(), nc.getTitulo(), nc.getDescricao(),
+                nc.getSeveridade(), nc.getStatus(), nc.getDataAbertura(), nc.getDataEncerramento(),
+                nc.getResponsavel() != null ? nc.getResponsavel().getId() : null,
+                nc.getPlanoAcaoResumo(), toIdSet(nc.getEvidencias()),
+                nc.getTipo() != null ? nc.getTipo().getId() : null);
+    }
+
     public Page<NaoConformidadeDto> listNaoConformidades(Pageable pageable) {
         return naoConformidadeRepository.findAll(pageable)
                 .map(nc -> new NaoConformidadeDto(nc.getId(), nc.getTenant().getId(), nc.getTitulo(), nc.getDescricao(),

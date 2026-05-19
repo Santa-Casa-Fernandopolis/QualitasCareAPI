@@ -66,6 +66,67 @@ public class AutoclaveService {
         this.evidenciaArquivoRepository = evidenciaArquivoRepository;
     }
 
+    public AutoclaveDto findAutoclaveById(Long id) {
+        return autoclaveRepository.findById(id)
+                .map(this::toDto)
+                .orElseThrow(() -> new EntityNotFoundException("Autoclave não encontrada"));
+    }
+
+    public AutoclaveDto updateAutoclave(Long id, AutoclaveRequest request) {
+        Autoclave autoclave = autoclaveRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Autoclave não encontrada"));
+        autoclave.setNome(request.nome());
+        autoclave.setFabricante(request.fabricante());
+        autoclave.setModelo(request.modelo());
+        autoclave.setNumeroSerie(request.numeroSerie());
+        autoclave.setLocalizacao(request.localizacao());
+        if (request.ultimaHigienizacaoProfunda() != null) {
+            autoclave.setUltimaHigienizacaoProfunda(request.ultimaHigienizacaoProfunda());
+        }
+        if (request.ativo() != null) {
+            autoclave.setAtivo(request.ativo());
+        }
+        return toDto(autoclaveRepository.save(autoclave));
+    }
+
+    public AutoclaveDto updateAutoclaveStatus(Long id, Boolean ativo) {
+        Autoclave autoclave = autoclaveRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Autoclave não encontrada"));
+        autoclave.setAtivo(ativo);
+        return toDto(autoclaveRepository.save(autoclave));
+    }
+
+    public CicloEsterilizacaoDto findCicloById(Long id) {
+        CicloEsterilizacao ciclo = cicloEsterilizacaoRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Ciclo não encontrado"));
+        return toCicloDto(ciclo);
+    }
+
+    public CicloEsterilizacaoDto updateCicloStatus(Long id, CicloStatus status) {
+        CicloEsterilizacao ciclo = cicloEsterilizacaoRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Ciclo não encontrado"));
+        ciclo.setStatus(status);
+        return toCicloDto(cicloEsterilizacaoRepository.save(ciclo));
+    }
+
+    public ManutencaoDto findManutencaoById(Long id) {
+        ManutencaoAutoclave m = manutencaoAutoclaveRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Manutenção não encontrada"));
+        return new ManutencaoDto(m.getId(), m.getAutoclave().getId(), m.getTipo(), m.getStatus(),
+                m.getDataAgendamento(), m.getDataExecucao(), m.getResponsavelTecnico(),
+                m.getObservacoes(), toIdSet(m.getEvidencias()));
+    }
+
+    public ManutencaoDto updateManutencaoStatus(Long id, com.erp.qualitascareapi.cme.enums.ManutencaoStatus status) {
+        ManutencaoAutoclave m = manutencaoAutoclaveRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Manutenção não encontrada"));
+        m.setStatus(status);
+        ManutencaoAutoclave saved = manutencaoAutoclaveRepository.save(m);
+        return new ManutencaoDto(saved.getId(), saved.getAutoclave().getId(), saved.getTipo(), saved.getStatus(),
+                saved.getDataAgendamento(), saved.getDataExecucao(), saved.getResponsavelTecnico(),
+                saved.getObservacoes(), toIdSet(saved.getEvidencias()));
+    }
+
     public AutoclaveDto createAutoclave(AutoclaveRequest request) {
         Tenant tenant = tenantRepository.findById(request.tenantId())
                 .orElseThrow(() -> new EntityNotFoundException("Tenant não encontrado"));
@@ -84,6 +145,15 @@ public class AutoclaveService {
 
     public Page<AutoclaveDto> listAutoclaves(Pageable pageable) {
         return autoclaveRepository.findAll(pageable).map(this::toDto);
+    }
+
+    private CicloEsterilizacaoDto toCicloDto(CicloEsterilizacao c) {
+        return new CicloEsterilizacaoDto(c.getId(), c.getTenant().getId(), c.getAutoclave().getId(),
+                c.getLoteEtiqueta() != null ? c.getLoteEtiqueta().getId() : null,
+                c.getInicio(), c.getFim(), c.getDuracaoMinutos(), c.getTemperaturaMaxima(),
+                c.getPressaoMaxima(), c.getStatus(),
+                c.getLiberadoPor() != null ? c.getLiberadoPor().getId() : null,
+                c.getObservacoes());
     }
 
     private AutoclaveDto toDto(Autoclave autoclave) {
@@ -260,13 +330,7 @@ public class AutoclaveService {
     }
 
     public Page<CicloEsterilizacaoDto> listCiclos(Pageable pageable) {
-        return cicloEsterilizacaoRepository.findAll(pageable)
-                .map(c -> new CicloEsterilizacaoDto(c.getId(), c.getTenant().getId(), c.getAutoclave().getId(),
-                        c.getLoteEtiqueta() != null ? c.getLoteEtiqueta().getId() : null,
-                        c.getInicio(), c.getFim(), c.getDuracaoMinutos(), c.getTemperaturaMaxima(),
-                        c.getPressaoMaxima(), c.getStatus(),
-                        c.getLiberadoPor() != null ? c.getLiberadoPor().getId() : null,
-                        c.getObservacoes()));
+        return cicloEsterilizacaoRepository.findAll(pageable).map(this::toCicloDto);
     }
 
     public IndicadorQuimicoDto registrarIndicadorQuimico(IndicadorQuimicoRequest request) {

@@ -2,6 +2,8 @@ package com.erp.qualitascareapi.cme.api;
 
 import com.erp.qualitascareapi.cme.api.dto.*;
 import com.erp.qualitascareapi.cme.application.AutoclaveService;
+import com.erp.qualitascareapi.cme.enums.CicloStatus;
+import com.erp.qualitascareapi.cme.enums.ManutencaoStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -29,6 +31,21 @@ public class AutoclaveController {
         return autoclaveService.listAutoclaves(pageable);
     }
 
+    @GetMapping("/autoclaves/{id}")
+    public AutoclaveDto getAutoclave(@PathVariable Long id) {
+        return autoclaveService.findAutoclaveById(id);
+    }
+
+    @PutMapping("/autoclaves/{id}")
+    public AutoclaveDto updateAutoclave(@PathVariable Long id, @Validated @RequestBody AutoclaveRequest request) {
+        return autoclaveService.updateAutoclave(id, request);
+    }
+
+    @PatchMapping("/autoclaves/{id}/status")
+    public AutoclaveDto updateAutoclaveStatus(@PathVariable Long id, @RequestParam Boolean ativo) {
+        return autoclaveService.updateAutoclaveStatus(id, ativo);
+    }
+
     @PostMapping("/autoclaves/planos")
     @ResponseStatus(HttpStatus.CREATED)
     public PlanoPreventivoDto createPlanoPreventivo(@Validated @RequestBody PlanoPreventivoRequest request) {
@@ -49,6 +66,16 @@ public class AutoclaveController {
     @GetMapping("/autoclaves/manutencoes")
     public Page<ManutencaoDto> listManutencoes(Pageable pageable) {
         return autoclaveService.listManutencoes(pageable);
+    }
+
+    @GetMapping("/autoclaves/manutencoes/{id}")
+    public ManutencaoDto getManutencao(@PathVariable Long id) {
+        return autoclaveService.findManutencaoById(id);
+    }
+
+    @PatchMapping("/autoclaves/manutencoes/{id}/status")
+    public ManutencaoDto updateManutencaoStatus(@PathVariable Long id, @RequestParam ManutencaoStatus status) {
+        return autoclaveService.updateManutencaoStatus(id, status);
     }
 
     @PostMapping("/autoclaves/higienizacoes-profundas")
@@ -93,6 +120,16 @@ public class AutoclaveController {
     @GetMapping("/ciclos")
     public Page<CicloEsterilizacaoDto> listCiclos(Pageable pageable) {
         return autoclaveService.listCiclos(pageable);
+    }
+
+    @GetMapping("/ciclos/{id}")
+    public CicloEsterilizacaoDto getCiclo(@PathVariable Long id) {
+        return autoclaveService.findCicloById(id);
+    }
+
+    @PatchMapping("/ciclos/{id}/status")
+    public CicloEsterilizacaoDto updateCicloStatus(@PathVariable Long id, @RequestParam CicloStatus status) {
+        return autoclaveService.updateCicloStatus(id, status);
     }
 
     @PostMapping("/indicadores/quimicos")

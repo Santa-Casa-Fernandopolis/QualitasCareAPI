@@ -53,6 +53,12 @@ public class SaneanteService {
         return toDto(saved);
     }
 
+    public SaneanteLoteDto findLoteById(Long id) {
+        return saneanteRepository.findById(id)
+                .map(this::toDto)
+                .orElseThrow(() -> new EntityNotFoundException("Lote de saneante não encontrado"));
+    }
+
     public Page<SaneanteLoteDto> listLotes(Pageable pageable) {
         return saneanteRepository.findAll(pageable).map(this::toDto);
     }

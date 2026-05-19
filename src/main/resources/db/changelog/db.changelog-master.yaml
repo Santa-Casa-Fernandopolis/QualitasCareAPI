@@ -11,3 +11,5 @@
       file: db/changelog/changes/V5__observability_logs.yaml
   - include:
       file: db/changelog/changes/V6__cme_schema.yaml
+  - include:
+      file: db/changelog/changes/V7__cme_processamento.yaml

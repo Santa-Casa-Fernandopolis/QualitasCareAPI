@@ -29,6 +29,16 @@ public class KitController {
         return kitService.listInstrumentos(pageable);
     }
 
+    @GetMapping("/instrumentos/{id}")
+    public InstrumentoDto getInstrumento(@PathVariable Long id) {
+        return kitService.findInstrumentoById(id);
+    }
+
+    @PutMapping("/instrumentos/{id}")
+    public InstrumentoDto updateInstrumento(@PathVariable Long id, @Validated @RequestBody InstrumentoRequest request) {
+        return kitService.updateInstrumento(id, request);
+    }
+
     @PostMapping("/kits")
     @ResponseStatus(HttpStatus.CREATED)
     public KitProcedimentoDto createKit(@Validated @RequestBody KitProcedimentoRequest request) {
@@ -38,6 +48,16 @@ public class KitController {
     @GetMapping("/kits")
     public Page<KitProcedimentoDto> listKits(Pageable pageable) {
         return kitService.listKits(pageable);
+    }
+
+    @GetMapping("/kits/{id}")
+    public KitProcedimentoDto getKit(@PathVariable Long id) {
+        return kitService.findKitById(id);
+    }
+
+    @PutMapping("/kits/{id}")
+    public KitProcedimentoDto updateKit(@PathVariable Long id, @Validated @RequestBody KitProcedimentoRequest request) {
+        return kitService.updateKit(id, request);
     }
 
     @PostMapping("/kits/versoes")

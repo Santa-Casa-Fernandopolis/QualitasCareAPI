@@ -52,6 +52,24 @@ public class KitService {
                 saved.getCodigoHospitalar(), saved.getDescricao());
     }
 
+    public InstrumentoDto findInstrumentoById(Long id) {
+        Instrumento i = instrumentoRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Instrumento não encontrado"));
+        return new InstrumentoDto(i.getId(), i.getTenant().getId(), i.getNome(),
+                i.getCodigoHospitalar(), i.getDescricao());
+    }
+
+    public InstrumentoDto updateInstrumento(Long id, InstrumentoRequest request) {
+        Instrumento instrumento = instrumentoRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Instrumento não encontrado"));
+        instrumento.setNome(request.nome());
+        instrumento.setCodigoHospitalar(request.codigoHospitalar());
+        instrumento.setDescricao(request.descricao());
+        Instrumento saved = instrumentoRepository.save(instrumento);
+        return new InstrumentoDto(saved.getId(), saved.getTenant().getId(), saved.getNome(),
+                saved.getCodigoHospitalar(), saved.getDescricao());
+    }
+
     public Page<InstrumentoDto> listInstrumentos(Pageable pageable) {
         return instrumentoRepository.findAll(pageable)
                 .map(i -> new InstrumentoDto(i.getId(), i.getTenant().getId(), i.getNome(),
@@ -69,6 +87,25 @@ public class KitService {
         kit.setAtivo(request.ativo() != null ? request.ativo() : Boolean.TRUE);
         KitProcedimento saved = kitProcedimentoRepository.save(kit);
         return new KitProcedimentoDto(saved.getId(), tenant.getId(), saved.getNome(), saved.getCodigo(),
+                saved.getObservacoes(), saved.getAtivo());
+    }
+
+    public KitProcedimentoDto findKitById(Long id) {
+        KitProcedimento k = kitProcedimentoRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Kit não encontrado"));
+        return new KitProcedimentoDto(k.getId(), k.getTenant().getId(), k.getNome(), k.getCodigo(),
+                k.getObservacoes(), k.getAtivo());
+    }
+
+    public KitProcedimentoDto updateKit(Long id, KitProcedimentoRequest request) {
+        KitProcedimento kit = kitProcedimentoRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Kit não encontrado"));
+        kit.setNome(request.nome());
+        kit.setCodigo(request.codigo());
+        kit.setObservacoes(request.observacoes());
+        if (request.ativo() != null) kit.setAtivo(request.ativo());
+        KitProcedimento saved = kitProcedimentoRepository.save(kit);
+        return new KitProcedimentoDto(saved.getId(), saved.getTenant().getId(), saved.getNome(), saved.getCodigo(),
                 saved.getObservacoes(), saved.getAtivo());
     }
 

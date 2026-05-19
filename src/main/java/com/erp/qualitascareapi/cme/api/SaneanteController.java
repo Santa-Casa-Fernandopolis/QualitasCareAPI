@@ -32,6 +32,11 @@ public class SaneanteController {
         return saneanteService.listLotes(pageable);
     }
 
+    @GetMapping("/saneantes/{id}")
+    public SaneanteLoteDto getSaneante(@PathVariable Long id) {
+        return saneanteService.findLoteById(id);
+    }
+
     @PostMapping("/saneantes/usos")
     @ResponseStatus(HttpStatus.CREATED)
     public UsoSaneanteDto registrarUso(@Validated @RequestBody UsoSaneanteRequest request) {
