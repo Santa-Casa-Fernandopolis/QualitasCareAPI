@@ -1,6 +1,9 @@
 package com.erp.qualitascareapi.observability.logging;
 
 import com.erp.qualitascareapi.observability.logging.dto.RequestLogResponse;
+import com.erp.qualitascareapi.security.annotation.RequiresPermission;
+import com.erp.qualitascareapi.security.enums.Action;
+import com.erp.qualitascareapi.security.enums.ResourceType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -26,6 +29,7 @@ public class OperationalLogController {
     }
 
     @GetMapping
+    @RequiresPermission(resource = ResourceType.OBSERVABILITY_LOG, action = Action.READ)
     public Page<RequestLogResponse> search(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,

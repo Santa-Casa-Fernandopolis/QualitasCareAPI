@@ -16,6 +16,7 @@ import com.erp.qualitascareapi.iam.domain.User;
 import com.erp.qualitascareapi.iam.repo.SetorRepository;
 import com.erp.qualitascareapi.iam.repo.TenantRepository;
 import com.erp.qualitascareapi.iam.repo.UserRepository;
+import com.erp.qualitascareapi.security.application.TenantScopeGuard;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -33,26 +34,31 @@ public class ColaboradorService {
     private final SetorRepository setorRepository;
     private final CargoRepository cargoRepository;
     private final UserRepository userRepository;
+    private final TenantScopeGuard tenantScopeGuard;
 
     public ColaboradorService(ColaboradorRepository colaboradorRepository,
                               TenantRepository tenantRepository,
                               SetorRepository setorRepository,
                               CargoRepository cargoRepository,
-                              UserRepository userRepository) {
+                              UserRepository userRepository,
+                              TenantScopeGuard tenantScopeGuard) {
         this.colaboradorRepository = colaboradorRepository;
         this.tenantRepository = tenantRepository;
         this.setorRepository = setorRepository;
         this.cargoRepository = cargoRepository;
         this.userRepository = userRepository;
+        this.tenantScopeGuard = tenantScopeGuard;
     }
 
     @Transactional(readOnly = true)
     public Page<ColaboradorDto> list(Long tenantId, ColaboradorStatus status, Pageable pageable) {
+        Long contextTenantId = tenantScopeGuard.currentTenantId();
+        Long effectiveTenantId = contextTenantId != null ? contextTenantId : tenantId;
         Page<Colaborador> page;
-        if (tenantId != null && status != null) {
-            page = colaboradorRepository.findAllByTenant_IdAndStatus(tenantId, status, pageable);
-        } else if (tenantId != null) {
-            page = colaboradorRepository.findAllByTenant_Id(tenantId, pageable);
+        if (effectiveTenantId != null && status != null) {
+            page = colaboradorRepository.findAllByTenant_IdAndStatus(effectiveTenantId, status, pageable);
+        } else if (effectiveTenantId != null) {
+            page = colaboradorRepository.findAllByTenant_Id(effectiveTenantId, pageable);
         } else if (status != null) {
             page = colaboradorRepository.findAllByStatus(status, pageable);
         } else {
