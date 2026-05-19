@@ -16,6 +16,7 @@ import com.erp.qualitascareapi.iam.repo.OrgRoleAssignmentRepository;
 import com.erp.qualitascareapi.iam.repo.SetorRepository;
 import com.erp.qualitascareapi.iam.repo.TenantRepository;
 import com.erp.qualitascareapi.iam.repo.UserRepository;
+import com.erp.qualitascareapi.security.application.TenantScopeGuard;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -31,23 +32,30 @@ public class OrgRoleAssignmentService {
     private final TenantRepository tenantRepository;
     private final UserRepository userRepository;
     private final SetorRepository setorRepository;
+    private final TenantScopeGuard tenantScopeGuard;
 
     public OrgRoleAssignmentService(OrgRoleAssignmentRepository orgRoleAssignmentRepository,
                                     TenantRepository tenantRepository,
                                     UserRepository userRepository,
-                                    SetorRepository setorRepository) {
+                                    SetorRepository setorRepository,
+                                    TenantScopeGuard tenantScopeGuard) {
         this.orgRoleAssignmentRepository = orgRoleAssignmentRepository;
         this.tenantRepository = tenantRepository;
         this.userRepository = userRepository;
         this.setorRepository = setorRepository;
+        this.tenantScopeGuard = tenantScopeGuard;
     }
 
     @Transactional(readOnly = true)
     public Page<OrgRoleAssignmentDto> list(Long tenantId, OrgRoleType roleType, Boolean active, Pageable pageable) {
+        Long contextTenantId = tenantScopeGuard.currentTenantId();
+        Long effectiveTenantId = contextTenantId != null ? contextTenantId : tenantId;
+
         Specification<OrgRoleAssignment> spec = Specification.where(null);
 
-        if (tenantId != null) {
-            spec = spec.and((root, query, cb) -> cb.equal(root.get("tenant").get("id"), tenantId));
+        if (effectiveTenantId != null) {
+            final Long tid = effectiveTenantId;
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("tenant").get("id"), tid));
         }
         if (roleType != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("roleType"), roleType));

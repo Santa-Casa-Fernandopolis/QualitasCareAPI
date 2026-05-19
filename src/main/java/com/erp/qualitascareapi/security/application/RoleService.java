@@ -34,7 +34,7 @@ public class RoleService {
 
     @Transactional(readOnly = true)
     public Page<RoleDto> list(String name, String description, Pageable pageable) {
-        Long tenantId = requireTenant();
+        Long tenantId = tenantScopeGuard.currentTenantId();
         return roleRepository.search(tenantId, emptyToNull(name), emptyToNull(description), pageable)
                 .map(this::toDto);
     }
