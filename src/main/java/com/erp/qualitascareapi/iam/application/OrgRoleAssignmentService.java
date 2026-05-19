@@ -47,7 +47,7 @@ public class OrgRoleAssignmentService {
     }
 
     @Transactional(readOnly = true)
-    public Page<OrgRoleAssignmentDto> list(Long tenantId, OrgRoleType roleType, Boolean active, Pageable pageable) {
+    public Page<OrgRoleAssignmentDto> list(Long tenantId, OrgRoleType roleType, Long userId, Boolean active, Pageable pageable) {
         Long contextTenantId = tenantScopeGuard.currentTenantId();
         Long effectiveTenantId = contextTenantId != null ? contextTenantId : tenantId;
 
@@ -59,6 +59,9 @@ public class OrgRoleAssignmentService {
         }
         if (roleType != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("roleType"), roleType));
+        }
+        if (userId != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("user").get("id"), userId));
         }
         if (active != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("active"), active));

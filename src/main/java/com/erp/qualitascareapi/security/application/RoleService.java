@@ -11,7 +11,7 @@ import com.erp.qualitascareapi.security.repo.RoleRepository;
 import com.erp.qualitascareapi.security.application.TenantScopeGuard;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.access.AccessDeniedException;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,7 +35,7 @@ public class RoleService {
     @Transactional(readOnly = true)
     public Page<RoleDto> list(String name, String description, Pageable pageable) {
         Long tenantId = tenantScopeGuard.currentTenantId();
-        return roleRepository.search(tenantId, emptyToNull(name), emptyToNull(description), pageable)
+        return roleRepository.findAll(buildSpecification(tenantId, emptyToNull(name), emptyToNull(description)), pageable)
                 .map(this::toDto);
     }
 
@@ -84,16 +84,35 @@ public class RoleService {
         roleRepository.delete(role);
     }
 
-    private Long requireTenant() {
-        Long tenantId = tenantScopeGuard.currentTenantId();
-        if (tenantId == null) {
-            throw new AccessDeniedException("Tenant context not available");
-        }
-        return tenantId;
-    }
-
     private String emptyToNull(String value) {
         return (value == null || value.isBlank()) ? null : value;
+    }
+
+    private Specification<Role> buildSpecification(Long tenantId, String name, String description) {
+        return (root, query, criteriaBuilder) -> {
+            var predicate = criteriaBuilder.conjunction();
+
+            if (tenantId != null) {
+                predicate = criteriaBuilder.and(predicate, criteriaBuilder.equal(root.get("tenant").get("id"), tenantId));
+            }
+            if (name != null) {
+                predicate = criteriaBuilder.and(
+                        predicate,
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), "%" + name.toLowerCase() + "%")
+                );
+            }
+            if (description != null) {
+                predicate = criteriaBuilder.and(
+                        predicate,
+                        criteriaBuilder.like(
+                                criteriaBuilder.lower(root.get("description")),
+                                "%" + description.toLowerCase() + "%"
+                        )
+                );
+            }
+
+            return predicate;
+        };
     }
 
     private RoleDto toDto(Role role) {

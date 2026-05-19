@@ -18,6 +18,7 @@ import com.erp.qualitascareapi.security.enums.UserStatus;
 import com.erp.qualitascareapi.security.repo.RoleRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,12 +61,13 @@ public class UserService {
         if (contextTenantId != null) {
             tenantScopeGuard.checkTenantAccess(effectiveTenantId);
         }
-        return userRepository.search(effectiveTenantId,
+        return userRepository.findAll(buildSpecification(
+                        effectiveTenantId,
                         emptyToNull(username),
                         emptyToNull(fullName),
                         status,
-                        origin,
-                        pageable)
+                        origin
+                ), pageable)
                 .map(this::toDto);
     }
 
@@ -198,5 +200,45 @@ public class UserService {
 
     private String emptyToNull(String value) {
         return (value == null || value.isBlank()) ? null : value;
+    }
+
+    private Specification<User> buildSpecification(Long tenantId,
+                                                    String username,
+                                                    String fullName,
+                                                    UserStatus status,
+                                                    IdentityOrigin origin) {
+        return (root, query, criteriaBuilder) -> {
+            var predicate = criteriaBuilder.conjunction();
+
+            if (tenantId != null) {
+                predicate = criteriaBuilder.and(predicate, criteriaBuilder.equal(root.get("tenant").get("id"), tenantId));
+            }
+            if (username != null) {
+                predicate = criteriaBuilder.and(
+                        predicate,
+                        criteriaBuilder.like(
+                                criteriaBuilder.lower(root.get("username")),
+                                "%" + username.toLowerCase() + "%"
+                        )
+                );
+            }
+            if (fullName != null) {
+                predicate = criteriaBuilder.and(
+                        predicate,
+                        criteriaBuilder.like(
+                                criteriaBuilder.lower(root.get("fullName")),
+                                "%" + fullName.toLowerCase() + "%"
+                        )
+                );
+            }
+            if (status != null) {
+                predicate = criteriaBuilder.and(predicate, criteriaBuilder.equal(root.get("status"), status));
+            }
+            if (origin != null) {
+                predicate = criteriaBuilder.and(predicate, criteriaBuilder.equal(root.get("origin"), origin));
+            }
+
+            return predicate;
+        };
     }
 }

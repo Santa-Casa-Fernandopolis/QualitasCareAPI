@@ -27,9 +27,10 @@ public class OrgRoleAssignmentController {
     @GetMapping
     public Page<OrgRoleAssignmentDto> list(@RequestParam(required = false) Long tenantId,
                                            @RequestParam(required = false) OrgRoleType roleType,
+                                           @RequestParam(required = false) Long userId,
                                            @RequestParam(required = false) Boolean active,
                                            Pageable pageable) {
-        return orgRoleAssignmentService.list(tenantId, roleType, active, pageable);
+        return orgRoleAssignmentService.list(tenantId, roleType, userId, active, pageable);
     }
 
     @RequiresPermission(resource = ResourceType.IAM_ORG_ROLE_ASSIGNMENT, action = Action.READ)
