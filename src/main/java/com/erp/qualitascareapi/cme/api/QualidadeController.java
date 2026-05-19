@@ -2,6 +2,7 @@ package com.erp.qualitascareapi.cme.api;
 
 import com.erp.qualitascareapi.cme.api.dto.*;
 import com.erp.qualitascareapi.cme.application.QualidadeService;
+import com.erp.qualitascareapi.quality.enums.NaoConformidadeStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -38,6 +39,16 @@ public class QualidadeController {
     @GetMapping("/nao-conformidades")
     public Page<NaoConformidadeDto> listNaoConformidades(Pageable pageable) {
         return qualidadeService.listNaoConformidades(pageable);
+    }
+
+    @GetMapping("/nao-conformidades/{id}")
+    public NaoConformidadeDto getNaoConformidade(@PathVariable Long id) {
+        return qualidadeService.findNaoConformidadeById(id);
+    }
+
+    @PatchMapping("/nao-conformidades/{id}/status")
+    public NaoConformidadeDto updateNaoConformidadeStatus(@PathVariable Long id, @RequestParam NaoConformidadeStatus status) {
+        return qualidadeService.updateNaoConformidadeStatus(id, status);
     }
 
     @PostMapping("/geracoes-residuo")

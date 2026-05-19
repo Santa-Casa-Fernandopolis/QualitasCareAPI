@@ -1,0 +1,318 @@
+databaseChangeLog:
+  - changeSet:
+      id: V7-1
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: cme_recebimentos
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: data_hora
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: setor_origem_id
+                  type: BIGINT
+              - column:
+                  name: responsavel_id
+                  type: BIGINT
+              - column:
+                  name: quantidade_itens
+                  type: INTEGER
+              - column:
+                  name: condicao_descricao
+                  type: VARCHAR(255)
+              - column:
+                  name: status
+                  type: VARCHAR(30)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: observacoes
+                  type: VARCHAR(255)
+        - addForeignKeyConstraint:
+            baseTableName: cme_recebimentos
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_cme_recebimento_tenant
+        - addForeignKeyConstraint:
+            baseTableName: cme_recebimentos
+            baseColumnNames: setor_origem_id
+            referencedTableName: cme_setores
+            referencedColumnNames: id
+            constraintName: fk_cme_recebimento_setor_origem
+        - addForeignKeyConstraint:
+            baseTableName: cme_recebimentos
+            baseColumnNames: responsavel_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_cme_recebimento_responsavel
+        - createIndex:
+            tableName: cme_recebimentos
+            indexName: ix_recebimento_tenant_data
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: data_hora
+        - createIndex:
+            tableName: cme_recebimentos
+            indexName: ix_recebimento_tenant_status
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: status
+        - createTable:
+            tableName: cme_recebimento_evidencias
+            columns:
+              - column:
+                  name: recebimento_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: evidencia_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: cme_recebimento_evidencias
+            columnNames: recebimento_id, evidencia_id
+            constraintName: pk_cme_recebimento_evidencias
+        - addForeignKeyConstraint:
+            baseTableName: cme_recebimento_evidencias
+            baseColumnNames: recebimento_id
+            referencedTableName: cme_recebimentos
+            referencedColumnNames: id
+            constraintName: fk_cme_recebimento_evidencia_rec
+        - addForeignKeyConstraint:
+            baseTableName: cme_recebimento_evidencias
+            baseColumnNames: evidencia_id
+            referencedTableName: evidencias_arquivo
+            referencedColumnNames: id
+            constraintName: fk_cme_recebimento_evidencia_file
+
+  - changeSet:
+      id: V7-2
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: cme_ciclos_lavadora
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: data_hora
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: equipamento_descricao
+                  type: VARCHAR(180)
+              - column:
+                  name: numero_ciclo
+                  type: VARCHAR(60)
+              - column:
+                  name: temperatura_maxima
+                  type: DOUBLE
+              - column:
+                  name: duracao_minutos
+                  type: INTEGER
+              - column:
+                  name: quantidade_itens
+                  type: INTEGER
+              - column:
+                  name: resultado
+                  type: VARCHAR(30)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: responsavel_id
+                  type: BIGINT
+              - column:
+                  name: observacoes
+                  type: VARCHAR(255)
+        - addForeignKeyConstraint:
+            baseTableName: cme_ciclos_lavadora
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_cme_ciclo_lavadora_tenant
+        - addForeignKeyConstraint:
+            baseTableName: cme_ciclos_lavadora
+            baseColumnNames: responsavel_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_cme_ciclo_lavadora_responsavel
+        - createIndex:
+            tableName: cme_ciclos_lavadora
+            indexName: ix_ciclo_lavadora_tenant_data
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: data_hora
+        - createIndex:
+            tableName: cme_ciclos_lavadora
+            indexName: ix_ciclo_lavadora_tenant_resultado
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: resultado
+        - createTable:
+            tableName: cme_ciclo_lavadora_evidencias
+            columns:
+              - column:
+                  name: ciclo_lavadora_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: evidencia_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: cme_ciclo_lavadora_evidencias
+            columnNames: ciclo_lavadora_id, evidencia_id
+            constraintName: pk_cme_ciclo_lavadora_evidencias
+        - addForeignKeyConstraint:
+            baseTableName: cme_ciclo_lavadora_evidencias
+            baseColumnNames: ciclo_lavadora_id
+            referencedTableName: cme_ciclos_lavadora
+            referencedColumnNames: id
+            constraintName: fk_cme_ciclo_lavadora_evidencia_ciclo
+        - addForeignKeyConstraint:
+            baseTableName: cme_ciclo_lavadora_evidencias
+            baseColumnNames: evidencia_id
+            referencedTableName: evidencias_arquivo
+            referencedColumnNames: id
+            constraintName: fk_cme_ciclo_lavadora_evidencia_file
+
+  - changeSet:
+      id: V7-3
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: cme_monitoramentos_ambientais
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: data_hora
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: local_sala
+                  type: VARCHAR(120)
+              - column:
+                  name: temperatura_celsius
+                  type: DOUBLE
+              - column:
+                  name: umidade_relativa
+                  type: DOUBLE
+              - column:
+                  name: pressao_diferencial_pa
+                  type: DOUBLE
+              - column:
+                  name: resultado
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: responsavel_id
+                  type: BIGINT
+              - column:
+                  name: observacoes
+                  type: VARCHAR(255)
+        - addForeignKeyConstraint:
+            baseTableName: cme_monitoramentos_ambientais
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_cme_monitoramento_tenant
+        - addForeignKeyConstraint:
+            baseTableName: cme_monitoramentos_ambientais
+            baseColumnNames: responsavel_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_cme_monitoramento_responsavel
+        - createIndex:
+            tableName: cme_monitoramentos_ambientais
+            indexName: ix_monitoramento_tenant_data
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: data_hora
+        - createIndex:
+            tableName: cme_monitoramentos_ambientais
+            indexName: ix_monitoramento_tenant_resultado
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: resultado
+        - createTable:
+            tableName: cme_monitoramento_evidencias
+            columns:
+              - column:
+                  name: monitoramento_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: evidencia_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: cme_monitoramento_evidencias
+            columnNames: monitoramento_id, evidencia_id
+            constraintName: pk_cme_monitoramento_evidencias
+        - addForeignKeyConstraint:
+            baseTableName: cme_monitoramento_evidencias
+            baseColumnNames: monitoramento_id
+            referencedTableName: cme_monitoramentos_ambientais
+            referencedColumnNames: id
+            constraintName: fk_cme_monitoramento_evidencia_mon
+        - addForeignKeyConstraint:
+            baseTableName: cme_monitoramento_evidencias
+            baseColumnNames: evidencia_id
+            referencedTableName: evidencias_arquivo
+            referencedColumnNames: id
+            constraintName: fk_cme_monitoramento_evidencia_file

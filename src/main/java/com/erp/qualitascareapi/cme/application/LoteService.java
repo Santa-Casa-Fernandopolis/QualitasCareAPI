@@ -57,6 +57,12 @@ public class LoteService {
         return new SetorDto(saved.getId(), tenant.getId(), saved.getNome(), saved.getTipo(), saved.getDescricao());
     }
 
+    public SetorDto findSetorById(Long id) {
+        Setor s = setorRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Setor não encontrado"));
+        return new SetorDto(s.getId(), s.getTenant().getId(), s.getNome(), s.getTipo(), s.getDescricao());
+    }
+
     public Page<SetorDto> listSetores(Pageable pageable) {
         return setorRepository.findAll(pageable)
                 .map(s -> new SetorDto(s.getId(), s.getTenant().getId(), s.getNome(), s.getTipo(), s.getDescricao()));
@@ -91,13 +97,29 @@ public class LoteService {
                 montadoPor, saved.getObservacoes(), saved.getCriadoEm());
     }
 
+    public LoteEtiquetaDto findLoteById(Long id) {
+        LoteEtiqueta l = loteEtiquetaRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Lote não encontrado"));
+        return toLoteDto(l);
+    }
+
+    public LoteEtiquetaDto updateLoteStatus(Long id, com.erp.qualitascareapi.cme.enums.LoteStatus status) {
+        LoteEtiqueta l = loteEtiquetaRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Lote não encontrado"));
+        l.setStatus(status);
+        return toLoteDto(loteEtiquetaRepository.save(l));
+    }
+
+    private LoteEtiquetaDto toLoteDto(LoteEtiqueta l) {
+        return new LoteEtiquetaDto(l.getId(), l.getTenant().getId(), l.getCodigo(),
+                l.getKitVersao() != null ? l.getKitVersao().getId() : null,
+                l.getDataEmpacotamento(), l.getValidade(), l.getStatus(), l.getQrCode(),
+                l.getMontadoPor() != null ? l.getMontadoPor().getId() : null,
+                l.getObservacoes(), l.getCriadoEm());
+    }
+
     public Page<LoteEtiquetaDto> listLotes(Pageable pageable) {
-        return loteEtiquetaRepository.findAll(pageable)
-                .map(l -> new LoteEtiquetaDto(l.getId(), l.getTenant().getId(), l.getCodigo(),
-                        l.getKitVersao() != null ? l.getKitVersao().getId() : null,
-                        l.getDataEmpacotamento(), l.getValidade(), l.getStatus(), l.getQrCode(),
-                        l.getMontadoPor() != null ? l.getMontadoPor().getId() : null,
-                        l.getObservacoes(), l.getCriadoEm()));
+        return loteEtiquetaRepository.findAll(pageable).map(this::toLoteDto);
     }
 
     public MovimentacaoDto registrarMovimentacao(MovimentacaoRequest request) {
