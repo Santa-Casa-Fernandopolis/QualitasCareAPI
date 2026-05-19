@@ -908,14 +908,78 @@ public class DevTestDataInitializer implements ApplicationRunner {
         Permission scjObsLogRead      = findOrCreatePermission(scj, ResourceType.OBSERVABILITY_LOG,          Action.READ, "LISTA", "OBSERVABILITY_LOG_READ@LISTA");
         Permission scjObsSecLogRead   = findOrCreatePermission(scj, ResourceType.OBSERVABILITY_SECURITY_LOG, Action.READ, "LISTA", "OBSERVABILITY_SECURITY_LOG_READ@LISTA");
 
-        // Somente SystemAdmin e AdminTI têm acesso a observabilidade
-        for (Permission p : List.of(scfObsAuditRead, scfObsLogRead, scfObsSecLogRead)) {
+        Permission scfObsAuditCreate  = findOrCreatePermission(scf, ResourceType.OBSERVABILITY_AUDIT,        Action.CREATE, "FORM", "OBSERVABILITY_AUDIT_CREATE@FORM");
+        Permission scfObsAuditUpdate  = findOrCreatePermission(scf, ResourceType.OBSERVABILITY_AUDIT,        Action.UPDATE, "FORM", "OBSERVABILITY_AUDIT_UPDATE@FORM");
+        Permission scfObsAuditDelete  = findOrCreatePermission(scf, ResourceType.OBSERVABILITY_AUDIT,        Action.DELETE, "FORM", "OBSERVABILITY_AUDIT_DELETE@FORM");
+        Permission scfObsLogCreate    = findOrCreatePermission(scf, ResourceType.OBSERVABILITY_LOG,          Action.CREATE, "FORM", "OBSERVABILITY_LOG_CREATE@FORM");
+        Permission scfObsLogUpdate    = findOrCreatePermission(scf, ResourceType.OBSERVABILITY_LOG,          Action.UPDATE, "FORM", "OBSERVABILITY_LOG_UPDATE@FORM");
+        Permission scfObsLogDelete    = findOrCreatePermission(scf, ResourceType.OBSERVABILITY_LOG,          Action.DELETE, "FORM", "OBSERVABILITY_LOG_DELETE@FORM");
+        Permission scfObsSecLogCreate = findOrCreatePermission(scf, ResourceType.OBSERVABILITY_SECURITY_LOG, Action.CREATE, "FORM", "OBSERVABILITY_SECURITY_LOG_CREATE@FORM");
+        Permission scfObsSecLogUpdate = findOrCreatePermission(scf, ResourceType.OBSERVABILITY_SECURITY_LOG, Action.UPDATE, "FORM", "OBSERVABILITY_SECURITY_LOG_UPDATE@FORM");
+        Permission scfObsSecLogDelete = findOrCreatePermission(scf, ResourceType.OBSERVABILITY_SECURITY_LOG, Action.DELETE, "FORM", "OBSERVABILITY_SECURITY_LOG_DELETE@FORM");
+
+        Permission scjObsAuditCreate  = findOrCreatePermission(scj, ResourceType.OBSERVABILITY_AUDIT,        Action.CREATE, "FORM", "OBSERVABILITY_AUDIT_CREATE@FORM");
+        Permission scjObsAuditUpdate  = findOrCreatePermission(scj, ResourceType.OBSERVABILITY_AUDIT,        Action.UPDATE, "FORM", "OBSERVABILITY_AUDIT_UPDATE@FORM");
+        Permission scjObsAuditDelete  = findOrCreatePermission(scj, ResourceType.OBSERVABILITY_AUDIT,        Action.DELETE, "FORM", "OBSERVABILITY_AUDIT_DELETE@FORM");
+        Permission scjObsLogCreate    = findOrCreatePermission(scj, ResourceType.OBSERVABILITY_LOG,          Action.CREATE, "FORM", "OBSERVABILITY_LOG_CREATE@FORM");
+        Permission scjObsLogUpdate    = findOrCreatePermission(scj, ResourceType.OBSERVABILITY_LOG,          Action.UPDATE, "FORM", "OBSERVABILITY_LOG_UPDATE@FORM");
+        Permission scjObsLogDelete    = findOrCreatePermission(scj, ResourceType.OBSERVABILITY_LOG,          Action.DELETE, "FORM", "OBSERVABILITY_LOG_DELETE@FORM");
+        Permission scjObsSecLogCreate = findOrCreatePermission(scj, ResourceType.OBSERVABILITY_SECURITY_LOG, Action.CREATE, "FORM", "OBSERVABILITY_SECURITY_LOG_CREATE@FORM");
+        Permission scjObsSecLogUpdate = findOrCreatePermission(scj, ResourceType.OBSERVABILITY_SECURITY_LOG, Action.UPDATE, "FORM", "OBSERVABILITY_SECURITY_LOG_UPDATE@FORM");
+        Permission scjObsSecLogDelete = findOrCreatePermission(scj, ResourceType.OBSERVABILITY_SECURITY_LOG, Action.DELETE, "FORM", "OBSERVABILITY_SECURITY_LOG_DELETE@FORM");
+
+        // SystemAdmin: CRUD completo em observabilidade
+        for (Permission p : List.of(scfObsAuditRead, scfObsAuditCreate, scfObsAuditUpdate, scfObsAuditDelete,
+                scfObsLogRead, scfObsLogCreate, scfObsLogUpdate, scfObsLogDelete,
+                scfObsSecLogRead, scfObsSecLogCreate, scfObsSecLogUpdate, scfObsSecLogDelete)) {
             ensureRolePermission(scfSystemAdmin, p, scf);
-            ensureRolePermission(scfAdminTI,     p, scf);
         }
-        for (Permission p : List.of(scjObsAuditRead, scjObsLogRead, scjObsSecLogRead)) {
+        for (Permission p : List.of(scjObsAuditRead, scjObsAuditCreate, scjObsAuditUpdate, scjObsAuditDelete,
+                scjObsLogRead, scjObsLogCreate, scjObsLogUpdate, scjObsLogDelete,
+                scjObsSecLogRead, scjObsSecLogCreate, scjObsSecLogUpdate, scjObsSecLogDelete)) {
             ensureRolePermission(scjSystemAdmin, p, scj);
-            ensureRolePermission(scjAdminTI,     p, scj);
+        }
+        // AdminTI: somente READ em observabilidade
+        for (Permission p : List.of(scfObsAuditRead, scfObsLogRead, scfObsSecLogRead)) { ensureRolePermission(scfAdminTI, p, scf); }
+        for (Permission p : List.of(scjObsAuditRead, scjObsLogRead, scjObsSecLogRead)) { ensureRolePermission(scjAdminTI, p, scj); }
+
+        //=========================== ACESSO TOTAL SYSTEM_ADMIN – MÓDULOS FUTUROS ==========================
+        // Recursos ainda sem telas ativas mas presentes no enum; SystemAdmin já tem permissão cadastrada
+        // para quando os módulos forem liberados.
+        List<ResourceType> futureResources = List.of(
+                ResourceType.IAM_PROFILE,
+                ResourceType.INDICADOR,
+                ResourceType.AUDITORIA,
+                ResourceType.NAO_CONFORMIDADE,
+                ResourceType.PROTOCOLO,
+                ResourceType.CAPACITACAO,
+                ResourceType.PGRSS,
+                ResourceType.USUARIO,
+                ResourceType.DOCUMENTO,
+                ResourceType.DOCUMENTO_VERSAO,
+                ResourceType.DOCUMENTO_ACK,
+                ResourceType.DOCUMENTO_ALTERACAO
+        );
+
+        for (ResourceType rt : futureResources) {
+            String key = rt.name();
+            Permission scfRead   = findOrCreatePermission(scf, rt, Action.READ,   "LISTA", key + "_READ@LISTA");
+            Permission scfCreate = findOrCreatePermission(scf, rt, Action.CREATE, "FORM",  key + "_CREATE@FORM");
+            Permission scfUpdate = findOrCreatePermission(scf, rt, Action.UPDATE, "FORM",  key + "_UPDATE@FORM");
+            Permission scfDelete = findOrCreatePermission(scf, rt, Action.DELETE, "FORM",  key + "_DELETE@FORM");
+            ensureRolePermission(scfSystemAdmin, scfRead,   scf);
+            ensureRolePermission(scfSystemAdmin, scfCreate, scf);
+            ensureRolePermission(scfSystemAdmin, scfUpdate, scf);
+            ensureRolePermission(scfSystemAdmin, scfDelete, scf);
+
+            Permission scjRead   = findOrCreatePermission(scj, rt, Action.READ,   "LISTA", key + "_READ@LISTA");
+            Permission scjCreate = findOrCreatePermission(scj, rt, Action.CREATE, "FORM",  key + "_CREATE@FORM");
+            Permission scjUpdate = findOrCreatePermission(scj, rt, Action.UPDATE, "FORM",  key + "_UPDATE@FORM");
+            Permission scjDelete = findOrCreatePermission(scj, rt, Action.DELETE, "FORM",  key + "_DELETE@FORM");
+            ensureRolePermission(scjSystemAdmin, scjRead,   scj);
+            ensureRolePermission(scjSystemAdmin, scjCreate, scj);
+            ensureRolePermission(scjSystemAdmin, scjUpdate, scj);
+            ensureRolePermission(scjSystemAdmin, scjDelete, scj);
         }
 
         //=========================== PAPEIS ORGANIZACIONAIS =========================================================
