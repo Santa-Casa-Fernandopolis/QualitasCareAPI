@@ -121,6 +121,8 @@ public class DevTestDataInitializer implements ApplicationRunner {
         createUserIfMissing("gestor.enf.scf",   "Gerente Enfermagem",  "Enfermagem",      scf, scfGestor,           now, createdUsers);
         createUserIfMissing("sup.cme.scf",      "Supervisora CME",     "CME",             scf, scfOperador,         now, createdUsers);
         createUserIfMissing("enf.cme.scf",      "Enfermeira CME",      "CME",             scf, scfOperador,         now, createdUsers);
+        createUserIfMissing("dir.clinico.scf",  "Diretor Clínico",     "Diretoria",       scf, scfAdminAssistencial,now, createdUsers);
+        createUserIfMissing("gest.edu.scf",     "Gestor Educação",     "Educação",        scf, scfGestor,           now, createdUsers);
 
         // SCJ
         createUserIfMissing("jefferson.passerini.scj", "SysAdmin SCJ",        "TI",              scj, scjSystemAdmin,      now, createdUsers);
@@ -130,6 +132,8 @@ public class DevTestDataInitializer implements ApplicationRunner {
         createUserIfMissing("gestor.enf.scj",   "Gerente Enfermagem",  "Enfermagem",      scj, scjGestor,           now, createdUsers);
         createUserIfMissing("sup.cme.scj",      "Supervisora CME",     "CME",             scj, scjOperador,         now, createdUsers);
         createUserIfMissing("enf.cme.scj",      "Enfermeira CME",      "CME",             scj, scjOperador,         now, createdUsers);
+        createUserIfMissing("dir.clinico.scj",  "Diretor Clínico",     "Diretoria",       scj, scjAdminAssistencial,now, createdUsers);
+        createUserIfMissing("gest.edu.scj",     "Gestor Educação",     "Educação",        scj, scjGestor,           now, createdUsers);
 
         // ===== PERMISSÕES BASE – IAM / SECURITY (SCF) =====
         // IAM_TENANT – gestão de tenants
@@ -1008,6 +1012,14 @@ public class DevTestDataInitializer implements ApplicationRunner {
                 new Setor(null, scj, "Gestão da Qualidade", TipoSetor.QUALIDADE, "Qualidade")
         );
 
+        Setor setorEducacaoScf = setorRepository.save(
+                new Setor(null, scf, "Educação Permanente", TipoSetor.EDUCACAO_PERMANENTE, "Educação Permanente")
+        );
+
+        Setor setorEducacaoScj = setorRepository.save(
+                new Setor(null, scj, "Educação Permanente", TipoSetor.EDUCACAO_PERMANENTE, "Educação Permanente")
+        );
+
         // ===== ORG ROLE ASSIGNMENTS – SCF =====
         LocalDate today = LocalDate.now();
         PeriodoVigencia vigenciaPadrao = new PeriodoVigencia(today.atStartOfDay().toInstant(ZoneOffset.UTC), null);
@@ -1092,6 +1104,48 @@ public class DevTestDataInitializer implements ApplicationRunner {
             ora.setUser(user);
             ora.setSetor(setorEnfermagemScj); // ou outro setor macro da diretoria
             ora.setRoleType(OrgRoleType.DIRETOR_TECNICO);
+            ora.setVigencia(vigenciaPadrao);
+            orgRoleAssignmentRepository.save(ora);
+        });
+
+        // Diretor Clínico
+        userRepository.findByUsernameIgnoreCase("dir.clinico.scf").ifPresent(user -> {
+            OrgRoleAssignment ora = new OrgRoleAssignment();
+            ora.setTenant(scf);
+            ora.setUser(user);
+            ora.setSetor(setorEnfermagemScf);
+            ora.setRoleType(OrgRoleType.DIRETOR_CLINICO);
+            ora.setVigencia(vigenciaPadrao);
+            orgRoleAssignmentRepository.save(ora);
+        });
+
+        userRepository.findByUsernameIgnoreCase("dir.clinico.scj").ifPresent(user -> {
+            OrgRoleAssignment ora = new OrgRoleAssignment();
+            ora.setTenant(scj);
+            ora.setUser(user);
+            ora.setSetor(setorEnfermagemScj);
+            ora.setRoleType(OrgRoleType.DIRETOR_CLINICO);
+            ora.setVigencia(vigenciaPadrao);
+            orgRoleAssignmentRepository.save(ora);
+        });
+
+        // Gestor Educação Permanente
+        userRepository.findByUsernameIgnoreCase("gest.edu.scf").ifPresent(user -> {
+            OrgRoleAssignment ora = new OrgRoleAssignment();
+            ora.setTenant(scf);
+            ora.setUser(user);
+            ora.setSetor(setorEducacaoScf);
+            ora.setRoleType(OrgRoleType.EDUCACAO_PERMANENTE_GERENTE);
+            ora.setVigencia(vigenciaPadrao);
+            orgRoleAssignmentRepository.save(ora);
+        });
+
+        userRepository.findByUsernameIgnoreCase("gest.edu.scj").ifPresent(user -> {
+            OrgRoleAssignment ora = new OrgRoleAssignment();
+            ora.setTenant(scj);
+            ora.setUser(user);
+            ora.setSetor(setorEducacaoScj);
+            ora.setRoleType(OrgRoleType.EDUCACAO_PERMANENTE_GERENTE);
             ora.setVigencia(vigenciaPadrao);
             orgRoleAssignmentRepository.save(ora);
         });
