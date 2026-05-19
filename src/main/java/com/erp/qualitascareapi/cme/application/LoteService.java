@@ -16,6 +16,7 @@ import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.domain.User;
 import com.erp.qualitascareapi.iam.repo.TenantRepository;
 import com.erp.qualitascareapi.iam.repo.UserRepository;
+import com.erp.qualitascareapi.security.application.TenantScopeGuard;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -33,6 +34,7 @@ public class LoteService {
     private final KitVersionRepository kitVersionRepository;
     private final MovimentacaoCMERepository movimentacaoRepository;
     private final ProcessoReprocessamentoRepository processoRepository;
+    private final TenantScopeGuard tenantScopeGuard;
 
     public LoteService(TenantRepository tenantRepository,
                        UserRepository userRepository,
@@ -40,7 +42,8 @@ public class LoteService {
                        LoteEtiquetaRepository loteEtiquetaRepository,
                        KitVersionRepository kitVersionRepository,
                        MovimentacaoCMERepository movimentacaoRepository,
-                       ProcessoReprocessamentoRepository processoRepository) {
+                       ProcessoReprocessamentoRepository processoRepository,
+                       TenantScopeGuard tenantScopeGuard) {
         this.tenantRepository = tenantRepository;
         this.userRepository = userRepository;
         this.setorRepository = setorRepository;
@@ -48,9 +51,11 @@ public class LoteService {
         this.kitVersionRepository = kitVersionRepository;
         this.movimentacaoRepository = movimentacaoRepository;
         this.processoRepository = processoRepository;
+        this.tenantScopeGuard = tenantScopeGuard;
     }
 
     public SetorDto createSetor(SetorRequest request) {
+        tenantScopeGuard.checkRequestedTenant(request.tenantId());
         Tenant tenant = tenantRepository.findById(request.tenantId())
                 .orElseThrow(() -> new EntityNotFoundException("Tenant não encontrado"));
         Setor setor = new Setor();
@@ -69,11 +74,12 @@ public class LoteService {
     }
 
     public Page<SetorDto> listSetores(Pageable pageable) {
-        return setorRepository.findAll(pageable)
+        return setorRepository.findAllByTenantId(tenantScopeGuard.currentTenantId(), pageable)
                 .map(s -> new SetorDto(s.getId(), s.getTenant().getId(), s.getNome(), s.getTipo(), s.getDescricao()));
     }
 
     public LoteEtiquetaDto createLote(LoteEtiquetaRequest request) {
+        tenantScopeGuard.checkRequestedTenant(request.tenantId());
         Tenant tenant = tenantRepository.findById(request.tenantId())
                 .orElseThrow(() -> new EntityNotFoundException("Tenant não encontrado"));
         LoteEtiqueta lote = new LoteEtiqueta();
@@ -129,10 +135,11 @@ public class LoteService {
     }
 
     public Page<LoteEtiquetaDto> listLotes(Pageable pageable) {
-        return loteEtiquetaRepository.findAll(pageable).map(this::toLoteDto);
+        return loteEtiquetaRepository.findAllByTenantId(tenantScopeGuard.currentTenantId(), pageable).map(this::toLoteDto);
     }
 
     public MovimentacaoDto registrarMovimentacao(MovimentacaoRequest request) {
+        tenantScopeGuard.checkRequestedTenant(request.tenantId());
         Tenant tenant = tenantRepository.findById(request.tenantId())
                 .orElseThrow(() -> new EntityNotFoundException("Tenant não encontrado"));
         MovimentacaoCME movimentacao = new MovimentacaoCME();
@@ -171,7 +178,7 @@ public class LoteService {
     }
 
     public Page<MovimentacaoDto> listMovimentacoes(Pageable pageable) {
-        return movimentacaoRepository.findAll(pageable)
+        return movimentacaoRepository.findAllByTenantId(tenantScopeGuard.currentTenantId(), pageable)
                 .map(m -> new MovimentacaoDto(m.getId(), m.getTenant().getId(),
                         m.getLote() != null ? m.getLote().getId() : null,
                         m.getSetorOrigem() != null ? m.getSetorOrigem().getId() : null,

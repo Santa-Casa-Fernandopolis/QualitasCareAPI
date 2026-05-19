@@ -12,6 +12,7 @@ import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.domain.User;
 import com.erp.qualitascareapi.iam.repo.TenantRepository;
 import com.erp.qualitascareapi.iam.repo.UserRepository;
+import com.erp.qualitascareapi.security.application.TenantScopeGuard;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -26,18 +27,22 @@ public class SaneanteService {
     private final UserRepository userRepository;
     private final SaneantePeraceticoLoteRepository saneanteRepository;
     private final UsoSaneanteRepository usoSaneanteRepository;
+    private final TenantScopeGuard tenantScopeGuard;
 
     public SaneanteService(TenantRepository tenantRepository,
                            UserRepository userRepository,
                            SaneantePeraceticoLoteRepository saneanteRepository,
-                           UsoSaneanteRepository usoSaneanteRepository) {
+                           UsoSaneanteRepository usoSaneanteRepository,
+                           TenantScopeGuard tenantScopeGuard) {
         this.tenantRepository = tenantRepository;
         this.userRepository = userRepository;
         this.saneanteRepository = saneanteRepository;
         this.usoSaneanteRepository = usoSaneanteRepository;
+        this.tenantScopeGuard = tenantScopeGuard;
     }
 
     public SaneanteLoteDto createLote(SaneanteLoteRequest request) {
+        tenantScopeGuard.checkRequestedTenant(request.tenantId());
         Tenant tenant = tenantRepository.findById(request.tenantId())
                 .orElseThrow(() -> new EntityNotFoundException("Tenant não encontrado"));
         SaneantePeraceticoLote lote = new SaneantePeraceticoLote();
@@ -60,7 +65,7 @@ public class SaneanteService {
     }
 
     public Page<SaneanteLoteDto> listLotes(Pageable pageable) {
-        return saneanteRepository.findAll(pageable).map(this::toDto);
+        return saneanteRepository.findAllByTenantId(tenantScopeGuard.currentTenantId(), pageable).map(this::toDto);
     }
 
     private SaneanteLoteDto toDto(SaneantePeraceticoLote lote) {
@@ -92,7 +97,7 @@ public class SaneanteService {
     }
 
     public Page<UsoSaneanteDto> listUsos(Pageable pageable) {
-        return usoSaneanteRepository.findAll(pageable)
+        return usoSaneanteRepository.findAllByLoteSaneante_TenantId(tenantScopeGuard.currentTenantId(), pageable)
                 .map(uso -> new UsoSaneanteDto(uso.getId(), uso.getLoteSaneante().getId(), uso.getDataUso(),
                         uso.getEtapa(), uso.getVolumeUtilizadoMl(), uso.getDiluicao(),
                         uso.getUsadoPor() != null ? uso.getUsadoPor().getId() : null,

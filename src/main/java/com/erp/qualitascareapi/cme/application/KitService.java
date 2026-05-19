@@ -11,6 +11,7 @@ import com.erp.qualitascareapi.core.repo.KitProcedimentoRepository;
 import com.erp.qualitascareapi.core.repo.KitVersionRepository;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.repo.TenantRepository;
+import com.erp.qualitascareapi.security.application.TenantScopeGuard;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -26,20 +27,24 @@ public class KitService {
     private final KitProcedimentoRepository kitProcedimentoRepository;
     private final KitVersionRepository kitVersionRepository;
     private final KitItemRepository kitItemRepository;
+    private final TenantScopeGuard tenantScopeGuard;
 
     public KitService(TenantRepository tenantRepository,
                       InstrumentoRepository instrumentoRepository,
                       KitProcedimentoRepository kitProcedimentoRepository,
                       KitVersionRepository kitVersionRepository,
-                      KitItemRepository kitItemRepository) {
+                      KitItemRepository kitItemRepository,
+                      TenantScopeGuard tenantScopeGuard) {
         this.tenantRepository = tenantRepository;
         this.instrumentoRepository = instrumentoRepository;
         this.kitProcedimentoRepository = kitProcedimentoRepository;
         this.kitVersionRepository = kitVersionRepository;
         this.kitItemRepository = kitItemRepository;
+        this.tenantScopeGuard = tenantScopeGuard;
     }
 
     public InstrumentoDto createInstrumento(InstrumentoRequest request) {
+        tenantScopeGuard.checkRequestedTenant(request.tenantId());
         Tenant tenant = tenantRepository.findById(request.tenantId())
                 .orElseThrow(() -> new EntityNotFoundException("Tenant não encontrado"));
         Instrumento instrumento = new Instrumento();
@@ -71,12 +76,13 @@ public class KitService {
     }
 
     public Page<InstrumentoDto> listInstrumentos(Pageable pageable) {
-        return instrumentoRepository.findAll(pageable)
+        return instrumentoRepository.findAllByTenantId(tenantScopeGuard.currentTenantId(), pageable)
                 .map(i -> new InstrumentoDto(i.getId(), i.getTenant().getId(), i.getNome(),
                         i.getCodigoHospitalar(), i.getDescricao()));
     }
 
     public KitProcedimentoDto createKitProcedimento(KitProcedimentoRequest request) {
+        tenantScopeGuard.checkRequestedTenant(request.tenantId());
         Tenant tenant = tenantRepository.findById(request.tenantId())
                 .orElseThrow(() -> new EntityNotFoundException("Tenant não encontrado"));
         KitProcedimento kit = new KitProcedimento();
@@ -110,7 +116,7 @@ public class KitService {
     }
 
     public Page<KitProcedimentoDto> listKits(Pageable pageable) {
-        return kitProcedimentoRepository.findAll(pageable)
+        return kitProcedimentoRepository.findAllByTenantId(tenantScopeGuard.currentTenantId(), pageable)
                 .map(k -> new KitProcedimentoDto(k.getId(), k.getTenant().getId(), k.getNome(), k.getCodigo(),
                         k.getObservacoes(), k.getAtivo()));
     }
@@ -131,7 +137,7 @@ public class KitService {
     }
 
     public Page<KitVersionDto> listKitVersions(Pageable pageable) {
-        return kitVersionRepository.findAll(pageable)
+        return kitVersionRepository.findAllByKit_TenantId(tenantScopeGuard.currentTenantId(), pageable)
                 .map(v -> new KitVersionDto(v.getId(), v.getKit().getId(), v.getNumeroVersao(),
                         v.getVigenciaInicio(), v.getValidadeDias(), v.getAtivo(), v.getObservacoes()));
     }
@@ -152,7 +158,7 @@ public class KitService {
     }
 
     public Page<KitItemDto> listKitItems(Pageable pageable) {
-        return kitItemRepository.findAll(pageable)
+        return kitItemRepository.findAllByVersao_Kit_TenantId(tenantScopeGuard.currentTenantId(), pageable)
                 .map(item -> new KitItemDto(item.getId(), item.getVersao().getId(),
                         item.getInstrumento().getId(), item.getQuantidade(), item.getObservacoes()));
     }

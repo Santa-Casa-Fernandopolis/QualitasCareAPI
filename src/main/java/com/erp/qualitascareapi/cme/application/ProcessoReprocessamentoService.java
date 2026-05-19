@@ -10,6 +10,7 @@ import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.domain.User;
 import com.erp.qualitascareapi.iam.repo.TenantRepository;
 import com.erp.qualitascareapi.iam.repo.UserRepository;
+import com.erp.qualitascareapi.security.application.TenantScopeGuard;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -35,6 +36,7 @@ public class ProcessoReprocessamentoService {
     private final CicloEsterilizacaoRepository cicloEsterilizacaoRepository;
     private final RecebimentoMaterialRepository recebimentoRepository;
     private final EvidenciaArquivoRepository evidenciaArquivoRepository;
+    private final TenantScopeGuard tenantScopeGuard;
 
     public ProcessoReprocessamentoService(TenantRepository tenantRepository,
                                           UserRepository userRepository,
@@ -44,7 +46,8 @@ public class ProcessoReprocessamentoService {
                                           LoteEtiquetaRepository loteEtiquetaRepository,
                                           CicloEsterilizacaoRepository cicloEsterilizacaoRepository,
                                           RecebimentoMaterialRepository recebimentoRepository,
-                                          EvidenciaArquivoRepository evidenciaArquivoRepository) {
+                                          EvidenciaArquivoRepository evidenciaArquivoRepository,
+                                          TenantScopeGuard tenantScopeGuard) {
         this.tenantRepository = tenantRepository;
         this.userRepository = userRepository;
         this.processoRepository = processoRepository;
@@ -54,11 +57,13 @@ public class ProcessoReprocessamentoService {
         this.cicloEsterilizacaoRepository = cicloEsterilizacaoRepository;
         this.recebimentoRepository = recebimentoRepository;
         this.evidenciaArquivoRepository = evidenciaArquivoRepository;
+        this.tenantScopeGuard = tenantScopeGuard;
     }
 
     // ---- ProcessoReprocessamento CRUD ----
 
     public ProcessoReprocessamentoDto createProcesso(ProcessoReprocessamentoRequest request) {
+        tenantScopeGuard.checkRequestedTenant(request.tenantId());
         Tenant tenant = tenantRepository.findById(request.tenantId())
                 .orElseThrow(() -> new EntityNotFoundException("Tenant não encontrado"));
         ProcessoReprocessamento processo = new ProcessoReprocessamento();
@@ -77,7 +82,7 @@ public class ProcessoReprocessamentoService {
     }
 
     public Page<ProcessoReprocessamentoDto> listProcessos(Pageable pageable) {
-        return processoRepository.findAll(pageable).map(this::toProcessoDto);
+        return processoRepository.findAllByTenantId(tenantScopeGuard.currentTenantId(), pageable).map(this::toProcessoDto);
     }
 
     public ProcessoReprocessamentoDto findProcessoById(Long id) {
@@ -96,6 +101,7 @@ public class ProcessoReprocessamentoService {
     // ---- LimpezaManual CRUD ----
 
     public LimpezaManualDto registrarLimpezaManual(LimpezaManualRequest request) {
+        tenantScopeGuard.checkRequestedTenant(request.tenantId());
         Tenant tenant = tenantRepository.findById(request.tenantId())
                 .orElseThrow(() -> new EntityNotFoundException("Tenant não encontrado"));
         User responsavel = userRepository.findById(request.responsavelId())
@@ -120,7 +126,7 @@ public class ProcessoReprocessamentoService {
     }
 
     public Page<LimpezaManualDto> listLimpezas(Pageable pageable) {
-        return limpezaManualRepository.findAll(pageable).map(this::toLimpezaDto);
+        return limpezaManualRepository.findAllByTenantId(tenantScopeGuard.currentTenantId(), pageable).map(this::toLimpezaDto);
     }
 
     public LimpezaManualDto findLimpezaById(Long id) {

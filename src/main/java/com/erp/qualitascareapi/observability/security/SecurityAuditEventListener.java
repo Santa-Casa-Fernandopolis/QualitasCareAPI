@@ -5,12 +5,13 @@ import org.slf4j.MDC;
 import org.springframework.context.event.EventListener;
 import org.springframework.security.authentication.event.AbstractAuthenticationFailureEvent;
 import org.springframework.security.authentication.event.AuthenticationSuccessEvent;
-import org.springframework.security.access.event.AuthorizationFailureEvent;
+import org.springframework.security.authorization.event.AuthorizationDeniedEvent;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.util.function.Supplier;
 
 @Component
 public class SecurityAuditEventListener {
@@ -42,11 +43,12 @@ public class SecurityAuditEventListener {
     }
 
     @EventListener
-    public void onAuthorizationFailure(AuthorizationFailureEvent event) {
-        Authentication authentication = event.getAuthentication();
+    public void onAuthorizationDenied(AuthorizationDeniedEvent<?> event) {
+        Supplier<Authentication> authSupplier = event.getAuthentication();
+        Authentication authentication = authSupplier != null ? authSupplier.get() : null;
         String username = authentication != null ? truncate(authentication.getName(), 120) : "anonymous";
         String clientIp = resolveClientIp(authentication != null ? authentication.getDetails() : null);
-        String description = truncate("Acesso negado ao recurso " + event.getSource(), 255);
+        String description = truncate("Acesso negado ao recurso " + event.getObject(), 255);
         repository.save(new SecurityAuditEvent(Instant.now(), username, SecurityAuditEventType.AUTHORIZATION_FAILURE,
                 clientIp, truncate(MDC.get(CorrelationFilter.TRACE_ID), 64), description));
     }

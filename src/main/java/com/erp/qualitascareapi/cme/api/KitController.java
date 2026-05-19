@@ -2,6 +2,9 @@ package com.erp.qualitascareapi.cme.api;
 
 import com.erp.qualitascareapi.cme.api.dto.*;
 import com.erp.qualitascareapi.cme.application.KitService;
+import com.erp.qualitascareapi.security.annotation.RequiresPermission;
+import com.erp.qualitascareapi.security.enums.Action;
+import com.erp.qualitascareapi.security.enums.ResourceType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -20,64 +23,76 @@ public class KitController {
 
     @PostMapping("/instrumentos")
     @ResponseStatus(HttpStatus.CREATED)
+    @RequiresPermission(resource = ResourceType.CME_KIT, action = Action.CREATE)
     public InstrumentoDto createInstrumento(@Validated @RequestBody InstrumentoRequest request) {
         return kitService.createInstrumento(request);
     }
 
     @GetMapping("/instrumentos")
+    @RequiresPermission(resource = ResourceType.CME_KIT, action = Action.READ)
     public Page<InstrumentoDto> listInstrumentos(Pageable pageable) {
         return kitService.listInstrumentos(pageable);
     }
 
     @GetMapping("/instrumentos/{id}")
+    @RequiresPermission(resource = ResourceType.CME_KIT, action = Action.READ)
     public InstrumentoDto getInstrumento(@PathVariable Long id) {
         return kitService.findInstrumentoById(id);
     }
 
     @PutMapping("/instrumentos/{id}")
+    @RequiresPermission(resource = ResourceType.CME_KIT, action = Action.UPDATE)
     public InstrumentoDto updateInstrumento(@PathVariable Long id, @Validated @RequestBody InstrumentoRequest request) {
         return kitService.updateInstrumento(id, request);
     }
 
     @PostMapping("/kits")
     @ResponseStatus(HttpStatus.CREATED)
+    @RequiresPermission(resource = ResourceType.CME_KIT, action = Action.CREATE)
     public KitProcedimentoDto createKit(@Validated @RequestBody KitProcedimentoRequest request) {
         return kitService.createKitProcedimento(request);
     }
 
     @GetMapping("/kits")
+    @RequiresPermission(resource = ResourceType.CME_KIT, action = Action.READ)
     public Page<KitProcedimentoDto> listKits(Pageable pageable) {
         return kitService.listKits(pageable);
     }
 
     @GetMapping("/kits/{id}")
+    @RequiresPermission(resource = ResourceType.CME_KIT, action = Action.READ)
     public KitProcedimentoDto getKit(@PathVariable Long id) {
         return kitService.findKitById(id);
     }
 
     @PutMapping("/kits/{id}")
+    @RequiresPermission(resource = ResourceType.CME_KIT, action = Action.UPDATE)
     public KitProcedimentoDto updateKit(@PathVariable Long id, @Validated @RequestBody KitProcedimentoRequest request) {
         return kitService.updateKit(id, request);
     }
 
     @PostMapping("/kits/versoes")
     @ResponseStatus(HttpStatus.CREATED)
+    @RequiresPermission(resource = ResourceType.CME_KIT, action = Action.CREATE)
     public KitVersionDto createKitVersion(@Validated @RequestBody KitVersionRequest request) {
         return kitService.createKitVersion(request);
     }
 
     @GetMapping("/kits/versoes")
+    @RequiresPermission(resource = ResourceType.CME_KIT, action = Action.READ)
     public Page<KitVersionDto> listKitVersions(Pageable pageable) {
         return kitService.listKitVersions(pageable);
     }
 
     @PostMapping("/kits/itens")
     @ResponseStatus(HttpStatus.CREATED)
+    @RequiresPermission(resource = ResourceType.CME_KIT, action = Action.CREATE)
     public KitItemDto createKitItem(@Validated @RequestBody KitItemRequest request) {
         return kitService.createKitItem(request);
     }
 
     @GetMapping("/kits/itens")
+    @RequiresPermission(resource = ResourceType.CME_KIT, action = Action.READ)
     public Page<KitItemDto> listKitItems(Pageable pageable) {
         return kitService.listKitItems(pageable);
     }

@@ -38,6 +38,11 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
+        // Spring Security has resolved the JWT by the time this filter runs, so update MDC here.
+        Authentication resolved = SecurityContextHolder.getContext().getAuthentication();
+        if (resolved != null && resolved.isAuthenticated()) {
+            MDC.put(CorrelationFilter.USER_ID, resolved.getName());
+        }
         long start = System.currentTimeMillis();
         try {
             filterChain.doFilter(request, response);
