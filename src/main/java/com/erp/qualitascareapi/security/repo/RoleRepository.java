@@ -15,7 +15,7 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
 
     @Query("""
         select r from Role r
-        where r.tenant.id = :tenantId
+        where (:tenantId is null or r.tenant.id = :tenantId)
           and (:name is null or lower(r.name) like lower(concat('%', :name, '%')))
           and (:description is null or lower(r.description) like lower(concat('%', :description, '%')))
     """)
