@@ -636,6 +636,288 @@ public class DevTestDataInitializer implements ApplicationRunner {
         });
 
         
+        //=========================== DASHBOARD ==========================================================
+        Permission scfDashboardRead = findOrCreatePermission(scf, ResourceType.DASHBOARD, Action.READ, "HOME", "DASHBOARD_READ@HOME");
+        Permission scjDashboardRead = findOrCreatePermission(scj, ResourceType.DASHBOARD, Action.READ, "HOME", "DASHBOARD_READ@HOME");
+
+        for (Role r : List.of(scfSystemAdmin, scfAdminTI, scfAdminAssistencial, scfAdminQualidade, scfGestor, scfOperador, scfLeitor)) {
+            ensureRolePermission(r, scfDashboardRead, scf);
+        }
+        for (Role r : List.of(scjSystemAdmin, scjAdminTI, scjAdminAssistencial, scjAdminQualidade, scjGestor, scjOperador, scjLeitor)) {
+            ensureRolePermission(r, scjDashboardRead, scj);
+        }
+
+        //=========================== CME_PROCESSO_REPROCESSAMENTO ================================================
+        Permission scfProcessoRead   = findOrCreatePermission(scf, ResourceType.CME_PROCESSO_REPROCESSAMENTO, Action.READ,   "LISTA", "CME_PROCESSO_REPROCESSAMENTO_READ@LISTA");
+        Permission scfProcessoCreate = findOrCreatePermission(scf, ResourceType.CME_PROCESSO_REPROCESSAMENTO, Action.CREATE, "FORM",  "CME_PROCESSO_REPROCESSAMENTO_CREATE@FORM");
+        Permission scfProcessoUpdate = findOrCreatePermission(scf, ResourceType.CME_PROCESSO_REPROCESSAMENTO, Action.UPDATE, "FORM",  "CME_PROCESSO_REPROCESSAMENTO_UPDATE@FORM");
+        Permission scfProcessoDelete = findOrCreatePermission(scf, ResourceType.CME_PROCESSO_REPROCESSAMENTO, Action.DELETE, "FORM",  "CME_PROCESSO_REPROCESSAMENTO_DELETE@FORM");
+
+        Permission scjProcessoRead   = findOrCreatePermission(scj, ResourceType.CME_PROCESSO_REPROCESSAMENTO, Action.READ,   "LISTA", "CME_PROCESSO_REPROCESSAMENTO_READ@LISTA");
+        Permission scjProcessoCreate = findOrCreatePermission(scj, ResourceType.CME_PROCESSO_REPROCESSAMENTO, Action.CREATE, "FORM",  "CME_PROCESSO_REPROCESSAMENTO_CREATE@FORM");
+        Permission scjProcessoUpdate = findOrCreatePermission(scj, ResourceType.CME_PROCESSO_REPROCESSAMENTO, Action.UPDATE, "FORM",  "CME_PROCESSO_REPROCESSAMENTO_UPDATE@FORM");
+        Permission scjProcessoDelete = findOrCreatePermission(scj, ResourceType.CME_PROCESSO_REPROCESSAMENTO, Action.DELETE, "FORM",  "CME_PROCESSO_REPROCESSAMENTO_DELETE@FORM");
+
+        // SystemAdmin / AdminTI: CRUD
+        ensureRolePermission(scfSystemAdmin, scfProcessoRead,   scf); ensureRolePermission(scfSystemAdmin, scfProcessoCreate, scf);
+        ensureRolePermission(scfSystemAdmin, scfProcessoUpdate, scf); ensureRolePermission(scfSystemAdmin, scfProcessoDelete, scf);
+        ensureRolePermission(scjSystemAdmin, scjProcessoRead,   scj); ensureRolePermission(scjSystemAdmin, scjProcessoCreate, scj);
+        ensureRolePermission(scjSystemAdmin, scjProcessoUpdate, scj); ensureRolePermission(scjSystemAdmin, scjProcessoDelete, scj);
+
+        ensureRolePermission(scfAdminTI, scfProcessoRead,   scf); ensureRolePermission(scfAdminTI, scfProcessoCreate, scf);
+        ensureRolePermission(scfAdminTI, scfProcessoUpdate, scf); ensureRolePermission(scfAdminTI, scfProcessoDelete, scf);
+        ensureRolePermission(scjAdminTI, scjProcessoRead,   scj); ensureRolePermission(scjAdminTI, scjProcessoCreate, scj);
+        ensureRolePermission(scjAdminTI, scjProcessoUpdate, scj); ensureRolePermission(scjAdminTI, scjProcessoDelete, scj);
+
+        // AdminAssistencial / Gestor / Operador: READ + CREATE + UPDATE
+        for (Role r : List.of(scfAdminAssistencial, scfGestor, scfOperador)) {
+            ensureRolePermission(r, scfProcessoRead,   scf);
+            ensureRolePermission(r, scfProcessoCreate, scf);
+            ensureRolePermission(r, scfProcessoUpdate, scf);
+        }
+        for (Role r : List.of(scjAdminAssistencial, scjGestor, scjOperador)) {
+            ensureRolePermission(r, scjProcessoRead,   scj);
+            ensureRolePermission(r, scjProcessoCreate, scj);
+            ensureRolePermission(r, scjProcessoUpdate, scj);
+        }
+
+        // AdminQualidade / Leitor: READ
+        ensureRolePermission(scfAdminQualidade, scfProcessoRead, scf); ensureRolePermission(scfLeitor, scfProcessoRead, scf);
+        ensureRolePermission(scjAdminQualidade, scjProcessoRead, scj); ensureRolePermission(scjLeitor, scjProcessoRead, scj);
+
+        //=========================== CME_LOTE ============================================================
+        Permission scfLoteRead   = findOrCreatePermission(scf, ResourceType.CME_LOTE, Action.READ,   "LISTA", "CME_LOTE_READ@LISTA");
+        Permission scfLoteCreate = findOrCreatePermission(scf, ResourceType.CME_LOTE, Action.CREATE, "FORM",  "CME_LOTE_CREATE@FORM");
+        Permission scfLoteUpdate = findOrCreatePermission(scf, ResourceType.CME_LOTE, Action.UPDATE, "FORM",  "CME_LOTE_UPDATE@FORM");
+        Permission scfLoteDelete = findOrCreatePermission(scf, ResourceType.CME_LOTE, Action.DELETE, "FORM",  "CME_LOTE_DELETE@FORM");
+
+        Permission scjLoteRead   = findOrCreatePermission(scj, ResourceType.CME_LOTE, Action.READ,   "LISTA", "CME_LOTE_READ@LISTA");
+        Permission scjLoteCreate = findOrCreatePermission(scj, ResourceType.CME_LOTE, Action.CREATE, "FORM",  "CME_LOTE_CREATE@FORM");
+        Permission scjLoteUpdate = findOrCreatePermission(scj, ResourceType.CME_LOTE, Action.UPDATE, "FORM",  "CME_LOTE_UPDATE@FORM");
+        Permission scjLoteDelete = findOrCreatePermission(scj, ResourceType.CME_LOTE, Action.DELETE, "FORM",  "CME_LOTE_DELETE@FORM");
+
+        ensureRolePermission(scfSystemAdmin, scfLoteRead,   scf); ensureRolePermission(scfSystemAdmin, scfLoteCreate, scf);
+        ensureRolePermission(scfSystemAdmin, scfLoteUpdate, scf); ensureRolePermission(scfSystemAdmin, scfLoteDelete, scf);
+        ensureRolePermission(scjSystemAdmin, scjLoteRead,   scj); ensureRolePermission(scjSystemAdmin, scjLoteCreate, scj);
+        ensureRolePermission(scjSystemAdmin, scjLoteUpdate, scj); ensureRolePermission(scjSystemAdmin, scjLoteDelete, scj);
+
+        ensureRolePermission(scfAdminTI, scfLoteRead,   scf); ensureRolePermission(scfAdminTI, scfLoteCreate, scf);
+        ensureRolePermission(scfAdminTI, scfLoteUpdate, scf); ensureRolePermission(scfAdminTI, scfLoteDelete, scf);
+        ensureRolePermission(scjAdminTI, scjLoteRead,   scj); ensureRolePermission(scjAdminTI, scjLoteCreate, scj);
+        ensureRolePermission(scjAdminTI, scjLoteUpdate, scj); ensureRolePermission(scjAdminTI, scjLoteDelete, scj);
+
+        for (Role r : List.of(scfAdminAssistencial, scfGestor, scfOperador)) {
+            ensureRolePermission(r, scfLoteRead, scf); ensureRolePermission(r, scfLoteCreate, scf); ensureRolePermission(r, scfLoteUpdate, scf);
+        }
+        for (Role r : List.of(scjAdminAssistencial, scjGestor, scjOperador)) {
+            ensureRolePermission(r, scjLoteRead, scj); ensureRolePermission(r, scjLoteCreate, scj); ensureRolePermission(r, scjLoteUpdate, scj);
+        }
+        ensureRolePermission(scfAdminQualidade, scfLoteRead, scf); ensureRolePermission(scfLeitor, scfLoteRead, scf);
+        ensureRolePermission(scjAdminQualidade, scjLoteRead, scj); ensureRolePermission(scjLeitor, scjLoteRead, scj);
+
+        //=========================== CME_PROCESSAMENTO ===================================================
+        Permission scfProcRead   = findOrCreatePermission(scf, ResourceType.CME_PROCESSAMENTO, Action.READ,   "LISTA", "CME_PROCESSAMENTO_READ@LISTA");
+        Permission scfProcCreate = findOrCreatePermission(scf, ResourceType.CME_PROCESSAMENTO, Action.CREATE, "FORM",  "CME_PROCESSAMENTO_CREATE@FORM");
+        Permission scfProcUpdate = findOrCreatePermission(scf, ResourceType.CME_PROCESSAMENTO, Action.UPDATE, "FORM",  "CME_PROCESSAMENTO_UPDATE@FORM");
+        Permission scfProcDelete = findOrCreatePermission(scf, ResourceType.CME_PROCESSAMENTO, Action.DELETE, "FORM",  "CME_PROCESSAMENTO_DELETE@FORM");
+
+        Permission scjProcRead   = findOrCreatePermission(scj, ResourceType.CME_PROCESSAMENTO, Action.READ,   "LISTA", "CME_PROCESSAMENTO_READ@LISTA");
+        Permission scjProcCreate = findOrCreatePermission(scj, ResourceType.CME_PROCESSAMENTO, Action.CREATE, "FORM",  "CME_PROCESSAMENTO_CREATE@FORM");
+        Permission scjProcUpdate = findOrCreatePermission(scj, ResourceType.CME_PROCESSAMENTO, Action.UPDATE, "FORM",  "CME_PROCESSAMENTO_UPDATE@FORM");
+        Permission scjProcDelete = findOrCreatePermission(scj, ResourceType.CME_PROCESSAMENTO, Action.DELETE, "FORM",  "CME_PROCESSAMENTO_DELETE@FORM");
+
+        ensureRolePermission(scfSystemAdmin, scfProcRead, scf); ensureRolePermission(scfSystemAdmin, scfProcCreate, scf);
+        ensureRolePermission(scfSystemAdmin, scfProcUpdate, scf); ensureRolePermission(scfSystemAdmin, scfProcDelete, scf);
+        ensureRolePermission(scjSystemAdmin, scjProcRead, scj); ensureRolePermission(scjSystemAdmin, scjProcCreate, scj);
+        ensureRolePermission(scjSystemAdmin, scjProcUpdate, scj); ensureRolePermission(scjSystemAdmin, scjProcDelete, scj);
+
+        ensureRolePermission(scfAdminTI, scfProcRead, scf); ensureRolePermission(scfAdminTI, scfProcCreate, scf);
+        ensureRolePermission(scfAdminTI, scfProcUpdate, scf); ensureRolePermission(scfAdminTI, scfProcDelete, scf);
+        ensureRolePermission(scjAdminTI, scjProcRead, scj); ensureRolePermission(scjAdminTI, scjProcCreate, scj);
+        ensureRolePermission(scjAdminTI, scjProcUpdate, scj); ensureRolePermission(scjAdminTI, scjProcDelete, scj);
+
+        for (Role r : List.of(scfAdminAssistencial, scfGestor, scfOperador)) {
+            ensureRolePermission(r, scfProcRead, scf); ensureRolePermission(r, scfProcCreate, scf); ensureRolePermission(r, scfProcUpdate, scf);
+        }
+        for (Role r : List.of(scjAdminAssistencial, scjGestor, scjOperador)) {
+            ensureRolePermission(r, scjProcRead, scj); ensureRolePermission(r, scjProcCreate, scj); ensureRolePermission(r, scjProcUpdate, scj);
+        }
+        ensureRolePermission(scfAdminQualidade, scfProcRead, scf); ensureRolePermission(scfLeitor, scfProcRead, scf);
+        ensureRolePermission(scjAdminQualidade, scjProcRead, scj); ensureRolePermission(scjLeitor, scjProcRead, scj);
+
+        //=========================== CME_QUALIDADE =======================================================
+        Permission scfCmeQualRead   = findOrCreatePermission(scf, ResourceType.CME_QUALIDADE, Action.READ,   "LISTA", "CME_QUALIDADE_READ@LISTA");
+        Permission scfCmeQualCreate = findOrCreatePermission(scf, ResourceType.CME_QUALIDADE, Action.CREATE, "FORM",  "CME_QUALIDADE_CREATE@FORM");
+        Permission scfCmeQualUpdate = findOrCreatePermission(scf, ResourceType.CME_QUALIDADE, Action.UPDATE, "FORM",  "CME_QUALIDADE_UPDATE@FORM");
+        Permission scfCmeQualDelete = findOrCreatePermission(scf, ResourceType.CME_QUALIDADE, Action.DELETE, "FORM",  "CME_QUALIDADE_DELETE@FORM");
+
+        Permission scjCmeQualRead   = findOrCreatePermission(scj, ResourceType.CME_QUALIDADE, Action.READ,   "LISTA", "CME_QUALIDADE_READ@LISTA");
+        Permission scjCmeQualCreate = findOrCreatePermission(scj, ResourceType.CME_QUALIDADE, Action.CREATE, "FORM",  "CME_QUALIDADE_CREATE@FORM");
+        Permission scjCmeQualUpdate = findOrCreatePermission(scj, ResourceType.CME_QUALIDADE, Action.UPDATE, "FORM",  "CME_QUALIDADE_UPDATE@FORM");
+        Permission scjCmeQualDelete = findOrCreatePermission(scj, ResourceType.CME_QUALIDADE, Action.DELETE, "FORM",  "CME_QUALIDADE_DELETE@FORM");
+
+        ensureRolePermission(scfSystemAdmin, scfCmeQualRead, scf); ensureRolePermission(scfSystemAdmin, scfCmeQualCreate, scf);
+        ensureRolePermission(scfSystemAdmin, scfCmeQualUpdate, scf); ensureRolePermission(scfSystemAdmin, scfCmeQualDelete, scf);
+        ensureRolePermission(scjSystemAdmin, scjCmeQualRead, scj); ensureRolePermission(scjSystemAdmin, scjCmeQualCreate, scj);
+        ensureRolePermission(scjSystemAdmin, scjCmeQualUpdate, scj); ensureRolePermission(scjSystemAdmin, scjCmeQualDelete, scj);
+
+        // AdminQualidade: CRUD (é o dono deste módulo)
+        ensureRolePermission(scfAdminQualidade, scfCmeQualRead, scf); ensureRolePermission(scfAdminQualidade, scfCmeQualCreate, scf);
+        ensureRolePermission(scfAdminQualidade, scfCmeQualUpdate, scf); ensureRolePermission(scfAdminQualidade, scfCmeQualDelete, scf);
+        ensureRolePermission(scjAdminQualidade, scjCmeQualRead, scj); ensureRolePermission(scjAdminQualidade, scjCmeQualCreate, scj);
+        ensureRolePermission(scjAdminQualidade, scjCmeQualUpdate, scj); ensureRolePermission(scjAdminQualidade, scjCmeQualDelete, scj);
+
+        // AdminAssistencial / Gestor: READ + CREATE + UPDATE
+        for (Role r : List.of(scfAdminAssistencial, scfGestor)) {
+            ensureRolePermission(r, scfCmeQualRead, scf); ensureRolePermission(r, scfCmeQualCreate, scf); ensureRolePermission(r, scfCmeQualUpdate, scf);
+        }
+        for (Role r : List.of(scjAdminAssistencial, scjGestor)) {
+            ensureRolePermission(r, scjCmeQualRead, scj); ensureRolePermission(r, scjCmeQualCreate, scj); ensureRolePermission(r, scjCmeQualUpdate, scj);
+        }
+        // AdminTI / Operador / Leitor: READ
+        for (Role r : List.of(scfAdminTI, scfOperador, scfLeitor)) { ensureRolePermission(r, scfCmeQualRead, scf); }
+        for (Role r : List.of(scjAdminTI, scjOperador, scjLeitor)) { ensureRolePermission(r, scjCmeQualRead, scj); }
+
+        //=========================== CME_SANEANTE ========================================================
+        Permission scfSanRead   = findOrCreatePermission(scf, ResourceType.CME_SANEANTE, Action.READ,   "LISTA", "CME_SANEANTE_READ@LISTA");
+        Permission scfSanCreate = findOrCreatePermission(scf, ResourceType.CME_SANEANTE, Action.CREATE, "FORM",  "CME_SANEANTE_CREATE@FORM");
+        Permission scfSanUpdate = findOrCreatePermission(scf, ResourceType.CME_SANEANTE, Action.UPDATE, "FORM",  "CME_SANEANTE_UPDATE@FORM");
+        Permission scfSanDelete = findOrCreatePermission(scf, ResourceType.CME_SANEANTE, Action.DELETE, "FORM",  "CME_SANEANTE_DELETE@FORM");
+
+        Permission scjSanRead   = findOrCreatePermission(scj, ResourceType.CME_SANEANTE, Action.READ,   "LISTA", "CME_SANEANTE_READ@LISTA");
+        Permission scjSanCreate = findOrCreatePermission(scj, ResourceType.CME_SANEANTE, Action.CREATE, "FORM",  "CME_SANEANTE_CREATE@FORM");
+        Permission scjSanUpdate = findOrCreatePermission(scj, ResourceType.CME_SANEANTE, Action.UPDATE, "FORM",  "CME_SANEANTE_UPDATE@FORM");
+        Permission scjSanDelete = findOrCreatePermission(scj, ResourceType.CME_SANEANTE, Action.DELETE, "FORM",  "CME_SANEANTE_DELETE@FORM");
+
+        ensureRolePermission(scfSystemAdmin, scfSanRead, scf); ensureRolePermission(scfSystemAdmin, scfSanCreate, scf);
+        ensureRolePermission(scfSystemAdmin, scfSanUpdate, scf); ensureRolePermission(scfSystemAdmin, scfSanDelete, scf);
+        ensureRolePermission(scjSystemAdmin, scjSanRead, scj); ensureRolePermission(scjSystemAdmin, scjSanCreate, scj);
+        ensureRolePermission(scjSystemAdmin, scjSanUpdate, scj); ensureRolePermission(scjSystemAdmin, scjSanDelete, scj);
+
+        ensureRolePermission(scfAdminTI, scfSanRead, scf); ensureRolePermission(scfAdminTI, scfSanCreate, scf);
+        ensureRolePermission(scfAdminTI, scfSanUpdate, scf); ensureRolePermission(scfAdminTI, scfSanDelete, scf);
+        ensureRolePermission(scjAdminTI, scjSanRead, scj); ensureRolePermission(scjAdminTI, scjSanCreate, scj);
+        ensureRolePermission(scjAdminTI, scjSanUpdate, scj); ensureRolePermission(scjAdminTI, scjSanDelete, scj);
+
+        for (Role r : List.of(scfAdminAssistencial, scfGestor, scfOperador)) {
+            ensureRolePermission(r, scfSanRead, scf); ensureRolePermission(r, scfSanCreate, scf); ensureRolePermission(r, scfSanUpdate, scf);
+        }
+        for (Role r : List.of(scjAdminAssistencial, scjGestor, scjOperador)) {
+            ensureRolePermission(r, scjSanRead, scj); ensureRolePermission(r, scjSanCreate, scj); ensureRolePermission(r, scjSanUpdate, scj);
+        }
+        ensureRolePermission(scfAdminQualidade, scfSanRead, scf); ensureRolePermission(scfLeitor, scfSanRead, scf);
+        ensureRolePermission(scjAdminQualidade, scjSanRead, scj); ensureRolePermission(scjLeitor, scjSanRead, scj);
+
+        //=========================== CME_KIT =============================================================
+        Permission scfKitRead   = findOrCreatePermission(scf, ResourceType.CME_KIT, Action.READ,   "LISTA", "CME_KIT_READ@LISTA");
+        Permission scfKitCreate = findOrCreatePermission(scf, ResourceType.CME_KIT, Action.CREATE, "FORM",  "CME_KIT_CREATE@FORM");
+        Permission scfKitUpdate = findOrCreatePermission(scf, ResourceType.CME_KIT, Action.UPDATE, "FORM",  "CME_KIT_UPDATE@FORM");
+        Permission scfKitDelete = findOrCreatePermission(scf, ResourceType.CME_KIT, Action.DELETE, "FORM",  "CME_KIT_DELETE@FORM");
+
+        Permission scjKitRead   = findOrCreatePermission(scj, ResourceType.CME_KIT, Action.READ,   "LISTA", "CME_KIT_READ@LISTA");
+        Permission scjKitCreate = findOrCreatePermission(scj, ResourceType.CME_KIT, Action.CREATE, "FORM",  "CME_KIT_CREATE@FORM");
+        Permission scjKitUpdate = findOrCreatePermission(scj, ResourceType.CME_KIT, Action.UPDATE, "FORM",  "CME_KIT_UPDATE@FORM");
+        Permission scjKitDelete = findOrCreatePermission(scj, ResourceType.CME_KIT, Action.DELETE, "FORM",  "CME_KIT_DELETE@FORM");
+
+        ensureRolePermission(scfSystemAdmin, scfKitRead, scf); ensureRolePermission(scfSystemAdmin, scfKitCreate, scf);
+        ensureRolePermission(scfSystemAdmin, scfKitUpdate, scf); ensureRolePermission(scfSystemAdmin, scfKitDelete, scf);
+        ensureRolePermission(scjSystemAdmin, scjKitRead, scj); ensureRolePermission(scjSystemAdmin, scjKitCreate, scj);
+        ensureRolePermission(scjSystemAdmin, scjKitUpdate, scj); ensureRolePermission(scjSystemAdmin, scjKitDelete, scj);
+
+        ensureRolePermission(scfAdminTI, scfKitRead, scf); ensureRolePermission(scfAdminTI, scfKitCreate, scf);
+        ensureRolePermission(scfAdminTI, scfKitUpdate, scf); ensureRolePermission(scfAdminTI, scfKitDelete, scf);
+        ensureRolePermission(scjAdminTI, scjKitRead, scj); ensureRolePermission(scjAdminTI, scjKitCreate, scj);
+        ensureRolePermission(scjAdminTI, scjKitUpdate, scj); ensureRolePermission(scjAdminTI, scjKitDelete, scj);
+
+        for (Role r : List.of(scfAdminAssistencial, scfGestor, scfOperador)) {
+            ensureRolePermission(r, scfKitRead, scf); ensureRolePermission(r, scfKitCreate, scf); ensureRolePermission(r, scfKitUpdate, scf);
+        }
+        for (Role r : List.of(scjAdminAssistencial, scjGestor, scjOperador)) {
+            ensureRolePermission(r, scjKitRead, scj); ensureRolePermission(r, scjKitCreate, scj); ensureRolePermission(r, scjKitUpdate, scj);
+        }
+        ensureRolePermission(scfAdminQualidade, scfKitRead, scf); ensureRolePermission(scfLeitor, scfKitRead, scf);
+        ensureRolePermission(scjAdminQualidade, scjKitRead, scj); ensureRolePermission(scjLeitor, scjKitRead, scj);
+
+        //=========================== HR_CARGO ============================================================
+        Permission scfCargoRead   = findOrCreatePermission(scf, ResourceType.HR_CARGO, Action.READ,   "LISTA", "HR_CARGO_READ@LISTA");
+        Permission scfCargoCreate = findOrCreatePermission(scf, ResourceType.HR_CARGO, Action.CREATE, "FORM",  "HR_CARGO_CREATE@FORM");
+        Permission scfCargoUpdate = findOrCreatePermission(scf, ResourceType.HR_CARGO, Action.UPDATE, "FORM",  "HR_CARGO_UPDATE@FORM");
+        Permission scfCargoDelete = findOrCreatePermission(scf, ResourceType.HR_CARGO, Action.DELETE, "FORM",  "HR_CARGO_DELETE@FORM");
+
+        Permission scjCargoRead   = findOrCreatePermission(scj, ResourceType.HR_CARGO, Action.READ,   "LISTA", "HR_CARGO_READ@LISTA");
+        Permission scjCargoCreate = findOrCreatePermission(scj, ResourceType.HR_CARGO, Action.CREATE, "FORM",  "HR_CARGO_CREATE@FORM");
+        Permission scjCargoUpdate = findOrCreatePermission(scj, ResourceType.HR_CARGO, Action.UPDATE, "FORM",  "HR_CARGO_UPDATE@FORM");
+        Permission scjCargoDelete = findOrCreatePermission(scj, ResourceType.HR_CARGO, Action.DELETE, "FORM",  "HR_CARGO_DELETE@FORM");
+
+        ensureRolePermission(scfSystemAdmin, scfCargoRead, scf); ensureRolePermission(scfSystemAdmin, scfCargoCreate, scf);
+        ensureRolePermission(scfSystemAdmin, scfCargoUpdate, scf); ensureRolePermission(scfSystemAdmin, scfCargoDelete, scf);
+        ensureRolePermission(scjSystemAdmin, scjCargoRead, scj); ensureRolePermission(scjSystemAdmin, scjCargoCreate, scj);
+        ensureRolePermission(scjSystemAdmin, scjCargoUpdate, scj); ensureRolePermission(scjSystemAdmin, scjCargoDelete, scj);
+
+        ensureRolePermission(scfAdminTI, scfCargoRead, scf); ensureRolePermission(scfAdminTI, scfCargoCreate, scf);
+        ensureRolePermission(scfAdminTI, scfCargoUpdate, scf); ensureRolePermission(scfAdminTI, scfCargoDelete, scf);
+        ensureRolePermission(scjAdminTI, scjCargoRead, scj); ensureRolePermission(scjAdminTI, scjCargoCreate, scj);
+        ensureRolePermission(scjAdminTI, scjCargoUpdate, scj); ensureRolePermission(scjAdminTI, scjCargoDelete, scj);
+
+        // AdminAssistencial: READ + CREATE + UPDATE (estrutura de cargos)
+        ensureRolePermission(scfAdminAssistencial, scfCargoRead, scf); ensureRolePermission(scfAdminAssistencial, scfCargoCreate, scf); ensureRolePermission(scfAdminAssistencial, scfCargoUpdate, scf);
+        ensureRolePermission(scjAdminAssistencial, scjCargoRead, scj); ensureRolePermission(scjAdminAssistencial, scjCargoCreate, scj); ensureRolePermission(scjAdminAssistencial, scjCargoUpdate, scj);
+
+        // Gestor / AdminQualidade / Operador / Leitor: READ
+        for (Role r : List.of(scfGestor, scfAdminQualidade, scfOperador, scfLeitor)) { ensureRolePermission(r, scfCargoRead, scf); }
+        for (Role r : List.of(scjGestor, scjAdminQualidade, scjOperador, scjLeitor)) { ensureRolePermission(r, scjCargoRead, scj); }
+
+        //=========================== HR_COLABORADOR ======================================================
+        Permission scfColabRead   = findOrCreatePermission(scf, ResourceType.HR_COLABORADOR, Action.READ,   "LISTA", "HR_COLABORADOR_READ@LISTA");
+        Permission scfColabCreate = findOrCreatePermission(scf, ResourceType.HR_COLABORADOR, Action.CREATE, "FORM",  "HR_COLABORADOR_CREATE@FORM");
+        Permission scfColabUpdate = findOrCreatePermission(scf, ResourceType.HR_COLABORADOR, Action.UPDATE, "FORM",  "HR_COLABORADOR_UPDATE@FORM");
+        Permission scfColabDelete = findOrCreatePermission(scf, ResourceType.HR_COLABORADOR, Action.DELETE, "FORM",  "HR_COLABORADOR_DELETE@FORM");
+
+        Permission scjColabRead   = findOrCreatePermission(scj, ResourceType.HR_COLABORADOR, Action.READ,   "LISTA", "HR_COLABORADOR_READ@LISTA");
+        Permission scjColabCreate = findOrCreatePermission(scj, ResourceType.HR_COLABORADOR, Action.CREATE, "FORM",  "HR_COLABORADOR_CREATE@FORM");
+        Permission scjColabUpdate = findOrCreatePermission(scj, ResourceType.HR_COLABORADOR, Action.UPDATE, "FORM",  "HR_COLABORADOR_UPDATE@FORM");
+        Permission scjColabDelete = findOrCreatePermission(scj, ResourceType.HR_COLABORADOR, Action.DELETE, "FORM",  "HR_COLABORADOR_DELETE@FORM");
+
+        ensureRolePermission(scfSystemAdmin, scfColabRead, scf); ensureRolePermission(scfSystemAdmin, scfColabCreate, scf);
+        ensureRolePermission(scfSystemAdmin, scfColabUpdate, scf); ensureRolePermission(scfSystemAdmin, scfColabDelete, scf);
+        ensureRolePermission(scjSystemAdmin, scjColabRead, scj); ensureRolePermission(scjSystemAdmin, scjColabCreate, scj);
+        ensureRolePermission(scjSystemAdmin, scjColabUpdate, scj); ensureRolePermission(scjSystemAdmin, scjColabDelete, scj);
+
+        ensureRolePermission(scfAdminTI, scfColabRead, scf); ensureRolePermission(scfAdminTI, scfColabCreate, scf);
+        ensureRolePermission(scfAdminTI, scfColabUpdate, scf); ensureRolePermission(scfAdminTI, scfColabDelete, scf);
+        ensureRolePermission(scjAdminTI, scjColabRead, scj); ensureRolePermission(scjAdminTI, scjColabCreate, scj);
+        ensureRolePermission(scjAdminTI, scjColabUpdate, scj); ensureRolePermission(scjAdminTI, scjColabDelete, scj);
+
+        // AdminAssistencial / Gestor: READ + CREATE + UPDATE
+        for (Role r : List.of(scfAdminAssistencial, scfGestor)) {
+            ensureRolePermission(r, scfColabRead, scf); ensureRolePermission(r, scfColabCreate, scf); ensureRolePermission(r, scfColabUpdate, scf);
+        }
+        for (Role r : List.of(scjAdminAssistencial, scjGestor)) {
+            ensureRolePermission(r, scjColabRead, scj); ensureRolePermission(r, scjColabCreate, scj); ensureRolePermission(r, scjColabUpdate, scj);
+        }
+        // AdminQualidade / Operador / Leitor: READ
+        for (Role r : List.of(scfAdminQualidade, scfOperador, scfLeitor)) { ensureRolePermission(r, scfColabRead, scf); }
+        for (Role r : List.of(scjAdminQualidade, scjOperador, scjLeitor)) { ensureRolePermission(r, scjColabRead, scj); }
+
+        //=========================== OBSERVABILITY =======================================================
+        Permission scfObsAuditRead    = findOrCreatePermission(scf, ResourceType.OBSERVABILITY_AUDIT,        Action.READ, "LISTA", "OBSERVABILITY_AUDIT_READ@LISTA");
+        Permission scfObsLogRead      = findOrCreatePermission(scf, ResourceType.OBSERVABILITY_LOG,          Action.READ, "LISTA", "OBSERVABILITY_LOG_READ@LISTA");
+        Permission scfObsSecLogRead   = findOrCreatePermission(scf, ResourceType.OBSERVABILITY_SECURITY_LOG, Action.READ, "LISTA", "OBSERVABILITY_SECURITY_LOG_READ@LISTA");
+
+        Permission scjObsAuditRead    = findOrCreatePermission(scj, ResourceType.OBSERVABILITY_AUDIT,        Action.READ, "LISTA", "OBSERVABILITY_AUDIT_READ@LISTA");
+        Permission scjObsLogRead      = findOrCreatePermission(scj, ResourceType.OBSERVABILITY_LOG,          Action.READ, "LISTA", "OBSERVABILITY_LOG_READ@LISTA");
+        Permission scjObsSecLogRead   = findOrCreatePermission(scj, ResourceType.OBSERVABILITY_SECURITY_LOG, Action.READ, "LISTA", "OBSERVABILITY_SECURITY_LOG_READ@LISTA");
+
+        // Somente SystemAdmin e AdminTI têm acesso a observabilidade
+        for (Permission p : List.of(scfObsAuditRead, scfObsLogRead, scfObsSecLogRead)) {
+            ensureRolePermission(scfSystemAdmin, p, scf);
+            ensureRolePermission(scfAdminTI,     p, scf);
+        }
+        for (Permission p : List.of(scjObsAuditRead, scjObsLogRead, scjObsSecLogRead)) {
+            ensureRolePermission(scjSystemAdmin, p, scj);
+            ensureRolePermission(scjAdminTI,     p, scj);
+        }
+
         //=========================== PAPEIS ORGANIZACIONAIS =========================================================
         // ===== SETORES (IAM / ORG) =====
         Setor setorCmeScf = setorRepository.save(
