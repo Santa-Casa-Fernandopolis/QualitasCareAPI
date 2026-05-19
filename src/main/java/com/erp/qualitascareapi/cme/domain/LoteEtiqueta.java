@@ -43,9 +43,19 @@ public class LoteEtiqueta {
     @NotBlank @Column(nullable = false, length = 60)
     private String codigo;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "processo_id")
+    private ProcessoReprocessamento processo;
+
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "kit_versao_id", nullable = false)
     private KitVersion kitVersao;
+
+    @Column(name = "data_hora_inicio_montagem")
+    private LocalDateTime dataHoraInicioMontagem;
+
+    @Column(name = "data_hora_fim_montagem")
+    private LocalDateTime dataHoraFimMontagem;
 
     @NotNull @Column(nullable = false)
     private LocalDate dataEmpacotamento;
@@ -75,8 +85,14 @@ public class LoteEtiqueta {
     public Long getId() { return id; }
     public Tenant getTenant() { return tenant; }
     public void setTenant(Tenant tenant) { this.tenant = tenant; }
+    public ProcessoReprocessamento getProcesso() { return processo; }
+    public void setProcesso(ProcessoReprocessamento processo) { this.processo = processo; }
     public String getCodigo() { return codigo; }
     public void setCodigo(String codigo) { this.codigo = codigo; }
+    public LocalDateTime getDataHoraInicioMontagem() { return dataHoraInicioMontagem; }
+    public void setDataHoraInicioMontagem(LocalDateTime dataHoraInicioMontagem) { this.dataHoraInicioMontagem = dataHoraInicioMontagem; }
+    public LocalDateTime getDataHoraFimMontagem() { return dataHoraFimMontagem; }
+    public void setDataHoraFimMontagem(LocalDateTime dataHoraFimMontagem) { this.dataHoraFimMontagem = dataHoraFimMontagem; }
     public KitVersion getKitVersao() { return kitVersao; }
     public void setKitVersao(KitVersion kitVersao) { this.kitVersao = kitVersao; }
     public LocalDate getDataEmpacotamento() { return dataEmpacotamento; }

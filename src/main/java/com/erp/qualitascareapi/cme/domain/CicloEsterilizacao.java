@@ -41,6 +41,10 @@ public class CicloEsterilizacao implements ApprovableTarget {
     private Autoclave autoclave;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "processo_id")
+    private ProcessoReprocessamento processo;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "lote_etiqueta_id")
     private LoteEtiqueta loteEtiqueta;
 
@@ -83,6 +87,9 @@ public class CicloEsterilizacao implements ApprovableTarget {
             joinColumns = @JoinColumn(name = "ciclo_id"),
             inverseJoinColumns = @JoinColumn(name = "arquivo_id"))
     private Set<EvidenciaArquivo> evidencias = new HashSet<>();
+
+    public ProcessoReprocessamento getProcesso() { return processo; }
+    public void setProcesso(ProcessoReprocessamento processo) { this.processo = processo; }
 
     // ApprovableTarget
     @Override public Tenant getTenant() { return tenant; }

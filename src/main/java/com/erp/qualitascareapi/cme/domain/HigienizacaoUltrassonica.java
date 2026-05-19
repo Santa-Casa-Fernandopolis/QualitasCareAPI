@@ -8,6 +8,7 @@ import jakarta.validation.constraints.NotNull;
 import org.hibernate.envers.Audited;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Objects;
@@ -29,9 +30,19 @@ public class HigienizacaoUltrassonica {
     @JoinColumn(name = "tenant_id", nullable = false)
     private Tenant tenant;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "processo_id")
+    private ProcessoReprocessamento processo;
+
     @NotNull
     @Column(name = "data_realizacao", nullable = false)
     private LocalDate dataRealizacao;
+
+    @Column(name = "data_hora_inicio")
+    private LocalDateTime dataHoraInicio;
+
+    @Column(name = "data_hora_fim")
+    private LocalDateTime dataHoraFim;
 
     @Column(length = 160)
     private String equipamentoDescricao;
@@ -52,8 +63,14 @@ public class HigienizacaoUltrassonica {
     public Long getId() { return id; }
     public Tenant getTenant() { return tenant; }
     public void setTenant(Tenant tenant) { this.tenant = tenant; }
+    public ProcessoReprocessamento getProcesso() { return processo; }
+    public void setProcesso(ProcessoReprocessamento processo) { this.processo = processo; }
     public LocalDate getDataRealizacao() { return dataRealizacao; }
     public void setDataRealizacao(LocalDate dataRealizacao) { this.dataRealizacao = dataRealizacao; }
+    public LocalDateTime getDataHoraInicio() { return dataHoraInicio; }
+    public void setDataHoraInicio(LocalDateTime dataHoraInicio) { this.dataHoraInicio = dataHoraInicio; }
+    public LocalDateTime getDataHoraFim() { return dataHoraFim; }
+    public void setDataHoraFim(LocalDateTime dataHoraFim) { this.dataHoraFim = dataHoraFim; }
     public String getEquipamentoDescricao() { return equipamentoDescricao; }
     public void setEquipamentoDescricao(String equipamentoDescricao) { this.equipamentoDescricao = equipamentoDescricao; }
     public User getResponsavel() { return responsavel; }

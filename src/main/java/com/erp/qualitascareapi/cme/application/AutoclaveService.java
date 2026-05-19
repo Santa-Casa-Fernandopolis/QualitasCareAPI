@@ -36,6 +36,7 @@ public class AutoclaveService {
     private final IndicadorQuimicoRepository indicadorQuimicoRepository;
     private final IndicadorBiologicoRepository indicadorBiologicoRepository;
     private final LoteEtiquetaRepository loteEtiquetaRepository;
+    private final ProcessoReprocessamentoRepository processoRepository;
     private final EvidenciaArquivoRepository evidenciaArquivoRepository;
 
     public AutoclaveService(TenantRepository tenantRepository,
@@ -50,6 +51,7 @@ public class AutoclaveService {
                             IndicadorQuimicoRepository indicadorQuimicoRepository,
                             IndicadorBiologicoRepository indicadorBiologicoRepository,
                             LoteEtiquetaRepository loteEtiquetaRepository,
+                            ProcessoReprocessamentoRepository processoRepository,
                             EvidenciaArquivoRepository evidenciaArquivoRepository) {
         this.tenantRepository = tenantRepository;
         this.userRepository = userRepository;
@@ -63,6 +65,7 @@ public class AutoclaveService {
         this.indicadorQuimicoRepository = indicadorQuimicoRepository;
         this.indicadorBiologicoRepository = indicadorBiologicoRepository;
         this.loteEtiquetaRepository = loteEtiquetaRepository;
+        this.processoRepository = processoRepository;
         this.evidenciaArquivoRepository = evidenciaArquivoRepository;
     }
 
@@ -148,7 +151,9 @@ public class AutoclaveService {
     }
 
     private CicloEsterilizacaoDto toCicloDto(CicloEsterilizacao c) {
-        return new CicloEsterilizacaoDto(c.getId(), c.getTenant().getId(), c.getAutoclave().getId(),
+        return new CicloEsterilizacaoDto(c.getId(), c.getTenant().getId(),
+                c.getProcesso() != null ? c.getProcesso().getId() : null,
+                c.getAutoclave().getId(),
                 c.getLoteEtiqueta() != null ? c.getLoteEtiqueta().getId() : null,
                 c.getInicio(), c.getFim(), c.getDuracaoMinutos(), c.getTemperaturaMaxima(),
                 c.getPressaoMaxima(), c.getStatus(),
@@ -244,7 +249,14 @@ public class AutoclaveService {
                 .orElseThrow(() -> new EntityNotFoundException("Tenant não encontrado"));
         HigienizacaoUltrassonica higienizacao = new HigienizacaoUltrassonica();
         higienizacao.setTenant(tenant);
+        if (request.processoId() != null) {
+            ProcessoReprocessamento processo = processoRepository.findById(request.processoId())
+                    .orElseThrow(() -> new EntityNotFoundException("Processo não encontrado"));
+            higienizacao.setProcesso(processo);
+        }
         higienizacao.setDataRealizacao(request.dataRealizacao());
+        higienizacao.setDataHoraInicio(request.dataHoraInicio());
+        higienizacao.setDataHoraFim(request.dataHoraFim());
         higienizacao.setEquipamentoDescricao(request.equipamentoDescricao());
         if (request.responsavelId() != null) {
             User responsavel = userRepository.findById(request.responsavelId())
@@ -254,7 +266,9 @@ public class AutoclaveService {
         higienizacao.setObservacoes(request.observacoes());
         higienizacao.setEvidencias(loadEvidencias(request.evidenciasIds()));
         HigienizacaoUltrassonica saved = higienizacaoUltrassonicaRepository.save(higienizacao);
-        return new HigienizacaoUltrassonicaDto(saved.getId(), tenant.getId(), saved.getDataRealizacao(),
+        return new HigienizacaoUltrassonicaDto(saved.getId(), tenant.getId(),
+                saved.getProcesso() != null ? saved.getProcesso().getId() : null,
+                saved.getDataRealizacao(), saved.getDataHoraInicio(), saved.getDataHoraFim(),
                 saved.getEquipamentoDescricao(),
                 saved.getResponsavel() != null ? saved.getResponsavel().getId() : null,
                 saved.getObservacoes(), toIdSet(saved.getEvidencias()));
@@ -262,7 +276,9 @@ public class AutoclaveService {
 
     public Page<HigienizacaoUltrassonicaDto> listHigienizacoesUltrassonica(Pageable pageable) {
         return higienizacaoUltrassonicaRepository.findAll(pageable)
-                .map(h -> new HigienizacaoUltrassonicaDto(h.getId(), h.getTenant().getId(), h.getDataRealizacao(),
+                .map(h -> new HigienizacaoUltrassonicaDto(h.getId(), h.getTenant().getId(),
+                        h.getProcesso() != null ? h.getProcesso().getId() : null,
+                        h.getDataRealizacao(), h.getDataHoraInicio(), h.getDataHoraFim(),
                         h.getEquipamentoDescricao(),
                         h.getResponsavel() != null ? h.getResponsavel().getId() : null,
                         h.getObservacoes(), toIdSet(h.getEvidencias())));
@@ -308,6 +324,11 @@ public class AutoclaveService {
                     .orElseThrow(() -> new EntityNotFoundException("Lote não encontrado"));
             ciclo.setLoteEtiqueta(lote);
         }
+        if (request.processoId() != null) {
+            ProcessoReprocessamento processo = processoRepository.findById(request.processoId())
+                    .orElseThrow(() -> new EntityNotFoundException("Processo não encontrado"));
+            ciclo.setProcesso(processo);
+        }
         ciclo.setInicio(request.inicio());
         ciclo.setFim(request.fim());
         ciclo.setDuracaoMinutos(request.duracaoMinutos());
@@ -320,13 +341,7 @@ public class AutoclaveService {
             ciclo.setLiberadoPor(liberadoPor);
         }
         ciclo.setObservacoes(request.observacoes());
-        CicloEsterilizacao saved = cicloEsterilizacaoRepository.save(ciclo);
-        return new CicloEsterilizacaoDto(saved.getId(), tenant.getId(), autoclave.getId(),
-                saved.getLoteEtiqueta() != null ? saved.getLoteEtiqueta().getId() : null,
-                saved.getInicio(), saved.getFim(), saved.getDuracaoMinutos(), saved.getTemperaturaMaxima(),
-                saved.getPressaoMaxima(), saved.getStatus(),
-                saved.getLiberadoPor() != null ? saved.getLiberadoPor().getId() : null,
-                saved.getObservacoes());
+        return toCicloDto(cicloEsterilizacaoRepository.save(ciclo));
     }
 
     public Page<CicloEsterilizacaoDto> listCiclos(Pageable pageable) {

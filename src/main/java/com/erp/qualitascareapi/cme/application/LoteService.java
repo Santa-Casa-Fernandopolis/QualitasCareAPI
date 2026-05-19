@@ -3,9 +3,11 @@ package com.erp.qualitascareapi.cme.application;
 import com.erp.qualitascareapi.cme.api.dto.*;
 import com.erp.qualitascareapi.cme.domain.LoteEtiqueta;
 import com.erp.qualitascareapi.cme.domain.MovimentacaoCME;
+import com.erp.qualitascareapi.cme.domain.ProcessoReprocessamento;
 import com.erp.qualitascareapi.cme.enums.LoteStatus;
 import com.erp.qualitascareapi.cme.repo.LoteEtiquetaRepository;
 import com.erp.qualitascareapi.cme.repo.MovimentacaoCMERepository;
+import com.erp.qualitascareapi.cme.repo.ProcessoReprocessamentoRepository;
 import com.erp.qualitascareapi.core.domain.KitVersion;
 import com.erp.qualitascareapi.iam.domain.Setor;
 import com.erp.qualitascareapi.core.repo.KitVersionRepository;
@@ -30,19 +32,22 @@ public class LoteService {
     private final LoteEtiquetaRepository loteEtiquetaRepository;
     private final KitVersionRepository kitVersionRepository;
     private final MovimentacaoCMERepository movimentacaoRepository;
+    private final ProcessoReprocessamentoRepository processoRepository;
 
     public LoteService(TenantRepository tenantRepository,
                        UserRepository userRepository,
                        SetorRepository setorRepository,
                        LoteEtiquetaRepository loteEtiquetaRepository,
                        KitVersionRepository kitVersionRepository,
-                       MovimentacaoCMERepository movimentacaoRepository) {
+                       MovimentacaoCMERepository movimentacaoRepository,
+                       ProcessoReprocessamentoRepository processoRepository) {
         this.tenantRepository = tenantRepository;
         this.userRepository = userRepository;
         this.setorRepository = setorRepository;
         this.loteEtiquetaRepository = loteEtiquetaRepository;
         this.kitVersionRepository = kitVersionRepository;
         this.movimentacaoRepository = movimentacaoRepository;
+        this.processoRepository = processoRepository;
     }
 
     public SetorDto createSetor(SetorRequest request) {
@@ -74,6 +79,11 @@ public class LoteService {
         LoteEtiqueta lote = new LoteEtiqueta();
         lote.setTenant(tenant);
         lote.setCodigo(request.codigo());
+        if (request.processoId() != null) {
+            ProcessoReprocessamento processo = processoRepository.findById(request.processoId())
+                    .orElseThrow(() -> new EntityNotFoundException("Processo não encontrado"));
+            lote.setProcesso(processo);
+        }
         if (request.kitVersaoId() != null) {
             KitVersion versao = kitVersionRepository.findById(request.kitVersaoId())
                     .orElseThrow(() -> new EntityNotFoundException("Versão de kit não encontrada"));
@@ -88,13 +98,10 @@ public class LoteService {
                     .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado"));
             lote.setMontadoPor(usuario);
         }
+        lote.setDataHoraInicioMontagem(request.dataHoraInicioMontagem());
+        lote.setDataHoraFimMontagem(request.dataHoraFimMontagem());
         lote.setObservacoes(request.observacoes());
-        LoteEtiqueta saved = loteEtiquetaRepository.save(lote);
-        Long montadoPor = saved.getMontadoPor() != null ? saved.getMontadoPor().getId() : null;
-        Long kitVersaoId = saved.getKitVersao() != null ? saved.getKitVersao().getId() : null;
-        return new LoteEtiquetaDto(saved.getId(), tenant.getId(), saved.getCodigo(), kitVersaoId,
-                saved.getDataEmpacotamento(), saved.getValidade(), saved.getStatus(), saved.getQrCode(),
-                montadoPor, saved.getObservacoes(), saved.getCriadoEm());
+        return toLoteDto(loteEtiquetaRepository.save(lote));
     }
 
     public LoteEtiquetaDto findLoteById(Long id) {
@@ -111,10 +118,13 @@ public class LoteService {
     }
 
     private LoteEtiquetaDto toLoteDto(LoteEtiqueta l) {
-        return new LoteEtiquetaDto(l.getId(), l.getTenant().getId(), l.getCodigo(),
+        return new LoteEtiquetaDto(l.getId(), l.getTenant().getId(),
+                l.getProcesso() != null ? l.getProcesso().getId() : null,
+                l.getCodigo(),
                 l.getKitVersao() != null ? l.getKitVersao().getId() : null,
                 l.getDataEmpacotamento(), l.getValidade(), l.getStatus(), l.getQrCode(),
                 l.getMontadoPor() != null ? l.getMontadoPor().getId() : null,
+                l.getDataHoraInicioMontagem(), l.getDataHoraFimMontagem(),
                 l.getObservacoes(), l.getCriadoEm());
     }
 
