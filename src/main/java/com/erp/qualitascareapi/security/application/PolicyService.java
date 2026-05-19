@@ -52,7 +52,7 @@ public class PolicyService {
                                 Boolean enabled,
                                 String description,
                                 Pageable pageable) {
-        Long tenantId = requireTenant();
+        Long tenantId = tenantScopeGuard.currentTenantId();
         return policyRepository.search(tenantId,
                         resource,
                         action,
