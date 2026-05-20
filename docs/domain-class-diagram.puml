@@ -1,0 +1,1367 @@
+@startuml QualitasCareAPI - Domain Class Diagram
+!theme plain
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam class {
+  BackgroundColor White
+  BorderColor #555
+  ArrowColor #333
+}
+skinparam package {
+  BorderColor #888
+  FontStyle bold
+}
+
+' ============================================================
+' INTERFACES / ABSTRAÇÕES
+' ============================================================
+
+interface ApprovableTarget {
+}
+
+interface NaoConformidadeBase {
+  +getId() : Long
+  +getTenant() : Tenant
+  +getTitulo() : String
+  +getStatus() : NaoConformidadeStatus
+  +getTipo() : TipoNaoConformidade
+}
+
+' ============================================================
+' MÓDULO: IAM
+' ============================================================
+
+package "IAM" #E8F4FD {
+
+  class Tenant {
+    -id : Long
+    -code : String
+    -name : String
+    -cnpj : String
+    -logo : String
+    -active : boolean
+  }
+
+  class User {
+    -id : Long
+    -username : String
+    -passwordHash : String
+    -fullName : String
+    -department : String
+    -status : UserStatus
+    -origin : IdentityOrigin
+    -createdAt : LocalDateTime
+    -activatedAt : LocalDateTime
+    -expiresAt : LocalDateTime
+    -updatedAt : LocalDateTime
+  }
+
+  class Setor {
+    -id : Long
+    -nome : String
+    -tipo : TipoSetor
+    -descricao : String
+  }
+
+  class OrgRoleAssignment {
+    -id : Long
+    -roleType : OrgRoleType
+    -active : Boolean
+    -vigencia : PeriodoVigencia
+  }
+
+  enum UserStatus {
+    ACTIVE
+    INACTIVE
+    SUSPENDED
+  }
+
+  enum IdentityOrigin {
+    LOCAL
+    LDAP
+    SSO
+  }
+
+  enum TipoSetor {
+    CME
+    UTI
+    CC
+    AMBULATORIO
+    ADMINISTRATIVO
+  }
+
+  enum OrgRoleType {
+    GERENTE
+    SUPERVISOR
+    OPERADOR
+    AUDITOR
+  }
+
+  Tenant "1" -- "0..*" User
+  Tenant "1" -- "0..*" Setor
+  OrgRoleAssignment "0..*" --> "1" Tenant
+  OrgRoleAssignment "0..*" --> "1" User
+  OrgRoleAssignment "0..*" --> "0..1" Setor
+  User ..> UserStatus
+  User ..> IdentityOrigin
+  Setor ..> TipoSetor
+  OrgRoleAssignment ..> OrgRoleType
+}
+
+' ============================================================
+' MÓDULO: SECURITY
+' ============================================================
+
+package "Security" #FDF0E8 {
+
+  class Role {
+    -id : Long
+    -name : String
+    -description : String
+  }
+
+  class Permission {
+    -id : Long
+    -resource : ResourceType
+    -action : Action
+    -feature : String
+    -code : String
+  }
+
+  class Policy {
+    -id : Long
+    -resource : ResourceType
+    -action : Action
+    -feature : String
+    -effect : Effect
+    -enabled : boolean
+    -priority : int
+    -description : String
+  }
+
+  class PolicyCondition {
+    -id : Long
+    -type : String
+    -operator : String
+    -value : String
+  }
+
+  class RolePermission {
+    -id : Long
+  }
+
+  class UserPermissionOverride {
+    -id : Long
+    -resource : ResourceType
+    -action : Action
+    -feature : String
+    -effect : Effect
+    -priority : int
+    -reason : String
+    -validFrom : LocalDateTime
+    -validUntil : LocalDateTime
+    -requestedAt : LocalDateTime
+    -approvedAt : LocalDateTime
+  }
+
+  enum Effect {
+    ALLOW
+    DENY
+  }
+
+  Role "0..*" --> "1" Tenant
+  Permission "0..*" --> "1" Tenant
+  Policy "0..*" --> "1" Tenant
+  Policy "1" *-- "0..*" PolicyCondition
+  Policy "0..*" --> "0..*" Role
+  RolePermission "0..*" --> "1" Role
+  RolePermission "0..*" --> "1" Permission
+  RolePermission "0..*" --> "1" Tenant
+  User "0..*" --> "0..*" Role
+  UserPermissionOverride "0..*" --> "1" User
+  UserPermissionOverride "0..*" --> "1" Tenant
+  UserPermissionOverride "0..*" --> "0..1" Setor
+  UserPermissionOverride "0..*" --> "0..1" User : requestedBy
+  UserPermissionOverride "0..*" --> "0..1" User : approvedBy
+  UserPermissionOverride ..|> ApprovableTarget
+  Policy ..> Effect
+  UserPermissionOverride ..> Effect
+}
+
+' ============================================================
+' MÓDULO: COMMON
+' ============================================================
+
+package "Common" #F0F8E8 {
+
+  class EvidenciaArquivo {
+    -id : Long
+    -nomeArquivo : String
+    -uri : String
+    -hashSha256 : String
+    -contentType : String
+    -tamanhoBytes : Long
+    -criadoEm : LocalDateTime
+  }
+
+  EvidenciaArquivo "0..*" --> "1" Tenant
+  EvidenciaArquivo "0..*" --> "1" User : autor
+}
+
+' ============================================================
+' MÓDULO: CORE (Kit / Instrumento)
+' ============================================================
+
+package "Core" #F8F0FD {
+
+  class KitProcedimento {
+    -id : Long
+    -nome : String
+    -codigo : String
+    -observacoes : String
+    -ativo : Boolean
+  }
+
+  class KitVersion {
+    -id : Long
+    -numeroVersao : Integer
+    -vigenciaInicio : LocalDate
+    -validadeDias : Integer
+    -ativo : Boolean
+    -observacoes : String
+  }
+
+  class KitItem {
+    -id : Long
+    -quantidade : Integer
+    -observacoes : String
+  }
+
+  class Instrumento {
+    -id : Long
+    -nome : String
+    -codigoHospitalar : String
+    -descricao : String
+  }
+
+  class ExameCultura {
+    -id : Long
+    -origemAmostra : String
+    -dataColeta : LocalDate
+    -responsavelColeta : String
+    -resultado : ExameCulturaResultado
+    -observacoes : String
+  }
+
+  enum ExameCulturaResultado {
+    NEGATIVO
+    POSITIVO
+    INCONCLUSIVO
+  }
+
+  KitProcedimento "0..*" --> "1" Tenant
+  KitVersion "0..*" --> "1" KitProcedimento
+  KitItem "0..*" --> "1" KitVersion
+  KitItem "0..*" --> "1" Instrumento
+  Instrumento "0..*" --> "1" Tenant
+  ExameCultura "0..*" --> "1" Tenant
+  ExameCultura "0..*" --> "1" User : registradoPor
+  ExameCultura "0..*" --> "0..*" EvidenciaArquivo
+  ExameCultura ..> ExameCulturaResultado
+}
+
+' ============================================================
+' MÓDULO: CME
+' ============================================================
+
+package "CME" #FFF8E8 {
+
+  class Autoclave {
+    -id : Long
+    -nome : String
+    -fabricante : String
+    -modelo : String
+    -numeroSerie : String
+    -localizacao : String
+    -ultimaHigienizacaoProfunda : LocalDate
+    -ativo : Boolean
+  }
+
+  class RecebimentoMaterial {
+    -id : Long
+    -dataHora : LocalDateTime
+    -quantidadeItens : Integer
+    -condicaoDescricao : String
+    -status : RecebimentoStatus
+    -observacoes : String
+  }
+
+  class ProcessoReprocessamento {
+    -id : Long
+    -numeroProcesso : String
+    -status : ProcessoStatus
+    -dataAbertura : LocalDateTime
+    -dataConclusao : LocalDateTime
+    -observacoes : String
+  }
+
+  class LimpezaManual {
+    -id : Long
+    -dataHoraInicio : LocalDateTime
+    -dataHoraFim : LocalDateTime
+    -produtoUtilizado : String
+    -concentracao : String
+    -metodo : MetodoLimpeza
+    -conformidade : ResultadoConformidade
+    -observacoes : String
+  }
+
+  class HigienizacaoUltrassonica {
+    -id : Long
+    -dataRealizacao : LocalDate
+    -dataHoraInicio : LocalDateTime
+    -dataHoraFim : LocalDateTime
+    -equipamentoDescricao : String
+    -observacoes : String
+  }
+
+  class LoteEtiqueta {
+    -id : Long
+    -codigo : String
+    -dataHoraInicioMontagem : LocalDateTime
+    -dataHoraFimMontagem : LocalDateTime
+    -dataEmpacotamento : LocalDate
+    -validade : LocalDate
+    -status : LoteStatus
+    -qrCode : String
+    -criadoEm : LocalDateTime
+    -observacoes : String
+  }
+
+  class CicloEsterilizacao {
+    -id : Long
+    -inicio : LocalDateTime
+    -fim : LocalDateTime
+    -duracaoMinutos : Integer
+    -temperaturaMaxima : Double
+    -pressaoMaxima : Double
+    -status : CicloStatus
+    -parametrosOk : Boolean
+    -iqOk : Boolean
+    -ibExigido : Boolean
+    -ibOk : Boolean
+    -observacoes : String
+  }
+
+  class IndicadorQuimico {
+    -id : Long
+    -tipo : String
+    -resultado : ResultadoConformidade
+    -observacoes : String
+  }
+
+  class IndicadorBiologico {
+    -id : Long
+    -loteIndicador : String
+    -incubadora : String
+    -leituraEm : LocalDate
+    -resultado : ResultadoConformidade
+    -observacoes : String
+  }
+
+  class CicloLavadora {
+    -id : Long
+    -dataHora : LocalDateTime
+    -equipamentoDescricao : String
+    -numeroCiclo : String
+    -temperaturaMaxima : Double
+    -duracaoMinutos : Integer
+    -quantidadeItens : Integer
+    -resultado : ResultadoCicloLavadora
+    -observacoes : String
+  }
+
+  class HigienizacaoAutoclaveProfunda {
+    -id : Long
+    -dataRealizacao : LocalDate
+    -observacoes : String
+  }
+
+  class ManutencaoAutoclave {
+    -id : Long
+    -tipo : ManutencaoTipo
+    -status : ManutencaoStatus
+    -dataAgendamento : LocalDate
+    -dataExecucao : LocalDate
+    -responsavelTecnico : String
+    -observacoes : String
+  }
+
+  class PlanoPreventivoAutoclave {
+    -id : Long
+    -periodicidadeDias : Integer
+    -limiteCiclos : Integer
+    -proximaExecucaoPrevista : LocalDate
+    -descricao : String
+  }
+
+  class TesteBowieDick {
+    -id : Long
+    -dataExecucao : LocalDate
+    -resultado : ResultadoConformidade
+    -observacoes : String
+  }
+
+  class MovimentacaoCME {
+    -id : Long
+    -tipo : MovimentacaoTipo
+    -dataHora : LocalDateTime
+    -observacoes : String
+  }
+
+  class MonitoramentoAmbiental {
+    -id : Long
+    -dataHora : LocalDateTime
+    -localSala : String
+    -temperaturaCelsius : Double
+    -umidadeRelativa : Double
+    -pressaoDiferencialPa : Double
+    -resultado : ResultadoMonitoramento
+    -observacoes : String
+  }
+
+  class SaneantePeraceticoLote {
+    -id : Long
+    -numeroLote : String
+    -fabricante : String
+    -concentracao : String
+    -dataValidade : LocalDate
+    -dataAbertura : LocalDate
+    -volumeInicialMl : Double
+    -observacoes : String
+  }
+
+  class UsoSaneante {
+    -id : Long
+    -dataUso : LocalDate
+    -etapa : UsoSaneanteEtapa
+    -volumeUtilizadoMl : Double
+    -diluicao : String
+    -observacoes : String
+  }
+
+  enum CicloStatus {
+    PENDENTE
+    EM_ANDAMENTO
+    CONCLUIDO
+    REPROVADO
+  }
+
+  enum LoteStatus {
+    MONTAGEM
+    AGUARDANDO_ESTERILIZACAO
+    ESTERILIZADO
+    DISTRIBUIDO
+    UTILIZADO
+    VENCIDO
+  }
+
+  enum ProcessoStatus {
+    ABERTO
+    EM_ANDAMENTO
+    CONCLUIDO
+    CANCELADO
+  }
+
+  enum RecebimentoStatus {
+    PENDENTE
+    ACEITO
+    REJEITADO
+  }
+
+  enum ResultadoConformidade {
+    CONFORME
+    NAO_CONFORME
+    PENDENTE
+  }
+
+  enum MetodoLimpeza {
+    MANUAL
+    ULTRASSONICO
+    AUTOMATIZADO
+  }
+
+  enum MovimentacaoTipo {
+    ENTRADA
+    SAIDA
+    TRANSFERENCIA
+  }
+
+  enum ManutencaoTipo {
+    PREVENTIVA
+    CORRETIVA
+  }
+
+  enum ManutencaoStatus {
+    AGENDADA
+    EM_ANDAMENTO
+    CONCLUIDA
+    CANCELADA
+  }
+
+  Autoclave "0..*" --> "1" Tenant
+  RecebimentoMaterial "0..*" --> "1" Tenant
+  RecebimentoMaterial "0..*" --> "1" Setor : setorOrigem
+  RecebimentoMaterial "0..*" --> "1" User : responsavel
+  RecebimentoMaterial "0..*" --> "0..*" EvidenciaArquivo
+
+  ProcessoReprocessamento "0..*" --> "1" Tenant
+  ProcessoReprocessamento "0..*" --> "1" RecebimentoMaterial
+
+  LimpezaManual "0..*" --> "1" Tenant
+  LimpezaManual "0..*" --> "1" ProcessoReprocessamento
+  LimpezaManual "0..*" --> "1" User : responsavel
+  LimpezaManual "0..*" --> "0..*" EvidenciaArquivo
+
+  HigienizacaoUltrassonica "0..*" --> "1" Tenant
+  HigienizacaoUltrassonica "0..*" --> "1" ProcessoReprocessamento
+  HigienizacaoUltrassonica "0..*" --> "1" User : responsavel
+  HigienizacaoUltrassonica "0..*" --> "0..*" EvidenciaArquivo
+
+  LoteEtiqueta "0..*" --> "1" Tenant
+  LoteEtiqueta "0..*" --> "1" ProcessoReprocessamento
+  LoteEtiqueta "0..*" --> "1" KitVersion
+  LoteEtiqueta "0..*" --> "1" User : montadoPor
+  LoteEtiqueta ..|> ApprovableTarget
+
+  CicloEsterilizacao "0..*" --> "1" Tenant
+  CicloEsterilizacao "0..*" --> "1" Autoclave
+  CicloEsterilizacao "0..*" --> "1" ProcessoReprocessamento
+  CicloEsterilizacao "0..*" --> "1" LoteEtiqueta
+  CicloEsterilizacao "0..*" --> "0..1" User : liberadoPor
+  CicloEsterilizacao "0..*" --> "1" Setor : setorExecutor
+  CicloEsterilizacao "0..*" --> "0..*" EvidenciaArquivo
+  CicloEsterilizacao ..|> ApprovableTarget
+
+  IndicadorQuimico "0..*" --> "1" CicloEsterilizacao
+  IndicadorQuimico "0..*" --> "0..*" EvidenciaArquivo
+
+  IndicadorBiologico "0..*" --> "1" CicloEsterilizacao
+  IndicadorBiologico "0..*" --> "0..*" EvidenciaArquivo
+
+  CicloLavadora "0..*" --> "1" Tenant
+  CicloLavadora "0..*" --> "1" User : responsavel
+  CicloLavadora "0..*" --> "0..*" EvidenciaArquivo
+
+  HigienizacaoAutoclaveProfunda "0..*" --> "1" Autoclave
+  HigienizacaoAutoclaveProfunda "0..*" --> "1" User : responsavel
+  HigienizacaoAutoclaveProfunda "0..*" --> "0..*" EvidenciaArquivo
+
+  ManutencaoAutoclave "0..*" --> "1" Autoclave
+  ManutencaoAutoclave "0..*" --> "0..*" EvidenciaArquivo
+
+  PlanoPreventivoAutoclave "0..*" --> "1" Autoclave
+
+  TesteBowieDick "0..*" --> "1" Autoclave
+  TesteBowieDick "0..*" --> "1" User : executadoPor
+  TesteBowieDick "0..*" --> "0..*" EvidenciaArquivo
+
+  MovimentacaoCME "0..*" --> "1" Tenant
+  MovimentacaoCME "0..*" --> "1" LoteEtiqueta
+  MovimentacaoCME "0..*" --> "1" Setor : setorOrigem
+  MovimentacaoCME "0..*" --> "1" Setor : setorDestino
+  MovimentacaoCME "0..*" --> "1" User : responsavel
+
+  MonitoramentoAmbiental "0..*" --> "1" Tenant
+  MonitoramentoAmbiental "0..*" --> "1" User : responsavel
+  MonitoramentoAmbiental "0..*" --> "0..*" EvidenciaArquivo
+
+  SaneantePeraceticoLote "0..*" --> "1" Tenant
+  UsoSaneante "0..*" --> "1" SaneantePeraceticoLote
+  UsoSaneante "0..*" --> "1" User : usadoPor
+
+  CicloEsterilizacao ..> CicloStatus
+  LoteEtiqueta ..> LoteStatus
+  ProcessoReprocessamento ..> ProcessoStatus
+  RecebimentoMaterial ..> RecebimentoStatus
+  LimpezaManual ..> MetodoLimpeza
+  LimpezaManual ..> ResultadoConformidade
+  IndicadorQuimico ..> ResultadoConformidade
+  IndicadorBiologico ..> ResultadoConformidade
+  TesteBowieDick ..> ResultadoConformidade
+  MovimentacaoCME ..> MovimentacaoTipo
+  ManutencaoAutoclave ..> ManutencaoTipo
+  ManutencaoAutoclave ..> ManutencaoStatus
+}
+
+' ============================================================
+' MÓDULO: GED (Gestão Eletrônica de Documentos)
+' ============================================================
+
+package "GED" #E8FDF8 {
+
+  class DocCategory {
+    -id : Long
+    -nome : String
+    -descricao : String
+  }
+
+  class DocTag {
+    -id : Long
+    -nome : String
+  }
+
+  class RetentionPolicy {
+    -id : Long
+    -nome : String
+    -anosGuarda : Integer
+    -metodoDescarte : String
+    -baseLegal : String
+  }
+
+  class Document {
+    -id : Long
+    -codigo : String
+    -titulo : String
+    -tipo : DocumentType
+    -status : DocumentStatus
+    -confidencialidade : ConfidentialityLevel
+    -dataVigenciaInicio : LocalDate
+    -dataVigenciaFim : LocalDate
+    -nivelONATarget : String
+    -regulacoes : String
+    -exigeTreinamento : Boolean
+  }
+
+  class DocumentVersion {
+    -id : Long
+    -versaoMajor : Integer
+    -versaoMinor : Integer
+    -status : DocumentStatus
+    -resumoMudancas : String
+    -dataVigenciaInicio : LocalDate
+    -pdfSha256 : String
+    -geradoEm : LocalDateTime
+  }
+
+  class DocumentLink {
+    -id : Long
+    -relacao : String
+  }
+
+  class ReviewCycle {
+    -id : Long
+    -frequenciaMeses : Integer
+    -dataUltimaRevisao : LocalDate
+    -dataProximaRevisao : LocalDate
+    -grupoRevisor : String
+  }
+
+  class ChangeRequest {
+    -id : Long
+    -titulo : String
+    -motivo : String
+    -solicitadoEm : LocalDateTime
+    -prioridade : Priority
+    -impacto : ImpactLevel
+    -prazo : LocalDate
+    -status : ChangeRequestStatus
+    -slaEstouradoEm : LocalDateTime
+    -implementedByVersionId : Long
+  }
+
+  class ChangeRequestItem {
+    -id : Long
+    -secaoAlvo : String
+    -textoAntes : String
+    -textoDepois : String
+    -justificativa : String
+  }
+
+  class CommunicationProfile {
+    -id : Long
+    -tipoMensagem : String
+    -publicoAlvo : String
+    -ackObrigatorio : Boolean
+    -validoDe : LocalDate
+    -validoAte : LocalDate
+  }
+
+  class DistributionRule {
+    -id : Long
+    -departamentosAlvo : String
+    -papeisAlvo : String
+  }
+
+  class PopProfile {
+    -id : Long
+    -area : String
+    -objetivo : String
+    -escopo : String
+    -definicoes : String
+    -responsabilidades : String
+    -materiais : String
+    -precaucoesSeguranca : String
+    -registrosGerados : String
+    -referencias : String
+  }
+
+  class PopStep {
+    -id : Long
+    -ordem : Integer
+    -titulo : String
+    -instrucao : String
+    -notaRisco : String
+  }
+
+  class ProtocolProfile {
+    -id : Long
+    -escopoClinico : String
+    -indicacoes : String
+    -contraIndicacoes : String
+    -fluxogramaRef : String
+  }
+
+  enum DocumentType {
+    POP
+    PROTOCOLO
+    MANUAL
+    INSTRUCAO
+    FORMULARIO
+    REGULAMENTO
+  }
+
+  enum DocumentStatus {
+    RASCUNHO
+    REVISAO
+    APROVADO
+    VIGENTE
+    OBSOLETO
+    CANCELADO
+  }
+
+  enum ConfidentialityLevel {
+    PUBLICO
+    INTERNO
+    RESTRITO
+    CONFIDENCIAL
+  }
+
+  DocCategory "0..*" --> "1" Tenant
+  DocTag "0..*" --> "1" Tenant
+  RetentionPolicy "0..*" --> "1" Tenant
+
+  Document "0..*" --> "1" Tenant
+  Document "0..*" --> "1" DocCategory
+  Document "0..*" --> "1" Setor : setorResponsavel
+  Document "0..*" --> "0..1" RetentionPolicy
+  Document "0..*" --> "0..1" DocumentVersion : versaoAtual
+  Document "0..*" --> "0..*" DocTag
+
+  DocumentVersion "0..*" --> "1" Tenant
+  DocumentVersion "0..*" --> "1" Document
+  DocumentVersion "0..*" --> "0..1" EvidenciaArquivo : pdfArquivo
+  DocumentVersion ..|> ApprovableTarget
+
+  DocumentLink "0..*" --> "1" Tenant
+  DocumentLink "0..*" --> "1" Document : origem
+  DocumentLink "0..*" --> "1" Document : alvo
+
+  ReviewCycle "0..*" --> "1" Tenant
+  ReviewCycle "0..*" --> "1" Document
+
+  ChangeRequest "0..*" --> "1" Tenant
+  ChangeRequest "0..*" --> "1" Document
+  ChangeRequest "0..*" --> "1" User : solicitante
+  ChangeRequest "0..*" --> "1" User : responsavel
+  ChangeRequest "1" *-- "0..*" ChangeRequestItem
+
+  CommunicationProfile "0..*" --> "1" Tenant
+  CommunicationProfile "0..*" --> "1" Document
+
+  DistributionRule "0..*" --> "1" Tenant
+  DistributionRule "0..*" --> "1" Document
+
+  PopProfile "0..*" --> "1" Tenant
+  PopProfile "0..*" --> "1" Document
+  PopProfile "1" *-- "0..*" PopStep
+
+  ProtocolProfile "0..*" --> "1" Tenant
+  ProtocolProfile "0..*" --> "1" Document
+
+  Document ..> DocumentType
+  Document ..> DocumentStatus
+  Document ..> ConfidentialityLevel
+  DocumentVersion ..> DocumentStatus
+}
+
+' ============================================================
+' MÓDULO: APPROVAL
+' ============================================================
+
+package "Approval" #FDF5E8 {
+
+  class ApprovalFlowDef {
+    -id : Long
+    -domain : ApprovalDomain
+    -name : String
+    -active : Boolean
+  }
+
+  class ApprovalStageDef {
+    -id : Long
+    -order : Integer
+    -stageCode : String
+    -requiredRole : OrgRoleType
+    -scopeByTargetSetor : Boolean
+    -minApprovers : Integer
+    -dualApproval : Boolean
+  }
+
+  class ApprovalRequest {
+    -id : Long
+    -domain : ApprovalDomain
+    -targetKey : String
+    -requestedAt : LocalDateTime
+    -status : ApprovalRequestStatus
+    -flowNameSnapshot : String
+  }
+
+  class ApprovalStep {
+    -id : Long
+    -stageOrder : Integer
+    -stageCode : String
+    -requiredRole : OrgRoleType
+    -status : ApprovalStepStatus
+    -decision : ApprovalDecision
+    -decidedAt : LocalDateTime
+    -comment : String
+    -approvalsCount : Integer
+  }
+
+  class ApprovalAuditLog {
+    -id : Long
+    -stepOrder : Integer
+    -event : String
+    -whenOccurred : LocalDateTime
+    -data : String
+  }
+
+  class ApprovalAttachment {
+    -id : Long
+    -nota : String
+  }
+
+  enum ApprovalDomain {
+    CME_LOTE
+    CME_CICLO
+    GED_DOCUMENTO
+    EDU_PLANO
+    QUALITY_NC
+    SECURITY_OVERRIDE
+  }
+
+  enum ApprovalRequestStatus {
+    PENDENTE
+    EM_APROVACAO
+    APROVADO
+    REJEITADO
+    CANCELADO
+  }
+
+  enum ApprovalStepStatus {
+    AGUARDANDO
+    EM_ANDAMENTO
+    CONCLUIDO
+    IGNORADO
+  }
+
+  enum ApprovalDecision {
+    APROVADO
+    REJEITADO
+    DEVOLVIDO
+  }
+
+  ApprovalFlowDef "0..*" --> "1" Tenant
+  ApprovalFlowDef "1" *-- "0..*" ApprovalStageDef
+
+  ApprovalRequest "0..*" --> "1" Tenant
+  ApprovalRequest "0..*" --> "1" User : requestedBy
+  ApprovalRequest "0..*" --> "0..1" Setor : scopeSetor
+  ApprovalRequest "1" *-- "0..*" ApprovalStep
+  ApprovalRequest "1" *-- "0..*" ApprovalAuditLog
+  ApprovalRequest "1" *-- "0..*" ApprovalAttachment
+
+  ApprovalStep "0..*" --> "0..1" User : decidedBy
+  ApprovalStep "0..*" --> "0..1" Setor : scopeSetor
+
+  ApprovalAuditLog "0..*" --> "1" User : who
+  ApprovalAttachment "0..*" --> "1" EvidenciaArquivo
+
+  ApprovalFlowDef ..> ApprovalDomain
+  ApprovalRequest ..> ApprovalDomain
+  ApprovalRequest ..> ApprovalRequestStatus
+  ApprovalStep ..> ApprovalStepStatus
+  ApprovalStep ..> ApprovalDecision
+}
+
+' ============================================================
+' MÓDULO: QUALITY
+' ============================================================
+
+package "Quality" #FDE8E8 {
+
+  class TipoNaoConformidade {
+    -id : Long
+    -nome : String
+    -descricao : String
+  }
+
+  class NaoConformidadeCME {
+    -id : Long
+    -titulo : String
+    -descricao : String
+    -severidade : NaoConformidadeSeveridade
+    -status : NaoConformidadeStatus
+    -dataAbertura : LocalDate
+    -dataEncerramento : LocalDate
+    -planoAcaoResumo : String
+  }
+
+  class PlanoAcaoItem {
+    -id : Long
+    -oQue : String
+    -porQue : String
+    -onde : String
+    -quando : LocalDate
+    -como : String
+    -quanto : BigDecimal
+    -prazo : LocalDate
+    -statusExecucao : PlanoAcaoItemStatus
+    -evidencias : String
+  }
+
+  class NCEficaciaAvaliacao {
+    -id : Long
+    -avaliadoEm : LocalDateTime
+    -metodo : String
+    -resultado : String
+    -eficaz : Boolean
+  }
+
+  enum NaoConformidadeSeveridade {
+    BAIXA
+    MEDIA
+    ALTA
+    CRITICA
+  }
+
+  enum NaoConformidadeStatus {
+    ABERTA
+    EM_ANALISE
+    PLANO_ACAO
+    VERIFICACAO_EFICACIA
+    ENCERRADA
+    CANCELADA
+  }
+
+  enum PlanoAcaoItemStatus {
+    PENDENTE
+    EM_ANDAMENTO
+    CONCLUIDO
+    CANCELADO
+  }
+
+  TipoNaoConformidade "0..*" --> "1" Tenant
+
+  NaoConformidadeCME "0..*" --> "1" Tenant
+  NaoConformidadeCME "0..*" --> "1" TipoNaoConformidade
+  NaoConformidadeCME "0..*" --> "1" User : responsavel
+  NaoConformidadeCME "0..*" --> "1" Setor : setorOrigem
+  NaoConformidadeCME "0..*" --> "1" Setor : setorResponsavel
+  NaoConformidadeCME "0..*" --> "0..*" EvidenciaArquivo
+  NaoConformidadeCME ..|> ApprovableTarget
+  NaoConformidadeCME ..|> NaoConformidadeBase
+
+  NaoConformidadeCME "1" *-- "0..*" PlanoAcaoItem
+  PlanoAcaoItem "0..*" --> "1" User : quem
+
+  NCEficaciaAvaliacao "0..*" --> "1" Tenant
+  NCEficaciaAvaliacao "0..*" --> "1" NaoConformidadeCME
+  NCEficaciaAvaliacao "0..*" --> "1" User : avaliador
+
+  NaoConformidadeCME ..> NaoConformidadeSeveridade
+  NaoConformidadeCME ..> NaoConformidadeStatus
+  PlanoAcaoItem ..> PlanoAcaoItemStatus
+}
+
+' ============================================================
+' MÓDULO: HR
+' ============================================================
+
+package "HR" #E8F8FD {
+
+  class Cargo {
+    -id : Long
+    -codigo : String
+    -nome : String
+    -descricao : String
+  }
+
+  class Colaborador {
+    -id : Long
+    -matricula : String
+    -nomeCompleto : String
+    -cpf : String
+    -email : String
+    -telefone : String
+    -dataAdmissao : LocalDate
+    -status : ColaboradorStatus
+  }
+
+  enum ColaboradorStatus {
+    ATIVO
+    INATIVO
+    AFASTADO
+    DESLIGADO
+  }
+
+  Cargo "0..*" --> "1" Tenant
+  Colaborador "0..*" --> "1" Tenant
+  Colaborador "0..*" --> "1" Setor
+  Colaborador "0..*" --> "1" Cargo
+  Colaborador "0..*" --> "0..1" User : usuarioSistema
+  Colaborador ..> ColaboradorStatus
+}
+
+' ============================================================
+' MÓDULO: EDU (Educação / Treinamento)
+' ============================================================
+
+package "EDU" #F8FDE8 {
+
+  class TrainingProvider {
+    -id : Long
+    -nome : String
+    -cnpj : String
+    -contatoEmail : String
+    -contatoTelefone : String
+    -interno : Boolean
+    -siteUrl : String
+    -observacoes : String
+  }
+
+  class TrainingResource {
+    -id : Long
+    -nome : String
+    -tipo : String
+    -localizacao : String
+    -capacidade : Integer
+    -ativo : Boolean
+  }
+
+  class Course {
+    -id : Long
+    -codigo : String
+    -titulo : String
+    -descricao : String
+    -cargaHorariaMin : Integer
+    -deliveryMode : DeliveryMode
+    -obrigatorio : Boolean
+    -gradeScale : GradeScale
+  }
+
+  class CourseModule {
+    -id : Long
+    -ordem : Integer
+    -titulo : String
+    -descricao : String
+  }
+
+  class CourseItem {
+    -id : Long
+    -ordem : Integer
+    -titulo : String
+    -descricao : String
+    -aprovacaoMin : Double
+    -frequenciaMinPct : Double
+  }
+
+  class CourseInstructor {
+    -id : Long
+    -curriculo : String
+    -areaEspecialidade : String
+    -ativo : Boolean
+  }
+
+  class Offering {
+    -id : Long
+    -codigoTurma : String
+    -inicio : LocalDate
+    -fim : LocalDate
+    -vagas : Integer
+    -deliveryMode : DeliveryMode
+    -ativo : Boolean
+  }
+
+  class Session {
+    -id : Long
+    -inicio : LocalDateTime
+    -fim : LocalDateTime
+    -local : String
+  }
+
+  class Enrollment {
+    -id : Long
+    -inscritoEm : LocalDateTime
+    -obrigatorio : Boolean
+    -statusGeral : AttemptStatus
+    -notaFinal : Double
+    -concluidoEm : LocalDateTime
+  }
+
+  class Attempt {
+    -id : Long
+    -startedAt : LocalDateTime
+    -endedAt : LocalDateTime
+    -status : AttemptStatus
+    -scoreRaw : Double
+    -progressoPct : Double
+    -tentativaN : Integer
+  }
+
+  class Attendance {
+    -id : Long
+    -presente : Boolean
+    -registradoEm : LocalDateTime
+    -observacoes : String
+  }
+
+  class Feedback {
+    -id : Long
+    -targetType : FeedbackTarget
+    -nota : Integer
+    -comentario : String
+    -enviadoEm : LocalDateTime
+  }
+
+  class Competency {
+    -id : Long
+    -codigo : String
+    -nome : String
+    -descricao : String
+  }
+
+  class CompetencyRubric {
+    -id : Long
+    -titulo : String
+    -descricao : String
+    -escalaDescricao : String
+  }
+
+  class RubricCriterion {
+    -id : Long
+    -ordem : Integer
+    -descricao : String
+    -peso : Double
+  }
+
+  class PracticalAssessment {
+    -id : Long
+    -realizadoEm : LocalDateTime
+    -notaFinal : Double
+    -aprovado : Boolean
+    -observacoes : String
+  }
+
+  class AssessmentCriterionScore {
+    -id : Long
+    -pontuacao : Double
+    -comentario : String
+  }
+
+  class UserCompetency {
+    -id : Long
+    -obtidaEm : LocalDate
+    -origem : String
+    -validadeAte : LocalDate
+  }
+
+  class TrainingPlan {
+    -id : Long
+    -ano : Integer
+    -status : TrainingPlanStatus
+    -enviadoEm : LocalDateTime
+    -aprovadoEm : LocalDateTime
+    -justificativa : String
+  }
+
+  class TrainingPlanItem {
+    -id : Long
+    -deliveryMode : DeliveryMode
+    -cargaHorariaPrevista : Integer
+    -mesPlanejado : Integer
+    -vagasPrevistas : Integer
+    -observacoes : String
+  }
+
+  class ResourceBooking {
+    -id : Long
+    -inicio : LocalDateTime
+    -fim : LocalDateTime
+    -status : BookingStatus
+    -observacoes : String
+  }
+
+  enum DeliveryMode {
+    PRESENCIAL
+    ONLINE
+    HIBRIDO
+    EAD
+  }
+
+  enum GradeScale {
+    PERCENTUAL
+    PONTOS
+    APROVADO_REPROVADO
+  }
+
+  enum AttemptStatus {
+    NAO_INICIADO
+    EM_ANDAMENTO
+    CONCLUIDO
+    APROVADO
+    REPROVADO
+  }
+
+  enum TrainingPlanStatus {
+    RASCUNHO
+    SUBMETIDO
+    APROVADO
+    REJEITADO
+    EM_EXECUCAO
+    CONCLUIDO
+  }
+
+  enum BookingStatus {
+    CONFIRMADO
+    CANCELADO
+    PENDENTE
+  }
+
+  enum FeedbackTarget {
+    CURSO
+    SESSAO
+    INSTRUTOR
+  }
+
+  TrainingProvider "0..*" --> "1" Tenant
+  TrainingResource "0..*" --> "1" Tenant
+
+  Course "0..*" --> "1" Tenant
+  Course "0..*" --> "1" TrainingProvider
+  Course "1" *-- "0..*" CourseModule
+  CourseModule "1" *-- "0..*" CourseItem
+  CourseItem "0..*" --> "0..1" DocumentVersion
+
+  CourseInstructor "0..*" --> "1" Tenant
+  CourseInstructor "0..*" --> "1" TrainingProvider
+  CourseInstructor "0..*" --> "1" Colaborador
+
+  Offering "0..*" --> "1" Tenant
+  Offering "0..*" --> "1" Course
+  Offering "0..*" --> "0..1" Setor : setorAlvo
+  Offering "0..*" --> "0..1" TrainingPlanItem
+  Offering "1" *-- "0..*" Session
+  Session "0..*" --> "0..1" CourseInstructor
+
+  Enrollment "0..*" --> "1" Tenant
+  Enrollment "0..*" --> "1" Offering
+  Enrollment "0..*" --> "1" Colaborador
+  Enrollment "1" *-- "0..*" Attempt
+  Attempt "0..*" --> "1" CourseItem
+
+  Attendance "0..*" --> "1" Tenant
+  Attendance "0..*" --> "1" Session
+  Attendance "0..*" --> "1" Colaborador
+
+  Feedback "0..*" --> "1" Tenant
+  Feedback "0..*" --> "0..1" Course
+  Feedback "0..*" --> "0..1" Session
+  Feedback "0..*" --> "0..1" CourseInstructor
+  Feedback "0..*" --> "1" Colaborador
+
+  Competency "0..*" --> "1" Tenant
+  CompetencyRubric "0..*" --> "1" Tenant
+  CompetencyRubric "0..*" --> "1" Competency
+  CompetencyRubric "1" *-- "0..*" RubricCriterion
+
+  PracticalAssessment "0..*" --> "1" Tenant
+  PracticalAssessment "0..*" --> "1" CompetencyRubric
+  PracticalAssessment "0..*" --> "1" Colaborador : avaliado
+  PracticalAssessment "0..*" --> "1" Colaborador : avaliador
+  PracticalAssessment "0..*" --> "1" Setor : realizadoNoSetor
+  PracticalAssessment "0..*" --> "0..1" EvidenciaArquivo
+  PracticalAssessment "1" *-- "0..*" AssessmentCriterionScore
+  AssessmentCriterionScore "0..*" --> "1" RubricCriterion
+
+  UserCompetency "0..*" --> "1" Tenant
+  UserCompetency "0..*" --> "1" Colaborador
+  UserCompetency "0..*" --> "1" Competency
+
+  TrainingPlan "0..*" --> "1" Tenant
+  TrainingPlan "0..*" --> "1" Setor
+  TrainingPlan "0..*" --> "1" User : solicitante
+  TrainingPlan "1" *-- "0..*" TrainingPlanItem
+  TrainingPlanItem "0..*" --> "1" Course
+  TrainingPlanItem "0..*" --> "0..1" Setor : publicoAlvoSetor
+  TrainingPlan ..|> ApprovableTarget
+
+  ResourceBooking "0..*" --> "1" Tenant
+  ResourceBooking "0..*" --> "1" TrainingResource
+  ResourceBooking "0..*" --> "1" Session
+  ResourceBooking "0..*" --> "1" User : solicitadoPor
+
+  Course ..> DeliveryMode
+  Course ..> GradeScale
+  Offering ..> DeliveryMode
+  TrainingPlanItem ..> DeliveryMode
+  Enrollment ..> AttemptStatus
+  Attempt ..> AttemptStatus
+  TrainingPlan ..> TrainingPlanStatus
+  ResourceBooking ..> BookingStatus
+  Feedback ..> FeedbackTarget
+}
+
+' ============================================================
+' MÓDULO: ENVIRONMENTAL
+' ============================================================
+
+package "Environmental" #F5F5F5 {
+
+  class GeracaoResiduo {
+    -id : Long
+    -dataRegistro : LocalDate
+    -classeResiduo : ClasseResiduo
+    -pesoEstimadoKg : Double
+    -destinoFinal : String
+    -observacoes : String
+  }
+
+  enum ClasseResiduo {
+    GRUPO_A
+    GRUPO_B
+    GRUPO_C
+    GRUPO_D
+    GRUPO_E
+  }
+
+  GeracaoResiduo "0..*" --> "1" Tenant
+  GeracaoResiduo "0..*" --> "0..1" LoteEtiqueta
+  GeracaoResiduo "0..*" --> "0..1" SaneantePeraceticoLote
+  GeracaoResiduo ..> ClasseResiduo
+}
+
+@enduml

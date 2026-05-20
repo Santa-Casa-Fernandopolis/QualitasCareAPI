@@ -17,6 +17,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 
 @Service
@@ -104,8 +105,6 @@ public class UserPermissionOverrideService {
         override.setReason(request.reason());
         override.setValidFrom(request.validFrom());
         override.setValidUntil(request.validUntil());
-        override.setRequestedAt(request.requestedAt());
-        override.setApprovedAt(request.approvedAt());
 
         Tenant tenant = override.getTenant();
         if (tenant == null) {
@@ -126,11 +125,19 @@ public class UserPermissionOverrideService {
             override.setTargetSetor(null);
         }
 
-        override.setRequestedByUser(resolveUser(request.requestedByUserId(), "requestedByUserId", tenant));
-        override.setApprovedByUser(resolveUser(request.approvedByUserId(), "approvedByUserId", tenant));
+        User requestedByUser = resolveUser(request.requestedByUserId(), "requestedByUserId", tenant);
+        User approvedByUser = resolveUser(request.approvedByUserId(), "approvedByUserId", tenant);
+        LocalDateTime approvedAt = request.approvedAt() != null ? request.approvedAt() : request.requestedAt();
+
+        override.setRequestedByUser(requestedByUser);
+        override.setRequestedAt(requestedByUser != null ? request.requestedAt() : null);
+        override.setApprovedByUser(approvedByUser);
+        override.setApprovedAt(approvedByUser != null ? approvedAt : null);
     }
 
     private UserPermissionOverrideDto toDto(UserPermissionOverride override) {
+        LocalDateTime approvedAt = override.getApprovedAt() != null ? override.getApprovedAt() : override.getRequestedAt();
+
         return new UserPermissionOverrideDto(
                 override.getId(),
                 override.getTenant() != null ? override.getTenant().getId() : null,
@@ -145,9 +152,9 @@ public class UserPermissionOverrideService {
                 override.getValidUntil(),
                 override.getTargetSetor() != null ? override.getTargetSetor().getId() : null,
                 override.getRequestedByUser() != null ? override.getRequestedByUser().getId() : null,
-                override.getRequestedAt(),
+                override.getRequestedByUser() != null ? override.getRequestedAt() : null,
                 override.getApprovedByUser() != null ? override.getApprovedByUser().getId() : null,
-                override.getApprovedAt()
+                override.getApprovedByUser() != null ? approvedAt : null
         );
     }
 
