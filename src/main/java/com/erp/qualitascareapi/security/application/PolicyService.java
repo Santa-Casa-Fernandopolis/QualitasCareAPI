@@ -16,7 +16,7 @@ import com.erp.qualitascareapi.security.repo.PolicyRepository;
 import com.erp.qualitascareapi.security.repo.RoleRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.access.AccessDeniedException;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,14 +53,15 @@ public class PolicyService {
                                 String description,
                                 Pageable pageable) {
         Long tenantId = tenantScopeGuard.currentTenantId();
-        return policyRepository.search(tenantId,
+        return policyRepository.findAll(buildSpecification(
+                        tenantId,
                         resource,
                         action,
                         emptyToNull(feature),
                         effect,
                         enabled,
-                        emptyToNull(description),
-                        pageable)
+                        emptyToNull(description)
+                ), pageable)
                 .map(this::toDto);
     }
 
@@ -165,15 +166,52 @@ public class PolicyService {
                 policy.isEnabled(), policy.getPriority(), policy.getDescription(), roles, conditions);
     }
 
-    private Long requireTenant() {
-        Long tenantId = tenantScopeGuard.currentTenantId();
-        if (tenantId == null) {
-            throw new AccessDeniedException("Tenant context not available");
-        }
-        return tenantId;
-    }
-
     private String emptyToNull(String value) {
         return (value == null || value.isBlank()) ? null : value;
+    }
+
+    private Specification<Policy> buildSpecification(Long tenantId,
+                                                      ResourceType resource,
+                                                      Action action,
+                                                      String feature,
+                                                      Effect effect,
+                                                      Boolean enabled,
+                                                      String description) {
+        return (root, query, criteriaBuilder) -> {
+            var predicate = criteriaBuilder.conjunction();
+
+            if (tenantId != null) {
+                predicate = criteriaBuilder.and(predicate, criteriaBuilder.equal(root.get("tenant").get("id"), tenantId));
+            }
+            if (resource != null) {
+                predicate = criteriaBuilder.and(predicate, criteriaBuilder.equal(root.get("resource"), resource));
+            }
+            if (action != null) {
+                predicate = criteriaBuilder.and(predicate, criteriaBuilder.equal(root.get("action"), action));
+            }
+            if (feature != null) {
+                predicate = criteriaBuilder.and(
+                        predicate,
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("feature")), "%" + feature.toLowerCase() + "%")
+                );
+            }
+            if (effect != null) {
+                predicate = criteriaBuilder.and(predicate, criteriaBuilder.equal(root.get("effect"), effect));
+            }
+            if (enabled != null) {
+                predicate = criteriaBuilder.and(predicate, criteriaBuilder.equal(root.get("enabled"), enabled));
+            }
+            if (description != null) {
+                predicate = criteriaBuilder.and(
+                        predicate,
+                        criteriaBuilder.like(
+                                criteriaBuilder.lower(root.get("description")),
+                                "%" + description.toLowerCase() + "%"
+                        )
+                );
+            }
+
+            return predicate;
+        };
     }
 }

@@ -5,38 +5,17 @@ import com.erp.qualitascareapi.security.enums.Action;
 import com.erp.qualitascareapi.security.enums.ResourceType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.*;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface PermissionRepository extends JpaRepository<Permission, Long> {
+public interface PermissionRepository extends JpaRepository<Permission, Long>, JpaSpecificationExecutor<Permission> {
 
     Page<Permission> findAllByTenant_Id(Long tenantId, Pageable pageable);
-
-    @Query(value = """
-        select p from Permission p join fetch p.tenant t
-        where (:tenantId is null or t.id = :tenantId)
-          and (:resource is null or p.resource = :resource)
-          and (:action is null or p.action = :action)
-          and (:feature is null or lower(p.feature) like lower(concat('%', :feature, '%')))
-          and (:code is null or lower(p.code) like lower(concat('%', :code, '%')))
-        """,
-        countQuery = """
-        select count(p) from Permission p
-        where (:tenantId is null or p.tenant.id = :tenantId)
-          and (:resource is null or p.resource = :resource)
-          and (:action is null or p.action = :action)
-          and (:feature is null or lower(p.feature) like lower(concat('%', :feature, '%')))
-          and (:code is null or lower(p.code) like lower(concat('%', :code, '%')))
-        """)
-    Page<Permission> search(@Param("tenantId") Long tenantId,
-                            @Param("resource") ResourceType resource,
-                            @Param("action") Action action,
-                            @Param("feature") String feature,
-                            @Param("code") String code,
-                            Pageable pageable);
 
     @Query("""
       select p from Permission p

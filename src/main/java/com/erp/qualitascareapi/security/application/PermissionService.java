@@ -6,18 +6,18 @@ import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.repo.TenantRepository;
 import com.erp.qualitascareapi.security.api.dto.PermissionDto;
 import com.erp.qualitascareapi.security.api.dto.PermissionRequest;
-import com.erp.qualitascareapi.security.application.TenantScopeGuard;
 import com.erp.qualitascareapi.security.domain.Permission;
 import com.erp.qualitascareapi.security.enums.Action;
 import com.erp.qualitascareapi.security.enums.ResourceType;
 import com.erp.qualitascareapi.security.repo.PermissionRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.access.AccessDeniedException;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
+
 
 @Service
 public class PermissionService {
@@ -41,13 +41,30 @@ public class PermissionService {
                                     String code,
                                     Pageable pageable) {
         Long tenantId = tenantScopeGuard.currentTenantId();
-        return permissionRepository.search(tenantId,
-                        resource,
-                        action,
-                        emptyToNull(feature),
-                        emptyToNull(code),
-                        pageable)
-                .map(this::toDto);
+        String normalizedFeature = emptyToNull(feature);
+        String normalizedCode = emptyToNull(code);
+
+        Specification<Permission> spec = Specification.where(null);
+
+        if (tenantId != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("tenant").get("id"), tenantId));
+        }
+        if (resource != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("resource"), resource));
+        }
+        if (action != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("action"), action));
+        }
+        if (normalizedFeature != null) {
+            spec = spec.and((root, query, cb) ->
+                cb.like(cb.lower(root.get("feature")), "%" + normalizedFeature.toLowerCase() + "%"));
+        }
+        if (normalizedCode != null) {
+            spec = spec.and((root, query, cb) ->
+                cb.like(cb.lower(root.get("code")), "%" + normalizedCode.toLowerCase() + "%"));
+        }
+
+        return permissionRepository.findAll(spec, pageable).map(this::toDto);
     }
 
     @Transactional(readOnly = true)
@@ -103,14 +120,6 @@ public class PermissionService {
         Tenant tenant = permission.getTenant();
         return new PermissionDto(permission.getId(), permission.getResource(), permission.getAction(),
                 permission.getFeature(), permission.getCode(), tenant != null ? tenant.getId() : null);
-    }
-
-    private Long requireTenant() {
-        Long tenantId = tenantScopeGuard.currentTenantId();
-        if (tenantId == null) {
-            throw new AccessDeniedException("Tenant context not available");
-        }
-        return tenantId;
     }
 
     private String emptyToNull(String value) {

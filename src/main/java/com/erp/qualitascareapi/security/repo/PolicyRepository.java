@@ -3,46 +3,18 @@ package com.erp.qualitascareapi.security.repo;
 import com.erp.qualitascareapi.security.domain.Policy;
 import com.erp.qualitascareapi.security.enums.Action;
 import com.erp.qualitascareapi.security.enums.ResourceType;
-import com.erp.qualitascareapi.security.enums.Effect;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.*;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-public interface PolicyRepository extends JpaRepository<Policy, Long> {
+public interface PolicyRepository extends JpaRepository<Policy, Long>, JpaSpecificationExecutor<Policy> {
 
     Page<Policy> findAllByTenant_Id(Long tenantId, Pageable pageable);
-
-    @Query(value = """
-        select pol from Policy pol join fetch pol.tenant t
-        where (:tenantId is null or t.id = :tenantId)
-          and (:resource is null or pol.resource = :resource)
-          and (:action is null or pol.action = :action)
-          and (:feature is null or lower(pol.feature) like lower(concat('%', :feature, '%')))
-          and (:effect is null or pol.effect = :effect)
-          and (:enabled is null or pol.enabled = :enabled)
-          and (:description is null or lower(pol.description) like lower(concat('%', :description, '%')))
-        """,
-        countQuery = """
-        select count(pol) from Policy pol
-        where (:tenantId is null or pol.tenant.id = :tenantId)
-          and (:resource is null or pol.resource = :resource)
-          and (:action is null or pol.action = :action)
-          and (:feature is null or lower(pol.feature) like lower(concat('%', :feature, '%')))
-          and (:effect is null or pol.effect = :effect)
-          and (:enabled is null or pol.enabled = :enabled)
-          and (:description is null or lower(pol.description) like lower(concat('%', :description, '%')))
-        """)
-    Page<Policy> search(@Param("tenantId") Long tenantId,
-                        @Param("resource") ResourceType resource,
-                        @Param("action") Action action,
-                        @Param("feature") String feature,
-                        @Param("effect") Effect effect,
-                        @Param("enabled") Boolean enabled,
-                        @Param("description") String description,
-                        Pageable pageable);
 
     @Query("""
       select distinct pol from Policy pol
@@ -60,4 +32,3 @@ public interface PolicyRepository extends JpaRepository<Policy, Long> {
                                @Param("act") Action act,
                                @Param("feature") String feature);
 }
-
