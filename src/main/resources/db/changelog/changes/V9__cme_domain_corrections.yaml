@@ -1,0 +1,388 @@
+databaseChangeLog:
+
+  # ──────────────────────────────────────────────────────────────
+  # V9-1: tipo_fluxo em processos de reprocessamento
+  # ──────────────────────────────────────────────────────────────
+  - changeSet:
+      id: V9-1
+      author: cme-team
+      changes:
+        - addColumn:
+            tableName: cme_processos_reprocessamento
+            columns:
+              - column:
+                  name: tipo_fluxo
+                  type: VARCHAR(20)
+                  defaultValue: CIRURGICO
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: cme_processos_reprocessamento
+            indexName: ix_processo_tenant_tipo
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: tipo_fluxo
+
+  # ──────────────────────────────────────────────────────────────
+  # V9-2: vincular lotes ao ciclo de esterilização (relação N:1)
+  #        e adicionar tipo_fluxo + descricao_item
+  # ──────────────────────────────────────────────────────────────
+  - changeSet:
+      id: V9-2
+      author: cme-team
+      changes:
+        - addColumn:
+            tableName: cme_lotes
+            columns:
+              - column:
+                  name: ciclo_esterilizacao_id
+                  type: BIGINT
+              - column:
+                  name: tipo_fluxo
+                  type: VARCHAR(20)
+                  defaultValue: CIRURGICO
+                  constraints:
+                    nullable: false
+              - column:
+                  name: descricao_item
+                  type: VARCHAR(200)
+        - addForeignKeyConstraint:
+            baseTableName: cme_lotes
+            baseColumnNames: ciclo_esterilizacao_id
+            referencedTableName: cme_ciclos
+            referencedColumnNames: id
+            constraintName: fk_cme_lote_ciclo_esterilizacao
+        - createIndex:
+            tableName: cme_lotes
+            indexName: ix_lote_tenant_ciclo
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: ciclo_esterilizacao_id
+        - createIndex:
+            tableName: cme_lotes
+            indexName: ix_lote_tenant_tipo_fluxo
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: tipo_fluxo
+
+  # ──────────────────────────────────────────────────────────────
+  # V9-3: migrar dados existentes — preencher ciclo_esterilizacao_id
+  #        nos lotes a partir do mapeamento inverso em cme_ciclos
+  # ──────────────────────────────────────────────────────────────
+  - changeSet:
+      id: V9-3
+      author: cme-team
+      changes:
+        - sql:
+            sql: >
+              UPDATE cme_lotes l
+              SET ciclo_esterilizacao_id = (
+                SELECT c.id FROM cme_ciclos c WHERE c.lote_etiqueta_id = l.id LIMIT 1
+              )
+              WHERE EXISTS (
+                SELECT 1 FROM cme_ciclos c WHERE c.lote_etiqueta_id = l.id
+              );
+
+  # ──────────────────────────────────────────────────────────────
+  # V9-4: remover coluna lote_etiqueta_id de cme_ciclos
+  #        (relação invertida: lotes apontam para o ciclo)
+  # ──────────────────────────────────────────────────────────────
+  - changeSet:
+      id: V9-4
+      author: cme-team
+      changes:
+        - dropIndex:
+            tableName: cme_ciclos
+            indexName: ix_ciclo_tenant_lote
+        - dropForeignKeyConstraint:
+            baseTableName: cme_ciclos
+            constraintName: fk_cme_ciclo_lote
+        - dropColumn:
+            tableName: cme_ciclos
+            columnName: lote_etiqueta_id
+
+  # ──────────────────────────────────────────────────────────────
+  # V9-5: tornar kit_versao_id nullable em cme_lotes (inalatórios)
+  # ──────────────────────────────────────────────────────────────
+  - changeSet:
+      id: V9-5
+      author: cme-team
+      changes:
+        - dropNotNullConstraint:
+            tableName: cme_lotes
+            columnName: kit_versao_id
+            columnDataType: BIGINT
+
+  # ──────────────────────────────────────────────────────────────
+  # V9-6: adicionar processo_id em cme_uso_saneante
+  # ──────────────────────────────────────────────────────────────
+  - changeSet:
+      id: V9-6
+      author: cme-team
+      changes:
+        - addColumn:
+            tableName: cme_uso_saneante
+            columns:
+              - column:
+                  name: processo_id
+                  type: BIGINT
+        - addForeignKeyConstraint:
+            baseTableName: cme_uso_saneante
+            baseColumnNames: processo_id
+            referencedTableName: cme_processos_reprocessamento
+            referencedColumnNames: id
+            constraintName: fk_cme_uso_saneante_processo
+        - createIndex:
+            tableName: cme_uso_saneante
+            indexName: ix_uso_processo
+            columns:
+              - column:
+                  name: processo_id
+
+  # ──────────────────────────────────────────────────────────────
+  # V9-7: nova tabela — cme_secagens
+  # ──────────────────────────────────────────────────────────────
+  - changeSet:
+      id: V9-7
+      author: cme-team
+      changes:
+        - createTable:
+            tableName: cme_secagens
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_cme_secagem
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: processo_id
+                  type: BIGINT
+              - column:
+                  name: tipo_secagem
+                  type: VARCHAR(30)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: responsavel_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: data_hora_inicio
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: data_hora_fim
+                  type: TIMESTAMP
+              - column:
+                  name: equipamento_descricao
+                  type: VARCHAR(180)
+              - column:
+                  name: conformidade
+                  type: VARCHAR(20)
+              - column:
+                  name: observacoes
+                  type: VARCHAR(800)
+        - addForeignKeyConstraint:
+            baseTableName: cme_secagens
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_cme_secagem_tenant
+        - addForeignKeyConstraint:
+            baseTableName: cme_secagens
+            baseColumnNames: processo_id
+            referencedTableName: cme_processos_reprocessamento
+            referencedColumnNames: id
+            constraintName: fk_cme_secagem_processo
+        - addForeignKeyConstraint:
+            baseTableName: cme_secagens
+            baseColumnNames: responsavel_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_cme_secagem_responsavel
+        - createIndex:
+            tableName: cme_secagens
+            indexName: ix_secagem_tenant_processo
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: processo_id
+        - createIndex:
+            tableName: cme_secagens
+            indexName: ix_secagem_tenant_tipo
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: tipo_secagem
+
+  # ──────────────────────────────────────────────────────────────
+  # V9-8: tabela de evidências de secagem
+  # ──────────────────────────────────────────────────────────────
+  - changeSet:
+      id: V9-8
+      author: cme-team
+      changes:
+        - createTable:
+            tableName: cme_secagem_evidencias
+            columns:
+              - column:
+                  name: secagem_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: arquivo_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: cme_secagem_evidencias
+            columnNames: secagem_id, arquivo_id
+            constraintName: pk_cme_secagem_evidencias
+        - addForeignKeyConstraint:
+            baseTableName: cme_secagem_evidencias
+            baseColumnNames: secagem_id
+            referencedTableName: cme_secagens
+            referencedColumnNames: id
+            constraintName: fk_cme_secagem_ev_secagem
+        - addForeignKeyConstraint:
+            baseTableName: cme_secagem_evidencias
+            baseColumnNames: arquivo_id
+            referencedTableName: evidencias_arquivo
+            referencedColumnNames: id
+            constraintName: fk_cme_secagem_ev_arquivo
+
+  # ──────────────────────────────────────────────────────────────
+  # V9-9: nova tabela — cme_conferencias_kit
+  # ──────────────────────────────────────────────────────────────
+  - changeSet:
+      id: V9-9
+      author: cme-team
+      changes:
+        - createTable:
+            tableName: cme_conferencias_kit
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_cme_conferencia
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: processo_id
+                  type: BIGINT
+              - column:
+                  name: responsavel_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: data_hora_conferencia
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: conformidade
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: itens_nao_conformes
+                  type: VARCHAR(1000)
+              - column:
+                  name: observacoes
+                  type: VARCHAR(800)
+        - addForeignKeyConstraint:
+            baseTableName: cme_conferencias_kit
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_cme_conferencia_tenant
+        - addForeignKeyConstraint:
+            baseTableName: cme_conferencias_kit
+            baseColumnNames: processo_id
+            referencedTableName: cme_processos_reprocessamento
+            referencedColumnNames: id
+            constraintName: fk_cme_conferencia_processo
+        - addForeignKeyConstraint:
+            baseTableName: cme_conferencias_kit
+            baseColumnNames: responsavel_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_cme_conferencia_responsavel
+        - createIndex:
+            tableName: cme_conferencias_kit
+            indexName: ix_conferencia_tenant_processo
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: processo_id
+        - createIndex:
+            tableName: cme_conferencias_kit
+            indexName: ix_conferencia_tenant_data
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: data_hora_conferencia
+
+  # ──────────────────────────────────────────────────────────────
+  # V9-10: tabela de evidências de conferência
+  # ──────────────────────────────────────────────────────────────
+  - changeSet:
+      id: V9-10
+      author: cme-team
+      changes:
+        - createTable:
+            tableName: cme_conferencia_evidencias
+            columns:
+              - column:
+                  name: conferencia_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: arquivo_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: cme_conferencia_evidencias
+            columnNames: conferencia_id, arquivo_id
+            constraintName: pk_cme_conferencia_evidencias
+        - addForeignKeyConstraint:
+            baseTableName: cme_conferencia_evidencias
+            baseColumnNames: conferencia_id
+            referencedTableName: cme_conferencias_kit
+            referencedColumnNames: id
+            constraintName: fk_cme_conf_ev_conferencia
+        - addForeignKeyConstraint:
+            baseTableName: cme_conferencia_evidencias
+            baseColumnNames: arquivo_id
+            referencedTableName: evidencias_arquivo
+            referencedColumnNames: id
+            constraintName: fk_cme_conf_ev_arquivo

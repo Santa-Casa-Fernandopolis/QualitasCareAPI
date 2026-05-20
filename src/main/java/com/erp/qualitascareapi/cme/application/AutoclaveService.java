@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Service
@@ -156,10 +157,11 @@ public class AutoclaveService {
     }
 
     private CicloEsterilizacaoDto toCicloDto(CicloEsterilizacao c) {
+        List<Long> loteIds = c.getLotes().stream().map(l -> l.getId()).toList();
         return new CicloEsterilizacaoDto(c.getId(), c.getTenant().getId(),
                 c.getProcesso() != null ? c.getProcesso().getId() : null,
                 c.getAutoclave().getId(),
-                c.getLoteEtiqueta() != null ? c.getLoteEtiqueta().getId() : null,
+                loteIds,
                 c.getInicio(), c.getFim(), c.getDuracaoMinutos(), c.getTemperaturaMaxima(),
                 c.getPressaoMaxima(), c.getStatus(),
                 c.getLiberadoPor() != null ? c.getLiberadoPor().getId() : null,
@@ -326,11 +328,6 @@ public class AutoclaveService {
         CicloEsterilizacao ciclo = new CicloEsterilizacao();
         ciclo.setTenant(tenant);
         ciclo.setAutoclave(autoclave);
-        if (request.loteId() != null) {
-            LoteEtiqueta lote = loteEtiquetaRepository.findById(request.loteId())
-                    .orElseThrow(() -> new EntityNotFoundException("Lote não encontrado"));
-            ciclo.setLoteEtiqueta(lote);
-        }
         if (request.processoId() != null) {
             ProcessoReprocessamento processo = processoRepository.findById(request.processoId())
                     .orElseThrow(() -> new EntityNotFoundException("Processo não encontrado"));
@@ -348,7 +345,16 @@ public class AutoclaveService {
             ciclo.setLiberadoPor(liberadoPor);
         }
         ciclo.setObservacoes(request.observacoes());
-        return toCicloDto(cicloEsterilizacaoRepository.save(ciclo));
+        CicloEsterilizacao saved = cicloEsterilizacaoRepository.save(ciclo);
+        if (request.loteIds() != null && !request.loteIds().isEmpty()) {
+            for (Long loteId : request.loteIds()) {
+                LoteEtiqueta lote = loteEtiquetaRepository.findById(loteId)
+                        .orElseThrow(() -> new EntityNotFoundException("Lote não encontrado: " + loteId));
+                lote.setCicloEsterilizacao(saved);
+                loteEtiquetaRepository.save(lote);
+            }
+        }
+        return toCicloDto(cicloEsterilizacaoRepository.findById(saved.getId()).orElseThrow());
     }
 
     public Page<CicloEsterilizacaoDto> listCiclos(Pageable pageable) {

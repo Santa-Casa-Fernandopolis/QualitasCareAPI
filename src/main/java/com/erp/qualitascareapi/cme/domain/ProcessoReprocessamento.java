@@ -1,6 +1,7 @@
 package com.erp.qualitascareapi.cme.domain;
 
 import com.erp.qualitascareapi.cme.enums.ProcessoStatus;
+import com.erp.qualitascareapi.cme.enums.TipoFluxoCME;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
@@ -16,7 +17,8 @@ import java.util.Objects;
         uniqueConstraints = @UniqueConstraint(name = "uk_processo_tenant_numero",
                 columnNames = {"tenant_id", "numero_processo"}),
         indexes = {
-                @Index(name = "ix_processo_tenant_status", columnList = "tenant_id,status"),
+                @Index(name = "ix_processo_tenant_status",   columnList = "tenant_id,status"),
+                @Index(name = "ix_processo_tenant_tipo",     columnList = "tenant_id,tipo_fluxo"),
                 @Index(name = "ix_processo_tenant_abertura", columnList = "tenant_id,data_abertura")
         })
 public class ProcessoReprocessamento {
@@ -32,6 +34,11 @@ public class ProcessoReprocessamento {
     @NotBlank
     @Column(name = "numero_processo", nullable = false, length = 60)
     private String numeroProcesso;
+
+    @NotNull
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_fluxo", nullable = false, length = 20)
+    private TipoFluxoCME tipoFluxo;
 
     @NotNull
     @Enumerated(EnumType.STRING)
@@ -57,6 +64,8 @@ public class ProcessoReprocessamento {
     public void setTenant(Tenant tenant) { this.tenant = tenant; }
     public String getNumeroProcesso() { return numeroProcesso; }
     public void setNumeroProcesso(String numeroProcesso) { this.numeroProcesso = numeroProcesso; }
+    public TipoFluxoCME getTipoFluxo() { return tipoFluxo; }
+    public void setTipoFluxo(TipoFluxoCME tipoFluxo) { this.tipoFluxo = tipoFluxo; }
     public ProcessoStatus getStatus() { return status; }
     public void setStatus(ProcessoStatus status) { this.status = status; }
     public LocalDateTime getDataAbertura() { return dataAbertura; }

@@ -207,10 +207,11 @@ public class ProcessoReprocessamentoService {
     }
 
     private CicloEsterilizacaoDto toCicloDto(CicloEsterilizacao c) {
+        List<Long> loteIds = c.getLotes().stream().map(l -> l.getId()).toList();
         return new CicloEsterilizacaoDto(c.getId(), c.getTenant().getId(),
                 c.getProcesso() != null ? c.getProcesso().getId() : null,
                 c.getAutoclave().getId(),
-                c.getLoteEtiqueta() != null ? c.getLoteEtiqueta().getId() : null,
+                loteIds,
                 c.getInicio(), c.getFim(), c.getDuracaoMinutos(), c.getTemperaturaMaxima(),
                 c.getPressaoMaxima(), c.getStatus(),
                 c.getLiberadoPor() != null ? c.getLiberadoPor().getId() : null,

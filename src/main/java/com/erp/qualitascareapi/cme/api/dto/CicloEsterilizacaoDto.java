@@ -3,8 +3,10 @@ package com.erp.qualitascareapi.cme.api.dto;
 import com.erp.qualitascareapi.cme.enums.CicloStatus;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
-public record CicloEsterilizacaoDto(Long id, Long tenantId, Long processoId, Long autoclaveId, Long loteId,
+public record CicloEsterilizacaoDto(Long id, Long tenantId, Long processoId, Long autoclaveId,
+                                    List<Long> loteIds,
                                     LocalDateTime inicio, LocalDateTime fim, Integer duracaoMinutos,
                                     Double temperaturaMaxima, Double pressaoMaxima, CicloStatus status,
                                     Long liberadoPorId, String observacoes) {

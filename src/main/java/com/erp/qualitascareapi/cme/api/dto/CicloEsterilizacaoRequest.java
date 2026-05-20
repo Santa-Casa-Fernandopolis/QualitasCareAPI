@@ -4,11 +4,12 @@ import com.erp.qualitascareapi.cme.enums.CicloStatus;
 import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record CicloEsterilizacaoRequest(@NotNull Long tenantId,
                                         @NotNull Long autoclaveId,
                                         Long processoId,
-                                        Long loteId,
+                                        List<Long> loteIds,
                                         @NotNull LocalDateTime inicio,
                                         LocalDateTime fim,
                                         Integer duracaoMinutos,
