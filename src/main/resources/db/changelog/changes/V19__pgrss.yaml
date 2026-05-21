@@ -1,0 +1,1082 @@
+databaseChangeLog:
+
+  # ============================================================
+  # V19-1  pgrss_grupos_residuo
+  # ============================================================
+  - changeSet:
+      id: V19-1
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: pgrss_grupos_residuo
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: codigo
+                  type: VARCHAR(5)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: nome
+                  type: VARCHAR(120)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: descricao
+                  type: VARCHAR(1000)
+              - column:
+                  name: cor_identificacao
+                  type: VARCHAR(10)
+              - column:
+                  name: ativo
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: pgrss_grupos_residuo
+            columnNames: tenant_id, codigo
+            constraintName: uk_pgrss_gr_tenant_codigo
+        - addForeignKeyConstraint:
+            baseTableName: pgrss_grupos_residuo
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_pgrss_gr_tenant
+        - createIndex:
+            tableName: pgrss_grupos_residuo
+            indexName: ix_pgrss_gr_tenant
+            columns:
+              - column:
+                  name: tenant_id
+
+  # ============================================================
+  # V19-2  pgrss_setores_geradores
+  # ============================================================
+  - changeSet:
+      id: V19-2
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: pgrss_setores_geradores
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: setor_id
+                  type: BIGINT
+              - column:
+                  name: nome
+                  type: VARCHAR(120)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: codigo_interno
+                  type: VARCHAR(40)
+              - column:
+                  name: tipo
+                  type: VARCHAR(40)
+              - column:
+                  name: descricao
+                  type: VARCHAR(500)
+              - column:
+                  name: ativo
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: pgrss_setores_geradores
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_pgrss_sg_tenant
+        - addForeignKeyConstraint:
+            baseTableName: pgrss_setores_geradores
+            baseColumnNames: setor_id
+            referencedTableName: iam_setores
+            referencedColumnNames: id
+            constraintName: fk_pgrss_sg_setor
+        - createIndex:
+            tableName: pgrss_setores_geradores
+            indexName: ix_pgrss_sg_tenant_ativo
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: ativo
+        - createIndex:
+            tableName: pgrss_setores_geradores
+            indexName: ix_pgrss_sg_tenant_tipo
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: tipo
+
+  # ============================================================
+  # V19-3  pgrss_tipos_residuo
+  # ============================================================
+  - changeSet:
+      id: V19-3
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: pgrss_tipos_residuo
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: grupo_residuo_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: codigo
+                  type: VARCHAR(40)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: nome
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: descricao
+                  type: VARCHAR(1000)
+              - column:
+                  name: periculosidade
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: estado_fisico
+                  type: VARCHAR(20)
+              - column:
+                  name: tipo_acondicionamento
+                  type: VARCHAR(30)
+              - column:
+                  name: tipo_tratamento
+                  type: VARCHAR(30)
+              - column:
+                  name: tipo_destinacao_final
+                  type: VARCHAR(35)
+              - column:
+                  name: requer_licenca
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: ativo
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: pgrss_tipos_residuo
+            columnNames: tenant_id, codigo
+            constraintName: uk_pgrss_tr_tenant_codigo
+        - addForeignKeyConstraint:
+            baseTableName: pgrss_tipos_residuo
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_pgrss_tr_tenant
+        - addForeignKeyConstraint:
+            baseTableName: pgrss_tipos_residuo
+            baseColumnNames: grupo_residuo_id
+            referencedTableName: pgrss_grupos_residuo
+            referencedColumnNames: id
+            constraintName: fk_pgrss_tr_grupo
+        - createIndex:
+            tableName: pgrss_tipos_residuo
+            indexName: ix_pgrss_tr_tenant_grupo
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: grupo_residuo_id
+        - createIndex:
+            tableName: pgrss_tipos_residuo
+            indexName: ix_pgrss_tr_tenant_ativo
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: ativo
+
+  # ============================================================
+  # V19-4  pgrss_empresas_coletoras
+  # ============================================================
+  - changeSet:
+      id: V19-4
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: pgrss_empresas_coletoras
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: razao_social
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: cnpj
+                  type: VARCHAR(18)
+              - column:
+                  name: tipo
+                  type: VARCHAR(30)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: licenca_numero
+                  type: VARCHAR(120)
+              - column:
+                  name: licenca_vencimento
+                  type: DATE
+              - column:
+                  name: licenca_status
+                  type: VARCHAR(30)
+              - column:
+                  name: telefone
+                  type: VARCHAR(30)
+              - column:
+                  name: email
+                  type: VARCHAR(150)
+              - column:
+                  name: responsavel_nome
+                  type: VARCHAR(150)
+              - column:
+                  name: observacoes
+                  type: VARCHAR(500)
+              - column:
+                  name: ativo
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: pgrss_empresas_coletoras
+            columnNames: tenant_id, cnpj
+            constraintName: uk_pgrss_ec_tenant_cnpj
+        - addForeignKeyConstraint:
+            baseTableName: pgrss_empresas_coletoras
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_pgrss_ec_tenant
+        - createIndex:
+            tableName: pgrss_empresas_coletoras
+            indexName: ix_pgrss_ec_tenant_ativo
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: ativo
+        - createIndex:
+            tableName: pgrss_empresas_coletoras
+            indexName: ix_pgrss_ec_licenca_status
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: licenca_status
+
+  # ============================================================
+  # V19-5  pgrss_custos_tratamento
+  # ============================================================
+  - changeSet:
+      id: V19-5
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: pgrss_custos_tratamento
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: empresa_coletora_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: tipo_residuo_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: valor_por_kg
+                  type: DECIMAL(10,4)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: moeda
+                  type: VARCHAR(10)
+                  defaultValue: BRL
+                  constraints:
+                    nullable: false
+              - column:
+                  name: vigencia_inicio
+                  type: DATE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: vigencia_fim
+                  type: DATE
+              - column:
+                  name: observacoes
+                  type: VARCHAR(500)
+        - addForeignKeyConstraint:
+            baseTableName: pgrss_custos_tratamento
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_pgrss_ct_tenant
+        - addForeignKeyConstraint:
+            baseTableName: pgrss_custos_tratamento
+            baseColumnNames: empresa_coletora_id
+            referencedTableName: pgrss_empresas_coletoras
+            referencedColumnNames: id
+            constraintName: fk_pgrss_ct_empresa
+        - addForeignKeyConstraint:
+            baseTableName: pgrss_custos_tratamento
+            baseColumnNames: tipo_residuo_id
+            referencedTableName: pgrss_tipos_residuo
+            referencedColumnNames: id
+            constraintName: fk_pgrss_ct_tipo
+        - createIndex:
+            tableName: pgrss_custos_tratamento
+            indexName: ix_pgrss_ct_tenant_empresa
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: empresa_coletora_id
+        - createIndex:
+            tableName: pgrss_custos_tratamento
+            indexName: ix_pgrss_ct_tenant_tipo
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: tipo_residuo_id
+
+  # ============================================================
+  # V19-6  pgrss_pesagens
+  # ============================================================
+  - changeSet:
+      id: V19-6
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: pgrss_pesagens
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: setor_gerador_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: tipo_residuo_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: data_pesagem
+                  type: DATE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: turno
+                  type: VARCHAR(20)
+              - column:
+                  name: peso_kg
+                  type: DECIMAL(10,3)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: responsavel_id
+                  type: BIGINT
+              - column:
+                  name: observacoes
+                  type: VARCHAR(500)
+        - addForeignKeyConstraint:
+            baseTableName: pgrss_pesagens
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_pgrss_pe_tenant
+        - addForeignKeyConstraint:
+            baseTableName: pgrss_pesagens
+            baseColumnNames: setor_gerador_id
+            referencedTableName: pgrss_setores_geradores
+            referencedColumnNames: id
+            constraintName: fk_pgrss_pe_setor
+        - addForeignKeyConstraint:
+            baseTableName: pgrss_pesagens
+            baseColumnNames: tipo_residuo_id
+            referencedTableName: pgrss_tipos_residuo
+            referencedColumnNames: id
+            constraintName: fk_pgrss_pe_tipo
+        - addForeignKeyConstraint:
+            baseTableName: pgrss_pesagens
+            baseColumnNames: responsavel_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_pgrss_pe_responsavel
+        - createIndex:
+            tableName: pgrss_pesagens
+            indexName: ix_pgrss_pe_tenant_data
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: data_pesagem
+        - createIndex:
+            tableName: pgrss_pesagens
+            indexName: ix_pgrss_pe_setor_data
+            columns:
+              - column:
+                  name: setor_gerador_id
+              - column:
+                  name: data_pesagem
+
+  # ============================================================
+  # V19-7  pgrss_coletas_externas
+  # ============================================================
+  - changeSet:
+      id: V19-7
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: pgrss_coletas_externas
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: empresa_coletora_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: data_coleta
+                  type: DATE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: hora_coleta
+                  type: TIME
+              - column:
+                  name: numero_manifesto
+                  type: VARCHAR(80)
+              - column:
+                  name: status
+                  type: VARCHAR(30)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: peso_total_kg
+                  type: DECIMAL(10,3)
+              - column:
+                  name: responsavel_id
+                  type: BIGINT
+              - column:
+                  name: motorista_nome
+                  type: VARCHAR(120)
+              - column:
+                  name: placa_veiculo
+                  type: VARCHAR(20)
+              - column:
+                  name: observacoes
+                  type: VARCHAR(500)
+        - addForeignKeyConstraint:
+            baseTableName: pgrss_coletas_externas
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_pgrss_ce_tenant
+        - addForeignKeyConstraint:
+            baseTableName: pgrss_coletas_externas
+            baseColumnNames: empresa_coletora_id
+            referencedTableName: pgrss_empresas_coletoras
+            referencedColumnNames: id
+            constraintName: fk_pgrss_ce_empresa
+        - addForeignKeyConstraint:
+            baseTableName: pgrss_coletas_externas
+            baseColumnNames: responsavel_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_pgrss_ce_responsavel
+        - createIndex:
+            tableName: pgrss_coletas_externas
+            indexName: ix_pgrss_ce_tenant_data
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: data_coleta
+        - createIndex:
+            tableName: pgrss_coletas_externas
+            indexName: ix_pgrss_ce_tenant_status
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: status
+
+  # ============================================================
+  # V19-8  pgrss_coleta_itens
+  # ============================================================
+  - changeSet:
+      id: V19-8
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: pgrss_coleta_itens
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: coleta_externa_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: tipo_residuo_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: peso_kg
+                  type: DECIMAL(10,3)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: quantidade_embalagens
+                  type: INTEGER
+              - column:
+                  name: observacoes
+                  type: VARCHAR(255)
+        - addForeignKeyConstraint:
+            baseTableName: pgrss_coleta_itens
+            baseColumnNames: coleta_externa_id
+            referencedTableName: pgrss_coletas_externas
+            referencedColumnNames: id
+            constraintName: fk_pgrss_ci_coleta
+        - addForeignKeyConstraint:
+            baseTableName: pgrss_coleta_itens
+            baseColumnNames: tipo_residuo_id
+            referencedTableName: pgrss_tipos_residuo
+            referencedColumnNames: id
+            constraintName: fk_pgrss_ci_tipo
+        - createIndex:
+            tableName: pgrss_coleta_itens
+            indexName: ix_pgrss_ci_coleta
+            columns:
+              - column:
+                  name: coleta_externa_id
+
+  # ============================================================
+  # V19-9  pgrss_nao_conformidades
+  # ============================================================
+  - changeSet:
+      id: V19-9
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: pgrss_nao_conformidades
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: setor_gerador_id
+                  type: BIGINT
+              - column:
+                  name: tipo_residuo_id
+                  type: BIGINT
+              - column:
+                  name: data_ocorrencia
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: descricao
+                  type: VARCHAR(2000)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: severidade
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: registrado_por_id
+                  type: BIGINT
+              - column:
+                  name: responsavel_analise_id
+                  type: BIGINT
+              - column:
+                  name: data_fechamento
+                  type: TIMESTAMP
+              - column:
+                  name: causa_raiz
+                  type: VARCHAR(2000)
+              - column:
+                  name: acao_imediata
+                  type: VARCHAR(2000)
+        - addForeignKeyConstraint:
+            baseTableName: pgrss_nao_conformidades
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_pgrss_nc_tenant
+        - addForeignKeyConstraint:
+            baseTableName: pgrss_nao_conformidades
+            baseColumnNames: setor_gerador_id
+            referencedTableName: pgrss_setores_geradores
+            referencedColumnNames: id
+            constraintName: fk_pgrss_nc_setor
+        - addForeignKeyConstraint:
+            baseTableName: pgrss_nao_conformidades
+            baseColumnNames: tipo_residuo_id
+            referencedTableName: pgrss_tipos_residuo
+            referencedColumnNames: id
+            constraintName: fk_pgrss_nc_tipo
+        - addForeignKeyConstraint:
+            baseTableName: pgrss_nao_conformidades
+            baseColumnNames: registrado_por_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_pgrss_nc_registrado_por
+        - addForeignKeyConstraint:
+            baseTableName: pgrss_nao_conformidades
+            baseColumnNames: responsavel_analise_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_pgrss_nc_responsavel
+        - createIndex:
+            tableName: pgrss_nao_conformidades
+            indexName: ix_pgrss_nc_tenant_status
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: status
+        - createIndex:
+            tableName: pgrss_nao_conformidades
+            indexName: ix_pgrss_nc_tenant_severidade
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: severidade
+
+  # ============================================================
+  # V19-10  pgrss_planos_acao
+  # ============================================================
+  - changeSet:
+      id: V19-10
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: pgrss_planos_acao
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: nao_conformidade_id
+                  type: BIGINT
+              - column:
+                  name: titulo
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: descricao
+                  type: VARCHAR(2000)
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: responsavel_id
+                  type: BIGINT
+              - column:
+                  name: data_limite
+                  type: DATE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: data_conclusao
+                  type: DATE
+              - column:
+                  name: observacoes
+                  type: VARCHAR(1000)
+        - addForeignKeyConstraint:
+            baseTableName: pgrss_planos_acao
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_pgrss_pa_tenant
+        - addForeignKeyConstraint:
+            baseTableName: pgrss_planos_acao
+            baseColumnNames: nao_conformidade_id
+            referencedTableName: pgrss_nao_conformidades
+            referencedColumnNames: id
+            constraintName: fk_pgrss_pa_nc
+        - addForeignKeyConstraint:
+            baseTableName: pgrss_planos_acao
+            baseColumnNames: responsavel_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_pgrss_pa_responsavel
+        - createIndex:
+            tableName: pgrss_planos_acao
+            indexName: ix_pgrss_pa_tenant_status
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: status
+        - createIndex:
+            tableName: pgrss_planos_acao
+            indexName: ix_pgrss_pa_data_limite
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: data_limite
+
+  # ============================================================
+  # V19-11  pgrss_planos_acao_atividades
+  # ============================================================
+  - changeSet:
+      id: V19-11
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: pgrss_planos_acao_atividades
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: plano_acao_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: descricao
+                  type: VARCHAR(500)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: concluida
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: responsavel_id
+                  type: BIGINT
+              - column:
+                  name: data_conclusao
+                  type: DATE
+              - column:
+                  name: ordem
+                  type: INTEGER
+        - addForeignKeyConstraint:
+            baseTableName: pgrss_planos_acao_atividades
+            baseColumnNames: plano_acao_id
+            referencedTableName: pgrss_planos_acao
+            referencedColumnNames: id
+            constraintName: fk_pgrss_paa_plano
+        - addForeignKeyConstraint:
+            baseTableName: pgrss_planos_acao_atividades
+            baseColumnNames: responsavel_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_pgrss_paa_responsavel
+        - createIndex:
+            tableName: pgrss_planos_acao_atividades
+            indexName: ix_pgrss_paa_plano
+            columns:
+              - column:
+                  name: plano_acao_id
+
+  # ============================================================
+  # V19-12  pgrss_indicadores
+  # ============================================================
+  - changeSet:
+      id: V19-12
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: pgrss_indicadores
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: codigo
+                  type: VARCHAR(40)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: nome
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: descricao
+                  type: VARCHAR(1000)
+              - column:
+                  name: unidade
+                  type: VARCHAR(40)
+              - column:
+                  name: meta
+                  type: DECIMAL(10,4)
+              - column:
+                  name: ativo
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: pgrss_indicadores
+            columnNames: tenant_id, codigo
+            constraintName: uk_pgrss_ind_tenant_codigo
+        - addForeignKeyConstraint:
+            baseTableName: pgrss_indicadores
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_pgrss_ind_tenant
+        - createIndex:
+            tableName: pgrss_indicadores
+            indexName: ix_pgrss_ind_tenant
+            columns:
+              - column:
+                  name: tenant_id
+
+  # ============================================================
+  # V19-13  pgrss_indicador_medicoes
+  # ============================================================
+  - changeSet:
+      id: V19-13
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: pgrss_indicador_medicoes
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: indicador_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: periodo
+                  type: DATE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: valor
+                  type: DECIMAL(10,4)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: observacoes
+                  type: VARCHAR(500)
+        - addForeignKeyConstraint:
+            baseTableName: pgrss_indicador_medicoes
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_pgrss_im_tenant
+        - addForeignKeyConstraint:
+            baseTableName: pgrss_indicador_medicoes
+            baseColumnNames: indicador_id
+            referencedTableName: pgrss_indicadores
+            referencedColumnNames: id
+            constraintName: fk_pgrss_im_indicador
+        - createIndex:
+            tableName: pgrss_indicador_medicoes
+            indexName: ix_pgrss_im_indicador_periodo
+            columns:
+              - column:
+                  name: indicador_id
+              - column:
+                  name: periodo
+
+  # ============================================================
+  # V19-14  Seeds — Grupos de Resíduo (Grupo A-E por tenant 1)
+  # ============================================================
+  - changeSet:
+      id: V19-14
+      author: qualitascare
+      context: seed
+      changes:
+        - insert:
+            tableName: pgrss_grupos_residuo
+            columns:
+              - column: {name: tenant_id, valueNumeric: 1}
+              - column: {name: codigo, value: A}
+              - column: {name: nome, value: "Grupo A — Biológicos"}
+              - column: {name: descricao, value: "Resíduos com possível presença de agentes biológicos que por suas características de maior virulência ou concentração podem apresentar risco de infecção."}
+              - column: {name: cor_identificacao, value: "#FFFFFF"}
+              - column: {name: ativo, valueBoolean: true}
+        - insert:
+            tableName: pgrss_grupos_residuo
+            columns:
+              - column: {name: tenant_id, valueNumeric: 1}
+              - column: {name: codigo, value: B}
+              - column: {name: nome, value: "Grupo B — Químicos"}
+              - column: {name: descricao, value: "Resíduos contendo substâncias químicas que podem apresentar risco à saúde pública ou ao meio ambiente."}
+              - column: {name: cor_identificacao, value: "#F7DC6F"}
+              - column: {name: ativo, valueBoolean: true}
+        - insert:
+            tableName: pgrss_grupos_residuo
+            columns:
+              - column: {name: tenant_id, valueNumeric: 1}
+              - column: {name: codigo, value: C}
+              - column: {name: nome, value: "Grupo C — Radioativos"}
+              - column: {name: descricao, value: "Materiais resultantes de atividades humanas que contenham radionuclídeos em quantidades superiores aos limites de eliminação."}
+              - column: {name: cor_identificacao, value: "#F4D03F"}
+              - column: {name: ativo, valueBoolean: true}
+        - insert:
+            tableName: pgrss_grupos_residuo
+            columns:
+              - column: {name: tenant_id, valueNumeric: 1}
+              - column: {name: codigo, value: D}
+              - column: {name: nome, value: "Grupo D — Comuns"}
+              - column: {name: descricao, value: "Resíduos que não apresentam risco biológico, químico ou radiológico à saúde ou ao meio ambiente, podendo ser equiparados aos resíduos domiciliares."}
+              - column: {name: cor_identificacao, value: "#2ECC71"}
+              - column: {name: ativo, valueBoolean: true}
+        - insert:
+            tableName: pgrss_grupos_residuo
+            columns:
+              - column: {name: tenant_id, valueNumeric: 1}
+              - column: {name: codigo, value: E}
+              - column: {name: nome, value: "Grupo E — Perfurocortantes"}
+              - column: {name: descricao, value: "Materiais perfurocortantes ou escarificantes, como lâminas de barbear, agulhas, escalpes, ampolas de vidro, pinos e outros similares."}
+              - column: {name: cor_identificacao, value: "#F97316"}
+              - column: {name: ativo, valueBoolean: true}
