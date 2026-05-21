@@ -11,6 +11,9 @@ import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.domain.User;
 import com.erp.qualitascareapi.iam.repo.TenantRepository;
 import com.erp.qualitascareapi.iam.repo.UserRepository;
+import com.erp.qualitascareapi.notificacao.application.NotificacaoService;
+import com.erp.qualitascareapi.notificacao.enums.NivelNotificacao;
+import com.erp.qualitascareapi.notificacao.enums.TipoNotificacao;
 import com.erp.qualitascareapi.security.application.TenantScopeGuard;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
@@ -37,6 +40,7 @@ public class EnvironmentalService {
     private final RegistroTemperaturaGeladeiraRepository registroRepository;
     private final DispositivoIoTRepository dispositivoRepository;
     private final TenantScopeGuard tenantScopeGuard;
+    private final NotificacaoService notificacaoService;
 
     public EnvironmentalService(TenantRepository tenantRepository,
                                 UserRepository userRepository,
@@ -46,7 +50,8 @@ public class EnvironmentalService {
                                 GeladeiraMedicamentosRepository geladeiraRepository,
                                 RegistroTemperaturaGeladeiraRepository registroRepository,
                                 DispositivoIoTRepository dispositivoRepository,
-                                TenantScopeGuard tenantScopeGuard) {
+                                TenantScopeGuard tenantScopeGuard,
+                                NotificacaoService notificacaoService) {
         this.tenantRepository = tenantRepository;
         this.userRepository = userRepository;
         this.evidenciaArquivoRepository = evidenciaArquivoRepository;
@@ -56,6 +61,7 @@ public class EnvironmentalService {
         this.registroRepository = registroRepository;
         this.dispositivoRepository = dispositivoRepository;
         this.tenantScopeGuard = tenantScopeGuard;
+        this.notificacaoService = notificacaoService;
     }
 
     // ============================================================
@@ -168,7 +174,9 @@ public class EnvironmentalService {
         if (request.responsavelId() != null) m.setResponsavel(loadUser(request.responsavelId()));
         m.setObservacoes(request.observacoes());
         m.setEvidencias(loadEvidencias(request.evidenciasIds()));
-        return toMonitoramentoDto(monitoramentoRepository.save(m));
+        MonitoramentoAmbiental salvo = monitoramentoRepository.save(m);
+        dispararNotificacaoAmbiental(salvo);
+        return toMonitoramentoDto(salvo);
     }
 
     @Transactional(readOnly = true)
@@ -277,7 +285,9 @@ public class EnvironmentalService {
                 request.resultado(), request.acaoCorretiva(),
                 request.responsavelId() != null ? loadUser(request.responsavelId()) : null,
                 request.observacoes());
-        return toRegistroDto(registroRepository.save(r));
+        RegistroTemperaturaGeladeira salvo = registroRepository.save(r);
+        dispararNotificacaoGeladeira(salvo);
+        return toRegistroDto(salvo);
     }
 
     @Transactional(readOnly = true)
@@ -442,6 +452,7 @@ public class EnvironmentalService {
                 null, null, null, "Leitura automática IoT — " + d.getDeviceId());
 
         RegistroTemperaturaGeladeira saved = registroRepository.save(r);
+        dispararNotificacaoGeladeira(saved);
         return new IoTLeituraResponse(TipoDispositivoIoT.TEMPERATURA_GELADEIRA,
                 saved.getId(), saved.getResultado(), LocalDateTime.now());
     }
@@ -466,8 +477,92 @@ public class EnvironmentalService {
         m.setObservacoes("Leitura automática IoT — " + d.getDeviceId());
 
         MonitoramentoAmbiental saved = monitoramentoRepository.save(m);
+        dispararNotificacaoAmbiental(saved);
         return new IoTLeituraResponse(TipoDispositivoIoT.MONITORAMENTO_AMBIENTAL,
                 saved.getId(), saved.getResultado(), LocalDateTime.now());
+    }
+
+    // ============================================================
+    // Disparo de notificações de temperatura / ambiente
+    // ============================================================
+
+    /**
+     * Gera notificação in-app (e opcionalmente e-mail) quando o registro de temperatura
+     * de uma geladeira resulta em ALERTA ou NAO_CONFORME.
+     */
+    private void dispararNotificacaoGeladeira(RegistroTemperaturaGeladeira r) {
+        ResultadoMonitoramento resultado = r.getResultado();
+        if (resultado == ResultadoMonitoramento.CONFORME) return;
+
+        Long tenantId = r.getTenant().getId();
+        String nome   = r.getGeladeira().getNome();
+        double temp   = r.getTemperaturaCelsius();
+
+        TipoNotificacao tipo;
+        NivelNotificacao nivel;
+        String titulo;
+        String mensagem;
+
+        if (resultado == ResultadoMonitoramento.NAO_CONFORME) {
+            tipo    = TipoNotificacao.TEMPERATURA_GELADEIRA_NAO_CONFORME;
+            nivel   = NivelNotificacao.CRITICO;
+            titulo  = "Temperatura fora da faixa — " + nome;
+            mensagem = String.format(
+                    "A geladeira '%s' registrou %.1f°C, valor FORA da faixa permitida. " +
+                    "Verifique imediatamente e adote ação corretiva.", nome, temp);
+        } else {
+            tipo    = TipoNotificacao.TEMPERATURA_GELADEIRA_ALERTA;
+            nivel   = NivelNotificacao.ALERTA;
+            titulo  = "Temperatura em alerta — " + nome;
+            mensagem = String.format(
+                    "A geladeira '%s' registrou %.1f°C, próxima ao limite da faixa permitida. " +
+                    "Monitore com atenção.", nome, temp);
+        }
+
+        notificacaoService.gerar(tenantId, tipo, nivel, titulo, mensagem,
+                r.getGeladeira().getId(), "GELADEIRA");
+    }
+
+    /**
+     * Gera notificação in-app (e opcionalmente e-mail) quando um monitoramento ambiental
+     * resulta em ALERTA ou NAO_CONFORME.
+     */
+    private void dispararNotificacaoAmbiental(MonitoramentoAmbiental m) {
+        ResultadoMonitoramento resultado = m.getResultado();
+        if (resultado == ResultadoMonitoramento.CONFORME) return;
+
+        Long tenantId  = m.getTenant().getId();
+        String local   = m.getAmbiente() != null ? m.getAmbiente().getNome() : m.getLocalSala();
+        Long refId     = m.getAmbiente() != null ? m.getAmbiente().getId() : null;
+
+        TipoNotificacao tipo;
+        NivelNotificacao nivel;
+        String titulo;
+        String mensagem;
+
+        if (resultado == ResultadoMonitoramento.NAO_CONFORME) {
+            tipo     = TipoNotificacao.MONITORAMENTO_AMBIENTAL_NAO_CONFORME;
+            nivel    = NivelNotificacao.CRITICO;
+            titulo   = "Parâmetro ambiental fora da faixa — " + local;
+            mensagem = String.format(
+                    "O ambiente '%s' apresentou parâmetro(s) FORA da faixa permitida " +
+                    "(temp=%.1f°C, umidade=%.0f%%). Ação imediata necessária.",
+                    local,
+                    m.getTemperaturaCelsius() != null ? m.getTemperaturaCelsius() : 0.0,
+                    m.getUmidadeRelativa() != null     ? m.getUmidadeRelativa()     : 0.0);
+        } else {
+            tipo     = TipoNotificacao.MONITORAMENTO_AMBIENTAL_ALERTA;
+            nivel    = NivelNotificacao.ALERTA;
+            titulo   = "Parâmetro ambiental em alerta — " + local;
+            mensagem = String.format(
+                    "O ambiente '%s' apresentou parâmetro(s) próximos ao limite da faixa " +
+                    "(temp=%.1f°C, umidade=%.0f%%). Monitore com atenção.",
+                    local,
+                    m.getTemperaturaCelsius() != null ? m.getTemperaturaCelsius() : 0.0,
+                    m.getUmidadeRelativa() != null     ? m.getUmidadeRelativa()     : 0.0);
+        }
+
+        notificacaoService.gerar(tenantId, tipo, nivel, titulo, mensagem, refId, "AMBIENTE");
     }
 
     // ============================================================
