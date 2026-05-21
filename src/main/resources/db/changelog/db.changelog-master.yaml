@@ -27,3 +27,5 @@
       file: db/changelog/changes/V13__sys_configuracoes.yaml
   - include:
       file: db/changelog/changes/V14__mv_integracao.yaml
+  - include:
+      file: db/changelog/changes/V15__movimentacao_cirurgia_fk.yaml

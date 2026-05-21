@@ -16,6 +16,8 @@ import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.domain.User;
 import com.erp.qualitascareapi.iam.repo.TenantRepository;
 import com.erp.qualitascareapi.iam.repo.UserRepository;
+import com.erp.qualitascareapi.integracao.mv.domain.CirurgiaAgendada;
+import com.erp.qualitascareapi.integracao.mv.repo.CirurgiaAgendadaRepository;
 import com.erp.qualitascareapi.security.application.TenantScopeGuard;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
@@ -34,6 +36,7 @@ public class LoteService {
     private final KitVersionRepository kitVersionRepository;
     private final MovimentacaoCMERepository movimentacaoRepository;
     private final ProcessoReprocessamentoRepository processoRepository;
+    private final CirurgiaAgendadaRepository cirurgiaAgendadaRepository;
     private final TenantScopeGuard tenantScopeGuard;
 
     public LoteService(TenantRepository tenantRepository,
@@ -43,6 +46,7 @@ public class LoteService {
                        KitVersionRepository kitVersionRepository,
                        MovimentacaoCMERepository movimentacaoRepository,
                        ProcessoReprocessamentoRepository processoRepository,
+                       CirurgiaAgendadaRepository cirurgiaAgendadaRepository,
                        TenantScopeGuard tenantScopeGuard) {
         this.tenantRepository = tenantRepository;
         this.userRepository = userRepository;
@@ -51,6 +55,7 @@ public class LoteService {
         this.kitVersionRepository = kitVersionRepository;
         this.movimentacaoRepository = movimentacaoRepository;
         this.processoRepository = processoRepository;
+        this.cirurgiaAgendadaRepository = cirurgiaAgendadaRepository;
         this.tenantScopeGuard = tenantScopeGuard;
     }
 
@@ -167,24 +172,48 @@ public class LoteService {
             movimentacao.setResponsavel(responsavel);
         }
         movimentacao.setObservacoes(request.observacoes());
+
+        // Vínculo com cirurgia agendada (MV) — opcional
+        if (request.cirurgiaId() != null) {
+            CirurgiaAgendada cirurgia = cirurgiaAgendadaRepository.findById(request.cirurgiaId())
+                    .orElseThrow(() -> new EntityNotFoundException(
+                            "Cirurgia agendada não encontrada: id=" + request.cirurgiaId()));
+            // Garante que a cirurgia pertence ao mesmo tenant
+            if (!cirurgia.getTenantId().equals(request.tenantId())) {
+                throw new IllegalArgumentException(
+                        "Cirurgia agendada id=" + request.cirurgiaId() + " não pertence ao tenant informado.");
+            }
+            movimentacao.setCirurgia(cirurgia);
+        }
+
         MovimentacaoCME saved = movimentacaoRepository.save(movimentacao);
-        return new MovimentacaoDto(saved.getId(), tenant.getId(),
-                saved.getLote() != null ? saved.getLote().getId() : null,
-                saved.getSetorOrigem() != null ? saved.getSetorOrigem().getId() : null,
-                saved.getSetorDestino() != null ? saved.getSetorDestino().getId() : null,
-                saved.getTipo(), saved.getDataHora(),
-                saved.getResponsavel() != null ? saved.getResponsavel().getId() : null,
-                saved.getObservacoes());
+        return toMovimentacaoDto(saved);
     }
 
     public Page<MovimentacaoDto> listMovimentacoes(Pageable pageable) {
         return movimentacaoRepository.findAllByTenantId(tenantScopeGuard.currentTenantId(), pageable)
-                .map(m -> new MovimentacaoDto(m.getId(), m.getTenant().getId(),
-                        m.getLote() != null ? m.getLote().getId() : null,
-                        m.getSetorOrigem() != null ? m.getSetorOrigem().getId() : null,
-                        m.getSetorDestino() != null ? m.getSetorDestino().getId() : null,
-                        m.getTipo(), m.getDataHora(),
-                        m.getResponsavel() != null ? m.getResponsavel().getId() : null,
-                        m.getObservacoes()));
+                .map(this::toMovimentacaoDto);
+    }
+
+    private MovimentacaoDto toMovimentacaoDto(MovimentacaoCME m) {
+        CirurgiaAgendada cir = m.getCirurgia();
+        return new MovimentacaoDto(
+                m.getId(),
+                m.getTenant().getId(),
+                m.getLote() != null ? m.getLote().getId() : null,
+                m.getSetorOrigem() != null ? m.getSetorOrigem().getId() : null,
+                m.getSetorDestino() != null ? m.getSetorDestino().getId() : null,
+                m.getTipo(),
+                m.getDataHora(),
+                m.getResponsavel() != null ? m.getResponsavel().getId() : null,
+                m.getObservacoes(),
+                // cirurgia
+                cir != null ? cir.getId() : null,
+                cir != null ? cir.getCodigoPaciente() : null,
+                cir != null ? cir.getNomePaciente() : null,
+                cir != null ? cir.getTipoCirurgia() : null,
+                cir != null ? cir.getSalaCirurgica() : null,
+                cir != null ? cir.getDataHoraInicio() : null
+        );
     }
 }
