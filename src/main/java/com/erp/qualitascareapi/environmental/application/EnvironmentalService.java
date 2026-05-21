@@ -14,16 +14,15 @@ import com.erp.qualitascareapi.iam.repo.UserRepository;
 import com.erp.qualitascareapi.security.application.TenantScopeGuard;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @Transactional
@@ -533,6 +532,121 @@ public class EnvironmentalService {
         if (a == ResultadoMonitoramento.ALERTA || b == ResultadoMonitoramento.ALERTA)
             return ResultadoMonitoramento.ALERTA;
         return ResultadoMonitoramento.CONFORME;
+    }
+
+    // ============================================================
+    // Dashboard
+    // ============================================================
+
+    @Transactional(readOnly = true)
+    public EnvironmentalDashboardDto getDashboard() {
+        Long tenantId = tenantScopeGuard.currentTenantId();
+        LocalDateTime agora      = LocalDateTime.now();
+        LocalDateTime h24Atras   = agora.minusHours(24);
+        LocalDateTime h2Atras    = agora.minusHours(2);
+
+        // ── Totais de cadastro ───────────────────────────────────────────────
+        long totalAmbientes   = ambienteRepository.countByTenantIdAndAtivo(tenantId, true);
+        long totalGeladeiras  = geladeiraRepository.countByTenantIdAndAtivo(tenantId, true);
+        long totalDispositivos = dispositivoRepository.countByTenantIdAndAtivo(tenantId, true);
+        long dispositivosOffline = dispositivoRepository.countOffline(tenantId, h2Atras);
+
+        // ── Status atual por ambiente (última leitura de cada sala) ──────────
+        List<Ambiente> ambientesAtivos = ambienteRepository.findAllByTenantIdAndAtivo(tenantId, true);
+        List<MonitoramentoAmbiental> ultimasMonitoramentos = monitoramentoRepository.findUltimaLeituraPorAmbiente(tenantId);
+
+        Set<Long> ambientesComLeitura = ultimasMonitoramentos.stream()
+                .map(m -> m.getAmbiente().getId())
+                .collect(Collectors.toSet());
+
+        long ambStatusConforme    = contarPorResultado(ultimasMonitoramentos, ResultadoMonitoramento.CONFORME);
+        long ambStatusAlerta      = contarPorResultado(ultimasMonitoramentos, ResultadoMonitoramento.ALERTA);
+        long ambStatusNaoConforme = contarPorResultado(ultimasMonitoramentos, ResultadoMonitoramento.NAO_CONFORME);
+        long ambSemLeitura        = ambientesAtivos.stream()
+                .filter(a -> !ambientesComLeitura.contains(a.getId()))
+                .count();
+
+        // ── Status atual por geladeira (última leitura de cada geladeira) ────
+        List<GeladeiraMedicamentos> geladeiraAtivas = geladeiraRepository.findAllByTenantIdAndAtivo(tenantId, true);
+        List<RegistroTemperaturaGeladeira> ultimosRegistros = registroRepository.findUltimaLeituraPorGeladeira(tenantId);
+
+        Set<Long> geladeiraComLeitura = ultimosRegistros.stream()
+                .map(r -> r.getGeladeira().getId())
+                .collect(Collectors.toSet());
+
+        long gelStatusConforme    = contarRegistroPorResultado(ultimosRegistros, ResultadoMonitoramento.CONFORME);
+        long gelStatusAlerta      = contarRegistroPorResultado(ultimosRegistros, ResultadoMonitoramento.ALERTA);
+        long gelStatusNaoConforme = contarRegistroPorResultado(ultimosRegistros, ResultadoMonitoramento.NAO_CONFORME);
+        long gelSemLeitura        = geladeiraAtivas.stream()
+                .filter(g -> !geladeiraComLeitura.contains(g.getId()))
+                .count();
+
+        // ── Leituras das últimas 24h — ambientes ─────────────────────────────
+        long mon24Conforme    = monitoramentoRepository.countByTenantIdAndResultadoAndDataHoraAfter(tenantId, ResultadoMonitoramento.CONFORME,    h24Atras);
+        long mon24Alerta      = monitoramentoRepository.countByTenantIdAndResultadoAndDataHoraAfter(tenantId, ResultadoMonitoramento.ALERTA,       h24Atras);
+        long mon24NaoConforme = monitoramentoRepository.countByTenantIdAndResultadoAndDataHoraAfter(tenantId, ResultadoMonitoramento.NAO_CONFORME, h24Atras);
+
+        // ── Leituras das últimas 24h — geladeiras ────────────────────────────
+        long reg24Conforme    = registroRepository.countByTenantIdAndResultadoAndDataHoraAfter(tenantId, ResultadoMonitoramento.CONFORME,    h24Atras);
+        long reg24Alerta      = registroRepository.countByTenantIdAndResultadoAndDataHoraAfter(tenantId, ResultadoMonitoramento.ALERTA,       h24Atras);
+        long reg24NaoConforme = registroRepository.countByTenantIdAndResultadoAndDataHoraAfter(tenantId, ResultadoMonitoramento.NAO_CONFORME, h24Atras);
+
+        // ── Alertas ativos (top 20, mais recentes primeiro) ──────────────────
+        var resultadosAlerta = List.of(ResultadoMonitoramento.ALERTA, ResultadoMonitoramento.NAO_CONFORME);
+        Pageable top20 = PageRequest.of(0, 20);
+
+        List<AlertaAmbientalDto> alertasAmbientes = monitoramentoRepository
+                .findAlertasRecentes(tenantId, resultadosAlerta, h24Atras, top20)
+                .stream()
+                .map(m -> new AlertaAmbientalDto(
+                        "AMBIENTE",
+                        m.getAmbiente() != null ? m.getAmbiente().getId() : null,
+                        m.getAmbiente() != null ? m.getAmbiente().getNome() : m.getLocalSala(),
+                        m.getResultado(),
+                        m.getTemperaturaCelsius(),
+                        m.getUmidadeRelativa(),
+                        m.getPressaoDiferencialPa(),
+                        m.getDataHora()))
+                .toList();
+
+        List<AlertaAmbientalDto> alertasGeladeiras = registroRepository
+                .findAlertasRecentes(tenantId, resultadosAlerta, h24Atras, top20)
+                .stream()
+                .map(r -> new AlertaAmbientalDto(
+                        "GELADEIRA",
+                        r.getGeladeira().getId(),
+                        r.getGeladeira().getNome(),
+                        r.getResultado(),
+                        r.getTemperaturaCelsius(),
+                        r.getUmidadeRelativa(),
+                        null,
+                        r.getDataHora()))
+                .toList();
+
+        // Intercala ambientes e geladeiras, ordena por dataHora desc, limita em 20
+        List<AlertaAmbientalDto> alertasAtivos = Stream
+                .concat(alertasAmbientes.stream(), alertasGeladeiras.stream())
+                .sorted(Comparator.comparing(AlertaAmbientalDto::dataHora).reversed())
+                .limit(20)
+                .toList();
+
+        return new EnvironmentalDashboardDto(
+                totalAmbientes, totalGeladeiras, totalDispositivos, dispositivosOffline,
+                ambStatusConforme, ambStatusAlerta, ambStatusNaoConforme, ambSemLeitura,
+                gelStatusConforme, gelStatusAlerta, gelStatusNaoConforme, gelSemLeitura,
+                mon24Conforme, mon24Alerta, mon24NaoConforme, mon24Conforme + mon24Alerta + mon24NaoConforme,
+                reg24Conforme, reg24Alerta, reg24NaoConforme, reg24Conforme + reg24Alerta + reg24NaoConforme,
+                alertasAtivos,
+                agora
+        );
+    }
+
+    private long contarPorResultado(List<MonitoramentoAmbiental> lista, ResultadoMonitoramento resultado) {
+        return lista.stream().filter(m -> resultado == m.getResultado()).count();
+    }
+
+    private long contarRegistroPorResultado(List<RegistroTemperaturaGeladeira> lista, ResultadoMonitoramento resultado) {
+        return lista.stream().filter(r -> resultado == r.getResultado()).count();
     }
 
     // ============================================================

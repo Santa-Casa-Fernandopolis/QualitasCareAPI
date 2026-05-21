@@ -21,6 +21,14 @@ public class EnvironmentalController {
         this.environmentalService = environmentalService;
     }
 
+    // ---- Dashboard ----
+
+    @GetMapping("/dashboard")
+    @RequiresPermission(resource = ResourceType.ENV_MONITORAMENTO, action = Action.READ)
+    public EnvironmentalDashboardDto getDashboard() {
+        return environmentalService.getDashboard();
+    }
+
     // ---- Monitoramento Ambiental (temperatura, umidade, pressão diferencial) ----
 
     @PostMapping("/monitoramentos-ambientais")
