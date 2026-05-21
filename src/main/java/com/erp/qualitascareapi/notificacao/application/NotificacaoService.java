@@ -5,6 +5,7 @@ import com.erp.qualitascareapi.notificacao.domain.Notificacao;
 import com.erp.qualitascareapi.notificacao.enums.NivelNotificacao;
 import com.erp.qualitascareapi.notificacao.enums.TipoNotificacao;
 import com.erp.qualitascareapi.notificacao.repo.NotificacaoRepository;
+import com.erp.qualitascareapi.notificacao.repo.NotificacaoSubscricaoRepository;
 import com.erp.qualitascareapi.sistema.application.ConfiguracaoService;
 import com.erp.qualitascareapi.sistema.enums.ModuloConfiguracao;
 import jakarta.persistence.EntityNotFoundException;
@@ -18,7 +19,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -47,6 +47,7 @@ public class NotificacaoService {
     private static final Logger log = LoggerFactory.getLogger(NotificacaoService.class);
 
     private final NotificacaoRepository repository;
+    private final NotificacaoSubscricaoRepository subscricaoRepository;
     private final ConfiguracaoService configuracaoService;
 
     /**
@@ -56,12 +57,14 @@ public class NotificacaoService {
     private final JavaMailSender mailSender;
 
     public NotificacaoService(NotificacaoRepository repository,
+                              NotificacaoSubscricaoRepository subscricaoRepository,
                               ConfiguracaoService configuracaoService,
                               @org.springframework.beans.factory.annotation.Autowired(required = false)
                               JavaMailSender mailSender) {
-        this.repository           = repository;
-        this.configuracaoService  = configuracaoService;
-        this.mailSender           = mailSender;
+        this.repository            = repository;
+        this.subscricaoRepository  = subscricaoRepository;
+        this.configuracaoService   = configuracaoService;
+        this.mailSender            = mailSender;
     }
 
     // ─── Geração ─────────────────────────────────────────────────────────────
@@ -94,7 +97,7 @@ public class NotificacaoService {
         Notificacao salva = repository.save(n);
         log.info("[NOTIFICACAO] {} [{}] tenant={} — {}", nivel, tipo, tenantId, titulo);
 
-        enviarEmailSeConfigurado(titulo, mensagem, nivel);
+        enviarEmailSeConfigurado(tenantId, tipo, titulo, mensagem, nivel);
 
         return toDto(salva);
     }
@@ -136,26 +139,34 @@ public class NotificacaoService {
 
     // ─── E-mail ──────────────────────────────────────────────────────────────
 
-    private void enviarEmailSeConfigurado(String titulo, String mensagem, NivelNotificacao nivel) {
+    /**
+     * Envia e-mail para todos os usuários do tenant que assinaram {@code tipo} com
+     * {@code canalEmail = true} e têm e-mail cadastrado.
+     *
+     * <p>Requisitos para o envio:
+     * <ol>
+     *   <li>{@code JavaMailSender} disponível (requer {@code spring.mail.host}).</li>
+     *   <li>{@code NOTIFICACAO_EMAIL_ATIVO = true} em {@code sys_configuracoes}.</li>
+     *   <li>Pelo menos um usuário com assinatura ativa para o tipo informado.</li>
+     * </ol>
+     * </p>
+     */
+    private void enviarEmailSeConfigurado(Long tenantId, TipoNotificacao tipo,
+                                           String titulo, String mensagem,
+                                           NivelNotificacao nivel) {
         if (mailSender == null) return;
 
-        boolean ativo = configuracaoService.getValorBoolean(ModuloConfiguracao.SISTEMA, "NOTIFICACAO_EMAIL_ATIVO", false);
+        boolean ativo = configuracaoService.getValorBoolean(
+                ModuloConfiguracao.SISTEMA, "NOTIFICACAO_EMAIL_ATIVO", false);
         if (!ativo) return;
 
-        String destinatariosRaw = configuracaoService.getValor(ModuloConfiguracao.SISTEMA, "NOTIFICACAO_EMAIL_DESTINATARIOS");
-        String from             = configuracaoService.getValor(ModuloConfiguracao.SISTEMA, "NOTIFICACAO_EMAIL_FROM");
-
-        if (destinatariosRaw == null || destinatariosRaw.isBlank()) {
-            log.warn("[NOTIFICACAO-EMAIL] NOTIFICACAO_EMAIL_DESTINATARIOS não configurado — e-mail ignorado");
-            return;
-        }
-
-        List<String> destinatarios = Arrays.stream(destinatariosRaw.split(","))
-                .map(String::trim)
-                .filter(e -> !e.isBlank())
-                .toList();
+        // Busca e-mails dos assinantes com canal e-mail ativo para este tipo
+        List<String> destinatarios = subscricaoRepository
+                .findEmailsDestinatarios(tenantId, tipo);
 
         if (destinatarios.isEmpty()) return;
+
+        String from = configuracaoService.getValor(ModuloConfiguracao.SISTEMA, "NOTIFICACAO_EMAIL_FROM");
 
         try {
             SimpleMailMessage mail = new SimpleMailMessage();
@@ -164,7 +175,8 @@ public class NotificacaoService {
             mail.setSubject("[QualitasCare] " + nivel.name() + " — " + titulo);
             mail.setText(mensagem + "\n\nAcesse o sistema para mais detalhes.\n\n-- QualitasCare");
             mailSender.send(mail);
-            log.info("[NOTIFICACAO-EMAIL] E-mail enviado para {} destinatários", destinatarios.size());
+            log.info("[NOTIFICACAO-EMAIL] tipo={} → e-mail enviado para {} destinatários",
+                    tipo, destinatarios.size());
         } catch (Exception e) {
             // Falha no e-mail não deve impedir a persistência da notificação in-app
             log.error("[NOTIFICACAO-EMAIL] Falha ao enviar e-mail: {}", e.getMessage(), e);

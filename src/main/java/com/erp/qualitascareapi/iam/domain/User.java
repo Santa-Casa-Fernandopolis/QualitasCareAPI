@@ -34,6 +34,10 @@ public class User {
     @Column(length=120)
     private String department; // setor assistencial
 
+    /** E-mail pessoal ou institucional — usado para envio de notificações (opcional). */
+    @Column(length=200)
+    private String email;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="tenant_id", nullable=false)
     private Tenant tenant;
@@ -84,6 +88,8 @@ public class User {
     public void setFullName(String fullName) { this.fullName = fullName; }
     public String getDepartment() { return department; }
     public void setDepartment(String department) { this.department = department; }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
     public Tenant getTenant() { return tenant; }
     public void setTenant(Tenant tenant) { this.tenant = tenant; }
     public UserStatus getStatus() { return status; }

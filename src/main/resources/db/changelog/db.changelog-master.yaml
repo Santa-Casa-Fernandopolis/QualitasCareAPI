@@ -31,3 +31,5 @@
       file: db/changelog/changes/V15__movimentacao_cirurgia_fk.yaml
   - include:
       file: db/changelog/changes/V16__notificacoes.yaml
+  - include:
+      file: db/changelog/changes/V17__notificacao_subscricoes.yaml
