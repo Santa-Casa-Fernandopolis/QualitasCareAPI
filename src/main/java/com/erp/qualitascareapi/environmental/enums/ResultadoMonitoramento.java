@@ -1,4 +1,4 @@
-package com.erp.qualitascareapi.cme.enums;
+package com.erp.qualitascareapi.environmental.enums;
 
 public enum ResultadoMonitoramento {
     CONFORME,

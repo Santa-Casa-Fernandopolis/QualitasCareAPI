@@ -19,3 +19,5 @@
       file: db/changelog/changes/V9__cme_domain_corrections.yaml
   - include:
       file: db/changelog/changes/V10__ged_document_management.yaml
+  - include:
+      file: db/changelog/changes/V11__environmental_monitoring.yaml

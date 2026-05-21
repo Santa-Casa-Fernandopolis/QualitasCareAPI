@@ -70,24 +70,4 @@ public class ProcessamentoController {
         return processamentoService.findCicloLavadoraById(id);
     }
 
-    // ---- Monitoramento Ambiental ----
-
-    @PostMapping("/monitoramentos-ambientais")
-    @ResponseStatus(HttpStatus.CREATED)
-    @RequiresPermission(resource = ResourceType.CME_PROCESSAMENTO, action = Action.CREATE)
-    public MonitoramentoAmbientalDto registrarMonitoramento(@Validated @RequestBody MonitoramentoAmbientalRequest request) {
-        return processamentoService.registrarMonitoramento(request);
-    }
-
-    @GetMapping("/monitoramentos-ambientais")
-    @RequiresPermission(resource = ResourceType.CME_PROCESSAMENTO, action = Action.READ)
-    public Page<MonitoramentoAmbientalDto> listMonitoramentos(Pageable pageable) {
-        return processamentoService.listMonitoramentos(pageable);
-    }
-
-    @GetMapping("/monitoramentos-ambientais/{id}")
-    @RequiresPermission(resource = ResourceType.CME_PROCESSAMENTO, action = Action.READ)
-    public MonitoramentoAmbientalDto getMonitoramento(@PathVariable Long id) {
-        return processamentoService.findMonitoramentoById(id);
-    }
 }

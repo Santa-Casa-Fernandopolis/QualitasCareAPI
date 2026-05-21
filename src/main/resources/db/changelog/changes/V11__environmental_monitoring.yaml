@@ -1,0 +1,319 @@
+databaseChangeLog:
+
+  # ============================================================
+  # V11-1  Drop legacy CME monitoramento tables (migrated to env_*)
+  # ============================================================
+  - changeSet:
+      id: V11-1
+      author: qualitascare
+      changes:
+        - dropTable:
+            tableName: cme_monitoramento_evidencias
+        - dropTable:
+            tableName: cme_monitoramentos_ambientais
+
+  # ============================================================
+  # V11-2  env_monitoramentos_ambientais
+  # ============================================================
+  - changeSet:
+      id: V11-2
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: env_monitoramentos_ambientais
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: data_hora
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: tipo_ambiente
+                  type: VARCHAR(40)
+              - column:
+                  name: local_sala
+                  type: VARCHAR(120)
+              - column:
+                  name: temperatura_celsius
+                  type: DOUBLE PRECISION
+              - column:
+                  name: umidade_relativa
+                  type: DOUBLE PRECISION
+              - column:
+                  name: pressao_diferencial_pa
+                  type: DOUBLE PRECISION
+              - column:
+                  name: resultado
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: responsavel_id
+                  type: BIGINT
+              - column:
+                  name: observacoes
+                  type: VARCHAR(255)
+        - addForeignKeyConstraint:
+            baseTableName: env_monitoramentos_ambientais
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_env_mon_tenant
+        - addForeignKeyConstraint:
+            baseTableName: env_monitoramentos_ambientais
+            baseColumnNames: responsavel_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_env_mon_responsavel
+        - createIndex:
+            tableName: env_monitoramentos_ambientais
+            indexName: ix_env_mon_tenant_data
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: data_hora
+        - createIndex:
+            tableName: env_monitoramentos_ambientais
+            indexName: ix_env_mon_tenant_resultado
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: resultado
+        - createIndex:
+            tableName: env_monitoramentos_ambientais
+            indexName: ix_env_mon_tenant_tipo
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: tipo_ambiente
+
+  # ============================================================
+  # V11-3  env_monitoramento_evidencias (join table)
+  # ============================================================
+  - changeSet:
+      id: V11-3
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: env_monitoramento_evidencias
+            columns:
+              - column:
+                  name: monitoramento_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: evidencia_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: env_monitoramento_evidencias
+            columnNames: monitoramento_id, evidencia_id
+            constraintName: pk_env_monitoramento_evidencias
+        - addForeignKeyConstraint:
+            baseTableName: env_monitoramento_evidencias
+            baseColumnNames: monitoramento_id
+            referencedTableName: env_monitoramentos_ambientais
+            referencedColumnNames: id
+            constraintName: fk_env_mon_evidencia_mon
+        - addForeignKeyConstraint:
+            baseTableName: env_monitoramento_evidencias
+            baseColumnNames: evidencia_id
+            referencedTableName: evidencias_arquivo
+            referencedColumnNames: id
+            constraintName: fk_env_mon_evidencia_file
+
+  # ============================================================
+  # V11-4  env_geladeiras_medicamentos
+  # ============================================================
+  - changeSet:
+      id: V11-4
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: env_geladeiras_medicamentos
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: nome
+                  type: VARCHAR(120)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: tipo_uso
+                  type: VARCHAR(30)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: local_sala
+                  type: VARCHAR(120)
+              - column:
+                  name: fabricante
+                  type: VARCHAR(100)
+              - column:
+                  name: modelo
+                  type: VARCHAR(100)
+              - column:
+                  name: numero_serie
+                  type: VARCHAR(80)
+              - column:
+                  name: temperatura_min_celsius
+                  type: DOUBLE PRECISION
+              - column:
+                  name: temperatura_max_celsius
+                  type: DOUBLE PRECISION
+              - column:
+                  name: frequencia_leitura_horas
+                  type: INTEGER
+              - column:
+                  name: ativo
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: observacoes
+                  type: VARCHAR(255)
+        - addForeignKeyConstraint:
+            baseTableName: env_geladeiras_medicamentos
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_env_gel_tenant
+        - createIndex:
+            tableName: env_geladeiras_medicamentos
+            indexName: ix_env_gel_tenant_ativo
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: ativo
+        - createIndex:
+            tableName: env_geladeiras_medicamentos
+            indexName: ix_env_gel_tenant_tipo
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: tipo_uso
+
+  # ============================================================
+  # V11-5  env_registros_temperatura_geladeira
+  # ============================================================
+  - changeSet:
+      id: V11-5
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: env_registros_temperatura_geladeira
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: geladeira_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: data_hora
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: temperatura_celsius
+                  type: DOUBLE PRECISION
+                  constraints:
+                    nullable: false
+              - column:
+                  name: umidade_relativa
+                  type: DOUBLE PRECISION
+              - column:
+                  name: resultado
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: acao_corretiva
+                  type: VARCHAR(500)
+              - column:
+                  name: responsavel_id
+                  type: BIGINT
+              - column:
+                  name: observacoes
+                  type: VARCHAR(255)
+        - addForeignKeyConstraint:
+            baseTableName: env_registros_temperatura_geladeira
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_env_reg_gel_tenant
+        - addForeignKeyConstraint:
+            baseTableName: env_registros_temperatura_geladeira
+            baseColumnNames: geladeira_id
+            referencedTableName: env_geladeiras_medicamentos
+            referencedColumnNames: id
+            constraintName: fk_env_reg_gel_geladeira
+        - addForeignKeyConstraint:
+            baseTableName: env_registros_temperatura_geladeira
+            baseColumnNames: responsavel_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_env_reg_gel_responsavel
+        - createIndex:
+            tableName: env_registros_temperatura_geladeira
+            indexName: ix_env_reg_gel_tenant_data
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: data_hora
+        - createIndex:
+            tableName: env_registros_temperatura_geladeira
+            indexName: ix_env_reg_gel_geladeira
+            columns:
+              - column:
+                  name: geladeira_id
+              - column:
+                  name: data_hora
+        - createIndex:
+            tableName: env_registros_temperatura_geladeira
+            indexName: ix_env_reg_gel_resultado
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: resultado

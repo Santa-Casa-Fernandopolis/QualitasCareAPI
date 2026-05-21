@@ -1,7 +1,8 @@
-package com.erp.qualitascareapi.cme.domain;
+package com.erp.qualitascareapi.environmental.domain;
 
-import com.erp.qualitascareapi.cme.enums.ResultadoMonitoramento;
 import com.erp.qualitascareapi.common.domain.EvidenciaArquivo;
+import com.erp.qualitascareapi.environmental.enums.ResultadoMonitoramento;
+import com.erp.qualitascareapi.environmental.enums.TipoAmbiente;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.domain.User;
 import jakarta.persistence.*;
@@ -13,12 +14,18 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
+/**
+ * Registro periódico de parâmetros ambientais (temperatura, umidade, pressão diferencial)
+ * em salas e áreas controladas do hospital.
+ * Aplica-se à CME, farmácia, UTI, bloco cirúrgico, etc.
+ */
 @Audited
 @Entity
-@Table(name = "cme_monitoramentos_ambientais",
+@Table(name = "env_monitoramentos_ambientais",
         indexes = {
-                @Index(name = "ix_monitoramento_tenant_data", columnList = "tenant_id,data_hora"),
-                @Index(name = "ix_monitoramento_tenant_resultado", columnList = "tenant_id,resultado")
+                @Index(name = "ix_env_mon_tenant_data", columnList = "tenant_id,data_hora"),
+                @Index(name = "ix_env_mon_tenant_resultado", columnList = "tenant_id,resultado"),
+                @Index(name = "ix_env_mon_tenant_tipo", columnList = "tenant_id,tipo_ambiente")
         })
 public class MonitoramentoAmbiental {
 
@@ -33,6 +40,10 @@ public class MonitoramentoAmbiental {
     @NotNull
     @Column(name = "data_hora", nullable = false)
     private LocalDateTime dataHora;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_ambiente", length = 40)
+    private TipoAmbiente tipoAmbiente;
 
     @Column(name = "local_sala", length = 120)
     private String localSala;
@@ -59,7 +70,7 @@ public class MonitoramentoAmbiental {
     private String observacoes;
 
     @ManyToMany
-    @JoinTable(name = "cme_monitoramento_evidencias",
+    @JoinTable(name = "env_monitoramento_evidencias",
             joinColumns = @JoinColumn(name = "monitoramento_id"),
             inverseJoinColumns = @JoinColumn(name = "evidencia_id"))
     private Set<EvidenciaArquivo> evidencias = new HashSet<>();
@@ -69,6 +80,8 @@ public class MonitoramentoAmbiental {
     public void setTenant(Tenant tenant) { this.tenant = tenant; }
     public LocalDateTime getDataHora() { return dataHora; }
     public void setDataHora(LocalDateTime dataHora) { this.dataHora = dataHora; }
+    public TipoAmbiente getTipoAmbiente() { return tipoAmbiente; }
+    public void setTipoAmbiente(TipoAmbiente tipoAmbiente) { this.tipoAmbiente = tipoAmbiente; }
     public String getLocalSala() { return localSala; }
     public void setLocalSala(String localSala) { this.localSala = localSala; }
     public Double getTemperaturaCelsius() { return temperaturaCelsius; }
