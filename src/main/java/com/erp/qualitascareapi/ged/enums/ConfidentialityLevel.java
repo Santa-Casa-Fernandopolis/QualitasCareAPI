@@ -1,5 +1,5 @@
 package com.erp.qualitascareapi.ged.enums;
 
 public enum ConfidentialityLevel {
-    PUBLICO, INTERNO, RESTRITO
+    PUBLICO, INTERNO, RESTRITO, CONFIDENCIAL
 }

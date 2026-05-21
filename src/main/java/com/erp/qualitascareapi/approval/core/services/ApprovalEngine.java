@@ -9,4 +9,7 @@ import com.erp.qualitascareapi.iam.domain.User;
 public interface ApprovalEngine {
     ApprovalRequest start(ApprovableTarget target, User requestedBy);
     void decide(Long stepId, User user, ApprovalDecision decision, String comment);
+    default void decide(Long stepId, User user, ApprovalDecision decision, String comment, String returnToStageCode) {
+        decide(stepId, user, decision, comment);
+    }
 }

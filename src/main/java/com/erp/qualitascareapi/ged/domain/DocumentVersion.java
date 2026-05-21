@@ -63,16 +63,31 @@ public class DocumentVersion implements ApprovableTarget {
     private String resumoMudancas;
 
     private LocalDate dataVigenciaInicio;
+    private LocalDate dataVigenciaFim;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "pdf_arquivo_id")
     private EvidenciaArquivo pdfArquivo;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "arquivo_original_id")
+    private EvidenciaArquivo arquivoOriginal;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "arquivo_publicado_id")
+    private EvidenciaArquivo arquivoPublicado;
 
     @Size(max = 64)
     @Column(name = "pdf_sha256", length = 64)
     private String pdfSha256;
 
     private LocalDateTime geradoEm;
+    private LocalDateTime submetidoEm;
+    private LocalDateTime aprovadoEm;
+    private LocalDateTime publicadoEm;
+
+    @Column(length = 500)
+    private String observacoesPublicacao;
 
     public DocumentVersion() {}
     public DocumentVersion(Long id) { this.id = id; }
@@ -138,14 +153,35 @@ public class DocumentVersion implements ApprovableTarget {
     public LocalDate getDataVigenciaInicio() { return dataVigenciaInicio; }
     public void setDataVigenciaInicio(LocalDate dataVigenciaInicio) { this.dataVigenciaInicio = dataVigenciaInicio; }
 
+    public LocalDate getDataVigenciaFim() { return dataVigenciaFim; }
+    public void setDataVigenciaFim(LocalDate dataVigenciaFim) { this.dataVigenciaFim = dataVigenciaFim; }
+
     public EvidenciaArquivo getPdfArquivo() { return pdfArquivo; }
     public void setPdfArquivo(EvidenciaArquivo pdfArquivo) { this.pdfArquivo = pdfArquivo; }
+
+    public EvidenciaArquivo getArquivoOriginal() { return arquivoOriginal; }
+    public void setArquivoOriginal(EvidenciaArquivo arquivoOriginal) { this.arquivoOriginal = arquivoOriginal; }
+
+    public EvidenciaArquivo getArquivoPublicado() { return arquivoPublicado; }
+    public void setArquivoPublicado(EvidenciaArquivo arquivoPublicado) { this.arquivoPublicado = arquivoPublicado; }
 
     public String getPdfSha256() { return pdfSha256; }
     public void setPdfSha256(String pdfSha256) { this.pdfSha256 = pdfSha256; }
 
     public LocalDateTime getGeradoEm() { return geradoEm; }
     public void setGeradoEm(LocalDateTime geradoEm) { this.geradoEm = geradoEm; }
+
+    public LocalDateTime getSubmetidoEm() { return submetidoEm; }
+    public void setSubmetidoEm(LocalDateTime submetidoEm) { this.submetidoEm = submetidoEm; }
+
+    public LocalDateTime getAprovadoEm() { return aprovadoEm; }
+    public void setAprovadoEm(LocalDateTime aprovadoEm) { this.aprovadoEm = aprovadoEm; }
+
+    public LocalDateTime getPublicadoEm() { return publicadoEm; }
+    public void setPublicadoEm(LocalDateTime publicadoEm) { this.publicadoEm = publicadoEm; }
+
+    public String getObservacoesPublicacao() { return observacoesPublicacao; }
+    public void setObservacoesPublicacao(String observacoesPublicacao) { this.observacoesPublicacao = observacoesPublicacao; }
 
     /* ---------- Helpers opcionais ---------- */
 

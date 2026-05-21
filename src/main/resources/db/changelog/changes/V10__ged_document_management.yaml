@@ -1,0 +1,395 @@
+databaseChangeLog:
+  - changeSet:
+      id: V10-1
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: doc_category
+            columns:
+              - column: { name: id, type: BIGINT, autoIncrement: true, constraints: { primaryKey: true } }
+              - column: { name: tenant_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: nome, type: VARCHAR(120), constraints: { nullable: false } }
+              - column: { name: descricao, type: VARCHAR(500) }
+        - addForeignKeyConstraint:
+            baseTableName: doc_category
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_doc_category_tenant
+        - createTable:
+            tableName: doc_tag
+            columns:
+              - column: { name: id, type: BIGINT, autoIncrement: true, constraints: { primaryKey: true } }
+              - column: { name: tenant_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: nome, type: VARCHAR(80), constraints: { nullable: false } }
+        - addForeignKeyConstraint:
+            baseTableName: doc_tag
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_doc_tag_tenant
+        - createTable:
+            tableName: retention_policy
+            columns:
+              - column: { name: id, type: BIGINT, autoIncrement: true, constraints: { primaryKey: true } }
+              - column: { name: tenant_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: nome, type: VARCHAR(120), constraints: { nullable: false } }
+              - column: { name: anos_guarda, type: INTEGER, constraints: { nullable: false } }
+              - column: { name: metodo_descarte, type: VARCHAR(200) }
+              - column: { name: base_legal, type: VARCHAR(300) }
+        - addForeignKeyConstraint:
+            baseTableName: retention_policy
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_retention_tenant
+
+  - changeSet:
+      id: V10-2
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: documents
+            columns:
+              - column: { name: id, type: BIGINT, autoIncrement: true, constraints: { primaryKey: true } }
+              - column: { name: tenant_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: codigo, type: VARCHAR(60), constraints: { nullable: false } }
+              - column: { name: titulo, type: VARCHAR(200), constraints: { nullable: false } }
+              - column: { name: tipo, type: VARCHAR(40), constraints: { nullable: false } }
+              - column: { name: status, type: VARCHAR(40), constraints: { nullable: false } }
+              - column: { name: confidencialidade, type: VARCHAR(30), constraints: { nullable: false } }
+              - column: { name: categoria_id, type: BIGINT }
+              - column: { name: setor_responsavel_id, type: BIGINT }
+              - column: { name: data_vigencia_inicio, type: DATE }
+              - column: { name: data_vigencia_fim, type: DATE }
+              - column: { name: versao_atual_id, type: BIGINT }
+              - column: { name: nivel_ona_target, type: VARCHAR(30) }
+              - column: { name: regulacoes, type: VARCHAR(500) }
+              - column: { name: politica_retencao_id, type: BIGINT }
+              - column: { name: exige_treinamento, type: BOOLEAN, defaultValueBoolean: false, constraints: { nullable: false } }
+              - column: { name: necessita_parecer_juridico, type: BOOLEAN, defaultValueBoolean: false, constraints: { nullable: false } }
+              - column: { name: periodicidade_revisao_meses, type: INTEGER }
+              - column: { name: observacoes_fluxo, type: VARCHAR(500) }
+        - addUniqueConstraint:
+            tableName: documents
+            columnNames: tenant_id,codigo
+            constraintName: uq_documents_tenant_codigo
+        - addForeignKeyConstraint:
+            baseTableName: documents
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_documents_tenant
+        - addForeignKeyConstraint:
+            baseTableName: documents
+            baseColumnNames: categoria_id
+            referencedTableName: doc_category
+            referencedColumnNames: id
+            constraintName: fk_documents_category
+        - addForeignKeyConstraint:
+            baseTableName: documents
+            baseColumnNames: setor_responsavel_id
+            referencedTableName: iam_setores
+            referencedColumnNames: id
+            constraintName: fk_documents_setor
+        - addForeignKeyConstraint:
+            baseTableName: documents
+            baseColumnNames: politica_retencao_id
+            referencedTableName: retention_policy
+            referencedColumnNames: id
+            constraintName: fk_documents_retention
+        - createTable:
+            tableName: document_tags
+            columns:
+              - column: { name: document_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: tag_id, type: BIGINT, constraints: { nullable: false } }
+        - addUniqueConstraint:
+            tableName: document_tags
+            columnNames: document_id,tag_id
+            constraintName: uq_document_tags_doc_tag
+        - addForeignKeyConstraint:
+            baseTableName: document_tags
+            baseColumnNames: document_id
+            referencedTableName: documents
+            referencedColumnNames: id
+            constraintName: fk_document_tags_document
+        - addForeignKeyConstraint:
+            baseTableName: document_tags
+            baseColumnNames: tag_id
+            referencedTableName: doc_tag
+            referencedColumnNames: id
+            constraintName: fk_document_tags_tag
+
+  - changeSet:
+      id: V10-3
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: document_version
+            columns:
+              - column: { name: id, type: BIGINT, autoIncrement: true, constraints: { primaryKey: true } }
+              - column: { name: tenant_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: documento_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: versao_major, type: INTEGER, constraints: { nullable: false } }
+              - column: { name: versao_minor, type: INTEGER, constraints: { nullable: false } }
+              - column: { name: status, type: VARCHAR(40), constraints: { nullable: false } }
+              - column: { name: resumo_mudancas, type: VARCHAR(800) }
+              - column: { name: data_vigencia_inicio, type: DATE }
+              - column: { name: data_vigencia_fim, type: DATE }
+              - column: { name: pdf_arquivo_id, type: BIGINT }
+              - column: { name: arquivo_original_id, type: BIGINT }
+              - column: { name: arquivo_publicado_id, type: BIGINT }
+              - column: { name: pdf_sha256, type: VARCHAR(64) }
+              - column: { name: gerado_em, type: TIMESTAMP }
+              - column: { name: submetido_em, type: TIMESTAMP }
+              - column: { name: aprovado_em, type: TIMESTAMP }
+              - column: { name: publicado_em, type: TIMESTAMP }
+              - column: { name: observacoes_publicacao, type: VARCHAR(500) }
+        - addUniqueConstraint:
+            tableName: document_version
+            columnNames: tenant_id,documento_id,versao_major,versao_minor
+            constraintName: uq_doc_version_scope
+        - addForeignKeyConstraint:
+            baseTableName: document_version
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_doc_version_tenant
+        - addForeignKeyConstraint:
+            baseTableName: document_version
+            baseColumnNames: documento_id
+            referencedTableName: documents
+            referencedColumnNames: id
+            constraintName: fk_doc_version_document
+        - addForeignKeyConstraint:
+            baseTableName: documents
+            baseColumnNames: versao_atual_id
+            referencedTableName: document_version
+            referencedColumnNames: id
+            constraintName: fk_documents_current_version
+        - addForeignKeyConstraint:
+            baseTableName: document_version
+            baseColumnNames: pdf_arquivo_id
+            referencedTableName: evidencias_arquivo
+            referencedColumnNames: id
+            constraintName: fk_doc_version_pdf
+        - addForeignKeyConstraint:
+            baseTableName: document_version
+            baseColumnNames: arquivo_original_id
+            referencedTableName: evidencias_arquivo
+            referencedColumnNames: id
+            constraintName: fk_doc_version_original
+        - addForeignKeyConstraint:
+            baseTableName: document_version
+            baseColumnNames: arquivo_publicado_id
+            referencedTableName: evidencias_arquivo
+            referencedColumnNames: id
+            constraintName: fk_doc_version_published
+        - createIndex:
+            tableName: document_version
+            indexName: idx_docver_tenant_status
+            columns:
+              - column: { name: tenant_id }
+              - column: { name: status }
+
+  - changeSet:
+      id: V10-4
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: approval_flow_defs
+            columns:
+              - column: { name: id, type: BIGINT, autoIncrement: true, constraints: { primaryKey: true } }
+              - column: { name: tenant_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: domain, type: VARCHAR(60), constraints: { nullable: false } }
+              - column: { name: name, type: VARCHAR(120), constraints: { nullable: false } }
+              - column: { name: active, type: BOOLEAN, defaultValueBoolean: true, constraints: { nullable: false } }
+        - addForeignKeyConstraint:
+            baseTableName: approval_flow_defs
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_approval_flow_tenant
+        - createTable:
+            tableName: approval_stage_defs
+            columns:
+              - column: { name: id, type: BIGINT, autoIncrement: true, constraints: { primaryKey: true } }
+              - column: { name: flow_def_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: stage_order, type: INTEGER, constraints: { nullable: false } }
+              - column: { name: stage_code, type: VARCHAR(80), constraints: { nullable: false } }
+              - column: { name: required_role, type: VARCHAR(60), constraints: { nullable: false } }
+              - column: { name: scope_by_target_setor, type: BOOLEAN, defaultValueBoolean: false, constraints: { nullable: false } }
+              - column: { name: min_approvers, type: INTEGER, defaultValueNumeric: 1, constraints: { nullable: false } }
+              - column: { name: dual_approval, type: BOOLEAN, defaultValueBoolean: false, constraints: { nullable: false } }
+              - column: { name: enabled, type: BOOLEAN, defaultValueBoolean: true, constraints: { nullable: false } }
+              - column: { name: optional, type: BOOLEAN, defaultValueBoolean: false, constraints: { nullable: false } }
+              - column: { name: condition_key, type: VARCHAR(120) }
+        - addForeignKeyConstraint:
+            baseTableName: approval_stage_defs
+            baseColumnNames: flow_def_id
+            referencedTableName: approval_flow_defs
+            referencedColumnNames: id
+            constraintName: fk_approval_stage_flow
+
+  - changeSet:
+      id: V10-5
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: approval_requests
+            columns:
+              - column: { name: id, type: BIGINT, autoIncrement: true, constraints: { primaryKey: true } }
+              - column: { name: tenant_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: domain, type: VARCHAR(60), constraints: { nullable: false } }
+              - column: { name: target_key, type: VARCHAR(200), constraints: { nullable: false } }
+              - column: { name: requested_by, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: requested_at, type: TIMESTAMP, constraints: { nullable: false } }
+              - column: { name: status, type: VARCHAR(30), constraints: { nullable: false } }
+              - column: { name: flow_name_snapshot, type: VARCHAR(200) }
+              - column: { name: scope_setor_id, type: BIGINT }
+        - addForeignKeyConstraint:
+            baseTableName: approval_requests
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_approval_request_tenant
+        - addForeignKeyConstraint:
+            baseTableName: approval_requests
+            baseColumnNames: requested_by
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_approval_request_user
+        - createTable:
+            tableName: approval_steps
+            columns:
+              - column: { name: id, type: BIGINT, autoIncrement: true, constraints: { primaryKey: true } }
+              - column: { name: request_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: stage_order, type: INTEGER, constraints: { nullable: false } }
+              - column: { name: stage_code, type: VARCHAR(80), constraints: { nullable: false } }
+              - column: { name: required_role, type: VARCHAR(60), constraints: { nullable: false } }
+              - column: { name: scope_setor_id, type: BIGINT }
+              - column: { name: status, type: VARCHAR(30), constraints: { nullable: false } }
+              - column: { name: decision, type: VARCHAR(30) }
+              - column: { name: decided_by, type: BIGINT }
+              - column: { name: decided_at, type: TIMESTAMP }
+              - column: { name: comment, type: VARCHAR(500) }
+              - column: { name: return_to_stage_code, type: VARCHAR(80) }
+              - column: { name: approvals_count, type: INTEGER, defaultValueNumeric: 0, constraints: { nullable: false } }
+        - addForeignKeyConstraint:
+            baseTableName: approval_steps
+            baseColumnNames: request_id
+            referencedTableName: approval_requests
+            referencedColumnNames: id
+            constraintName: fk_approval_step_request
+        - addForeignKeyConstraint:
+            baseTableName: approval_steps
+            baseColumnNames: decided_by
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_approval_step_decided_by
+
+  - changeSet:
+      id: V10-6
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: approval_step_decisions
+            columns:
+              - column: { name: id, type: BIGINT, autoIncrement: true, constraints: { primaryKey: true } }
+              - column: { name: request_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: step_id, type: BIGINT }
+              - column: { name: from_stage_code, type: VARCHAR(80) }
+              - column: { name: to_stage_code, type: VARCHAR(80) }
+              - column: { name: decision, type: VARCHAR(30), constraints: { nullable: false } }
+              - column: { name: previous_status, type: VARCHAR(30) }
+              - column: { name: new_status, type: VARCHAR(30) }
+              - column: { name: decided_by, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: decided_at, type: TIMESTAMP, constraints: { nullable: false } }
+              - column: { name: comment, type: VARCHAR(1200) }
+        - addForeignKeyConstraint:
+            baseTableName: approval_step_decisions
+            baseColumnNames: request_id
+            referencedTableName: approval_requests
+            referencedColumnNames: id
+            constraintName: fk_approval_decision_request
+        - addForeignKeyConstraint:
+            baseTableName: approval_step_decisions
+            baseColumnNames: step_id
+            referencedTableName: approval_steps
+            referencedColumnNames: id
+            constraintName: fk_approval_decision_step
+        - createTable:
+            tableName: approval_audit_log
+            columns:
+              - column: { name: id, type: BIGINT, autoIncrement: true, constraints: { primaryKey: true } }
+              - column: { name: request_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: step_order, type: INTEGER }
+              - column: { name: event, type: VARCHAR(60), constraints: { nullable: false } }
+              - column: { name: when_occurred, type: TIMESTAMP, constraints: { nullable: false } }
+              - column: { name: who_user_id, type: BIGINT }
+              - column: { name: data, type: VARCHAR(1000) }
+        - addForeignKeyConstraint:
+            baseTableName: approval_audit_log
+            baseColumnNames: request_id
+            referencedTableName: approval_requests
+            referencedColumnNames: id
+            constraintName: fk_approval_audit_request
+
+  - changeSet:
+      id: V10-7
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: document_signatures
+            columns:
+              - column: { name: id, type: BIGINT, autoIncrement: true, constraints: { primaryKey: true } }
+              - column: { name: tenant_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: document_version_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: signer_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: role_label, type: VARCHAR(120) }
+              - column: { name: status, type: VARCHAR(20), constraints: { nullable: false } }
+              - column: { name: requested_at, type: TIMESTAMP }
+              - column: { name: signed_at, type: TIMESTAMP }
+              - column: { name: comment, type: VARCHAR(500) }
+        - addForeignKeyConstraint:
+            baseTableName: document_signatures
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_doc_signature_tenant
+        - addForeignKeyConstraint:
+            baseTableName: document_signatures
+            baseColumnNames: document_version_id
+            referencedTableName: document_version
+            referencedColumnNames: id
+            constraintName: fk_doc_signature_version
+        - addForeignKeyConstraint:
+            baseTableName: document_signatures
+            baseColumnNames: signer_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_doc_signature_user
+
+  - changeSet:
+      id: V10-8
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: approval_attachments
+            columns:
+              - column: { name: id, type: BIGINT, autoIncrement: true, constraints: { primaryKey: true } }
+              - column: { name: request_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: arquivo_id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: nota, type: VARCHAR(300) }
+        - addForeignKeyConstraint:
+            baseTableName: approval_attachments
+            baseColumnNames: request_id
+            referencedTableName: approval_requests
+            referencedColumnNames: id
+            constraintName: fk_approval_attachment_request
+        - addForeignKeyConstraint:
+            baseTableName: approval_attachments
+            baseColumnNames: arquivo_id
+            referencedTableName: evidencias_arquivo
+            referencedColumnNames: id
+            constraintName: fk_approval_attachment_file

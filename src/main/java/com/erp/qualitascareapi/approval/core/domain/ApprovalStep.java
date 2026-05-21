@@ -49,6 +49,9 @@ public class ApprovalStep {
     @Column(length=500)
     private String comment;
 
+    @Column(name = "return_to_stage_code", length = 80)
+    private String returnToStageCode;
+
     @Column(nullable=false)
     private Integer approvalsCount = 0;
 
@@ -61,4 +64,29 @@ public class ApprovalStep {
     public void setId(Long id) {
         this.id = id;
     }
+
+    public ApprovalRequest getRequest() { return request; }
+    public void setRequest(ApprovalRequest request) { this.request = request; }
+    public Integer getStageOrder() { return stageOrder; }
+    public void setStageOrder(Integer stageOrder) { this.stageOrder = stageOrder; }
+    public String getStageCode() { return stageCode; }
+    public void setStageCode(String stageCode) { this.stageCode = stageCode; }
+    public OrgRoleType getRequiredRole() { return requiredRole; }
+    public void setRequiredRole(OrgRoleType requiredRole) { this.requiredRole = requiredRole; }
+    public Setor getScopeSetor() { return scopeSetor; }
+    public void setScopeSetor(Setor scopeSetor) { this.scopeSetor = scopeSetor; }
+    public ApprovalStepStatus getStatus() { return status; }
+    public void setStatus(ApprovalStepStatus status) { this.status = status; }
+    public ApprovalDecision getDecision() { return decision; }
+    public void setDecision(ApprovalDecision decision) { this.decision = decision; }
+    public User getDecidedBy() { return decidedBy; }
+    public void setDecidedBy(User decidedBy) { this.decidedBy = decidedBy; }
+    public LocalDateTime getDecidedAt() { return decidedAt; }
+    public void setDecidedAt(LocalDateTime decidedAt) { this.decidedAt = decidedAt; }
+    public String getComment() { return comment; }
+    public void setComment(String comment) { this.comment = comment; }
+    public String getReturnToStageCode() { return returnToStageCode; }
+    public void setReturnToStageCode(String returnToStageCode) { this.returnToStageCode = returnToStageCode; }
+    public Integer getApprovalsCount() { return approvalsCount; }
+    public void setApprovalsCount(Integer approvalsCount) { this.approvalsCount = approvalsCount; }
 }

@@ -29,4 +29,11 @@ public class ApprovalAttachment {
     public void setId(Long id) {
         this.id = id;
     }
+
+    public ApprovalRequest getRequest() { return request; }
+    public void setRequest(ApprovalRequest request) { this.request = request; }
+    public EvidenciaArquivo getArquivo() { return arquivo; }
+    public void setArquivo(EvidenciaArquivo arquivo) { this.arquivo = arquivo; }
+    public String getNota() { return nota; }
+    public void setNota(String nota) { this.nota = nota; }
 }

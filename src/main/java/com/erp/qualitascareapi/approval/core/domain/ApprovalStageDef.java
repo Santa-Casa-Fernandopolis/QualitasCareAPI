@@ -38,6 +38,15 @@ public class ApprovalStageDef {
     @Column(nullable=false)
     private Boolean dualApproval = Boolean.FALSE;
 
+    @Column(nullable = false)
+    private Boolean enabled = Boolean.TRUE;
+
+    @Column(nullable = false)
+    private Boolean optional = Boolean.FALSE;
+
+    @Column(length = 120)
+    private String conditionKey;
+
     public ApprovalStageDef() {}
 
     public Long getId() {
@@ -47,5 +56,25 @@ public class ApprovalStageDef {
     public void setId(Long id) {
         this.id = id;
     }
-}
 
+    public ApprovalFlowDef getFlowDef() { return flowDef; }
+    public void setFlowDef(ApprovalFlowDef flowDef) { this.flowDef = flowDef; }
+    public Integer getOrder() { return order; }
+    public void setOrder(Integer order) { this.order = order; }
+    public String getStageCode() { return stageCode; }
+    public void setStageCode(String stageCode) { this.stageCode = stageCode; }
+    public OrgRoleType getRequiredRole() { return requiredRole; }
+    public void setRequiredRole(OrgRoleType requiredRole) { this.requiredRole = requiredRole; }
+    public Boolean getScopeByTargetSetor() { return scopeByTargetSetor; }
+    public void setScopeByTargetSetor(Boolean scopeByTargetSetor) { this.scopeByTargetSetor = scopeByTargetSetor; }
+    public Integer getMinApprovers() { return minApprovers; }
+    public void setMinApprovers(Integer minApprovers) { this.minApprovers = minApprovers; }
+    public Boolean getDualApproval() { return dualApproval; }
+    public void setDualApproval(Boolean dualApproval) { this.dualApproval = dualApproval; }
+    public Boolean getEnabled() { return enabled; }
+    public void setEnabled(Boolean enabled) { this.enabled = enabled; }
+    public Boolean getOptional() { return optional; }
+    public void setOptional(Boolean optional) { this.optional = optional; }
+    public String getConditionKey() { return conditionKey; }
+    public void setConditionKey(String conditionKey) { this.conditionKey = conditionKey; }
+}

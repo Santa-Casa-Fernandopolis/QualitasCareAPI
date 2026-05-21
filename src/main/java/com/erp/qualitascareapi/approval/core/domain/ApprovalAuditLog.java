@@ -31,5 +31,19 @@ public class ApprovalAuditLog {
     private String data;
 
     public ApprovalAuditLog() {}
-    // getters/setters …
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public ApprovalRequest getRequest() { return request; }
+    public void setRequest(ApprovalRequest request) { this.request = request; }
+    public Integer getStepOrder() { return stepOrder; }
+    public void setStepOrder(Integer stepOrder) { this.stepOrder = stepOrder; }
+    public String getEvent() { return event; }
+    public void setEvent(String event) { this.event = event; }
+    public LocalDateTime getWhenOccurred() { return whenOccurred; }
+    public void setWhenOccurred(LocalDateTime whenOccurred) { this.whenOccurred = whenOccurred; }
+    public User getWho() { return who; }
+    public void setWho(User who) { this.who = who; }
+    public String getData() { return data; }
+    public void setData(String data) { this.data = data; }
 }

@@ -4,5 +4,8 @@ public enum ApprovalStepStatus {
     PENDENTE,
     APROVADA,
     REJEITADA,
-    PULADA
+    EM_AJUSTE,
+    RETORNADA,
+    PULADA,
+    CANCELADA
 }

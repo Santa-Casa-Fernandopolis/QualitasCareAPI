@@ -56,7 +56,7 @@ public class Document {
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name="versao_atual_id")
     private DocumentVersion versaoAtual;
 
-    @Column(length = 30)
+    @Column(name = "nivel_ona_target", length = 30)
     private String nivelONATarget;
 
     @Column(length = 500)
@@ -67,6 +67,14 @@ public class Document {
 
     @Column(nullable = false)
     private Boolean exigeTreinamento = Boolean.FALSE;
+
+    @Column(nullable = false)
+    private Boolean necessitaParecerJuridico = Boolean.FALSE;
+
+    private Integer periodicidadeRevisaoMeses;
+
+    @Column(length = 500)
+    private String observacoesFluxo;
 
     @ManyToMany
     @JoinTable(
@@ -97,6 +105,9 @@ public class Document {
     public String getRegulacoes() { return regulacoes; }
     public RetentionPolicy getPoliticaRetencao() { return politicaRetencao; }
     public Boolean getExigeTreinamento() { return exigeTreinamento; }
+    public Boolean getNecessitaParecerJuridico() { return necessitaParecerJuridico; }
+    public Integer getPeriodicidadeRevisaoMeses() { return periodicidadeRevisaoMeses; }
+    public String getObservacoesFluxo() { return observacoesFluxo; }
     public Set<DocTag> getTags() { return tags; }
 
     public void setId(Long id) { this.id = id; }
@@ -115,5 +126,8 @@ public class Document {
     public void setRegulacoes(String regulacoes) { this.regulacoes = regulacoes; }
     public void setPoliticaRetencao(RetentionPolicy politicaRetencao) { this.politicaRetencao = politicaRetencao; }
     public void setExigeTreinamento(Boolean exigeTreinamento) { this.exigeTreinamento = exigeTreinamento; }
+    public void setNecessitaParecerJuridico(Boolean necessitaParecerJuridico) { this.necessitaParecerJuridico = necessitaParecerJuridico; }
+    public void setPeriodicidadeRevisaoMeses(Integer periodicidadeRevisaoMeses) { this.periodicidadeRevisaoMeses = periodicidadeRevisaoMeses; }
+    public void setObservacoesFluxo(String observacoesFluxo) { this.observacoesFluxo = observacoesFluxo; }
     public void setTags(Set<DocTag> tags) { this.tags = tags; }
 }
