@@ -10,6 +10,8 @@ public record MonitoramentoAmbientalDto(
         Long id,
         Long tenantId,
         LocalDateTime dataHora,
+        Long ambienteId,
+        String ambienteNome,
         TipoAmbiente tipoAmbiente,
         String localSala,
         Double temperaturaCelsius,

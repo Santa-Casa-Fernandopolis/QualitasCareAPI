@@ -14,6 +14,7 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
+
 /**
  * Registro periódico de parâmetros ambientais (temperatura, umidade, pressão diferencial)
  * em salas e áreas controladas do hospital.
@@ -41,6 +42,19 @@ public class MonitoramentoAmbiental {
     @Column(name = "data_hora", nullable = false)
     private LocalDateTime dataHora;
 
+    /**
+     * Ambiente/sala cadastrado onde a medição foi realizada.
+     * Quando vinculado, o resultado pode ser avaliado automaticamente
+     * com base nos parâmetros alvo do ambiente.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ambiente_id")
+    private Ambiente ambiente;
+
+    /**
+     * Tipo do ambiente — preenchido diretamente quando não há cadastro de {@link Ambiente}.
+     * Se {@code ambiente} estiver vinculado, este campo é opcional (derivado do ambiente).
+     */
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo_ambiente", length = 40)
     private TipoAmbiente tipoAmbiente;
@@ -80,6 +94,8 @@ public class MonitoramentoAmbiental {
     public void setTenant(Tenant tenant) { this.tenant = tenant; }
     public LocalDateTime getDataHora() { return dataHora; }
     public void setDataHora(LocalDateTime dataHora) { this.dataHora = dataHora; }
+    public Ambiente getAmbiente() { return ambiente; }
+    public void setAmbiente(Ambiente ambiente) { this.ambiente = ambiente; }
     public TipoAmbiente getTipoAmbiente() { return tipoAmbiente; }
     public void setTipoAmbiente(TipoAmbiente tipoAmbiente) { this.tipoAmbiente = tipoAmbiente; }
     public String getLocalSala() { return localSala; }

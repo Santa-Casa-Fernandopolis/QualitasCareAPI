@@ -3,13 +3,10 @@ package com.erp.qualitascareapi.environmental.application;
 import com.erp.qualitascareapi.common.domain.EvidenciaArquivo;
 import com.erp.qualitascareapi.common.repo.EvidenciaArquivoRepository;
 import com.erp.qualitascareapi.environmental.api.dto.*;
-import com.erp.qualitascareapi.environmental.domain.GeladeiraMedicamentos;
-import com.erp.qualitascareapi.environmental.domain.MonitoramentoAmbiental;
-import com.erp.qualitascareapi.environmental.domain.RegistroTemperaturaGeladeira;
+import com.erp.qualitascareapi.environmental.domain.*;
 import com.erp.qualitascareapi.environmental.enums.ResultadoMonitoramento;
-import com.erp.qualitascareapi.environmental.repo.GeladeiraMedicamentosRepository;
-import com.erp.qualitascareapi.environmental.repo.MonitoramentoAmbientalRepository;
-import com.erp.qualitascareapi.environmental.repo.RegistroTemperaturaGeladeiraRepository;
+import com.erp.qualitascareapi.environmental.enums.TipoDispositivoIoT;
+import com.erp.qualitascareapi.environmental.repo.*;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.domain.User;
 import com.erp.qualitascareapi.iam.repo.TenantRepository;
@@ -21,9 +18,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -33,56 +32,153 @@ public class EnvironmentalService {
     private final TenantRepository tenantRepository;
     private final UserRepository userRepository;
     private final EvidenciaArquivoRepository evidenciaArquivoRepository;
+    private final AmbienteRepository ambienteRepository;
     private final MonitoramentoAmbientalRepository monitoramentoRepository;
     private final GeladeiraMedicamentosRepository geladeiraRepository;
     private final RegistroTemperaturaGeladeiraRepository registroRepository;
+    private final DispositivoIoTRepository dispositivoRepository;
     private final TenantScopeGuard tenantScopeGuard;
 
     public EnvironmentalService(TenantRepository tenantRepository,
                                 UserRepository userRepository,
                                 EvidenciaArquivoRepository evidenciaArquivoRepository,
+                                AmbienteRepository ambienteRepository,
                                 MonitoramentoAmbientalRepository monitoramentoRepository,
                                 GeladeiraMedicamentosRepository geladeiraRepository,
                                 RegistroTemperaturaGeladeiraRepository registroRepository,
+                                DispositivoIoTRepository dispositivoRepository,
                                 TenantScopeGuard tenantScopeGuard) {
         this.tenantRepository = tenantRepository;
         this.userRepository = userRepository;
         this.evidenciaArquivoRepository = evidenciaArquivoRepository;
+        this.ambienteRepository = ambienteRepository;
         this.monitoramentoRepository = monitoramentoRepository;
         this.geladeiraRepository = geladeiraRepository;
         this.registroRepository = registroRepository;
+        this.dispositivoRepository = dispositivoRepository;
         this.tenantScopeGuard = tenantScopeGuard;
     }
 
-    // ---- Monitoramento Ambiental ----
+    // ============================================================
+    // Ambiente (salas e áreas monitoradas)
+    // ============================================================
+
+    public AmbienteDto cadastrarAmbiente(AmbienteRequest request) {
+        tenantScopeGuard.checkRequestedTenant(request.tenantId());
+        Tenant tenant = loadTenant(request.tenantId());
+
+        Ambiente a = new Ambiente();
+        a.setTenant(tenant);
+        applyAmbienteFields(a, request);
+        return toAmbienteDto(ambienteRepository.save(a));
+    }
+
+    public AmbienteDto updateAmbiente(Long id, AmbienteRequest request) {
+        Ambiente a = ambienteRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Ambiente não encontrado"));
+        tenantScopeGuard.checkRequestedTenant(a.getTenant().getId());
+        applyAmbienteFields(a, request);
+        return toAmbienteDto(ambienteRepository.save(a));
+    }
+
+    public AmbienteDto toggleAmbienteStatus(Long id, boolean ativo) {
+        Ambiente a = ambienteRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Ambiente não encontrado"));
+        tenantScopeGuard.checkRequestedTenant(a.getTenant().getId());
+        a.setAtivo(ativo);
+        return toAmbienteDto(ambienteRepository.save(a));
+    }
+
+    @Transactional(readOnly = true)
+    public Page<AmbienteDto> listAmbientes(Boolean ativo, Pageable pageable) {
+        Long tenantId = tenantScopeGuard.currentTenantId();
+        Page<Ambiente> page = ativo != null
+                ? ambienteRepository.findAllByTenantIdAndAtivo(tenantId, ativo, pageable)
+                : ambienteRepository.findAllByTenantId(tenantId, pageable);
+        return page.map(this::toAmbienteDto);
+    }
+
+    @Transactional(readOnly = true)
+    public AmbienteDto findAmbienteById(Long id) {
+        return ambienteRepository.findById(id)
+                .map(this::toAmbienteDto)
+                .orElseThrow(() -> new EntityNotFoundException("Ambiente não encontrado"));
+    }
+
+    private void applyAmbienteFields(Ambiente a, AmbienteRequest r) {
+        a.setNome(r.nome());
+        a.setTipoAmbiente(r.tipoAmbiente());
+        a.setBloco(r.bloco());
+        a.setAndar(r.andar());
+        a.setSetor(r.setor());
+        a.setTemperaturaMinCelsius(r.temperaturaMinCelsius());
+        a.setTemperaturaMaxCelsius(r.temperaturaMaxCelsius());
+        a.setUmidadeMinPercentual(r.umidadeMinPercentual());
+        a.setUmidadeMaxPercentual(r.umidadeMaxPercentual());
+        a.setPressaoMinPa(r.pressaoMinPa());
+        a.setPressaoMaxPa(r.pressaoMaxPa());
+        if (r.ativo() != null) a.setAtivo(r.ativo());
+        a.setObservacoes(r.observacoes());
+    }
+
+    private AmbienteDto toAmbienteDto(Ambiente a) {
+        return new AmbienteDto(
+                a.getId(), a.getTenant().getId(), a.getNome(), a.getTipoAmbiente(),
+                a.getBloco(), a.getAndar(), a.getSetor(),
+                a.getTemperaturaMinCelsius(), a.getTemperaturaMaxCelsius(),
+                a.getUmidadeMinPercentual(), a.getUmidadeMaxPercentual(),
+                a.getPressaoMinPa(), a.getPressaoMaxPa(),
+                a.isAtivo(), a.getObservacoes());
+    }
+
+    // ============================================================
+    // Monitoramento Ambiental (temperatura, umidade, pressão diferencial)
+    // ============================================================
 
     public MonitoramentoAmbientalDto registrarMonitoramento(MonitoramentoAmbientalRequest request) {
         tenantScopeGuard.checkRequestedTenant(request.tenantId());
-        Tenant tenant = tenantRepository.findById(request.tenantId())
-                .orElseThrow(() -> new EntityNotFoundException("Tenant não encontrado"));
+        Tenant tenant = loadTenant(request.tenantId());
 
         MonitoramentoAmbiental m = new MonitoramentoAmbiental();
         m.setTenant(tenant);
         m.setDataHora(request.dataHora());
-        m.setTipoAmbiente(request.tipoAmbiente());
+
+        Ambiente ambiente = null;
+        if (request.ambienteId() != null) {
+            ambiente = ambienteRepository.findById(request.ambienteId())
+                    .orElseThrow(() -> new EntityNotFoundException("Ambiente não encontrado"));
+            m.setAmbiente(ambiente);
+            m.setTipoAmbiente(ambiente.getTipoAmbiente());
+        } else {
+            m.setTipoAmbiente(request.tipoAmbiente());
+        }
+
         m.setLocalSala(request.localSala());
         m.setTemperaturaCelsius(request.temperaturaCelsius());
         m.setUmidadeRelativa(request.umidadeRelativa());
         m.setPressaoDiferencialPa(request.pressaoDiferencialPa());
-        m.setResultado(request.resultado());
-        if (request.responsavelId() != null) {
-            m.setResponsavel(loadUser(request.responsavelId()));
+
+        ResultadoMonitoramento resultado = request.resultado();
+        if (resultado == null) {
+            resultado = avaliarResultadoAmbiental(
+                    request.temperaturaCelsius(), request.umidadeRelativa(),
+                    request.pressaoDiferencialPa(), ambiente);
         }
+        m.setResultado(resultado);
+
+        if (request.responsavelId() != null) m.setResponsavel(loadUser(request.responsavelId()));
         m.setObservacoes(request.observacoes());
         m.setEvidencias(loadEvidencias(request.evidenciasIds()));
         return toMonitoramentoDto(monitoramentoRepository.save(m));
     }
 
+    @Transactional(readOnly = true)
     public Page<MonitoramentoAmbientalDto> listMonitoramentos(Pageable pageable) {
         return monitoramentoRepository.findAllByTenantId(tenantScopeGuard.currentTenantId(), pageable)
                 .map(this::toMonitoramentoDto);
     }
 
+    @Transactional(readOnly = true)
     public MonitoramentoAmbientalDto findMonitoramentoById(Long id) {
         return monitoramentoRepository.findById(id)
                 .map(this::toMonitoramentoDto)
@@ -90,8 +186,11 @@ public class EnvironmentalService {
     }
 
     private MonitoramentoAmbientalDto toMonitoramentoDto(MonitoramentoAmbiental m) {
+        Ambiente amb = m.getAmbiente();
         return new MonitoramentoAmbientalDto(
                 m.getId(), m.getTenant().getId(), m.getDataHora(),
+                amb != null ? amb.getId() : null,
+                amb != null ? amb.getNome() : null,
                 m.getTipoAmbiente(), m.getLocalSala(),
                 m.getTemperaturaCelsius(), m.getUmidadeRelativa(), m.getPressaoDiferencialPa(),
                 m.getResultado(),
@@ -99,26 +198,17 @@ public class EnvironmentalService {
                 m.getObservacoes(), toIdSet(m.getEvidencias()));
     }
 
-    // ---- Geladeira de Medicamentos / Vacinas ----
+    // ============================================================
+    // Geladeira de Medicamentos / Vacinas
+    // ============================================================
 
     public GeladeiraMedicamentosDto cadastrarGeladeira(GeladeiraMedicamentosRequest request) {
         tenantScopeGuard.checkRequestedTenant(request.tenantId());
-        Tenant tenant = tenantRepository.findById(request.tenantId())
-                .orElseThrow(() -> new EntityNotFoundException("Tenant não encontrado"));
+        Tenant tenant = loadTenant(request.tenantId());
 
         GeladeiraMedicamentos g = new GeladeiraMedicamentos();
         g.setTenant(tenant);
-        g.setNome(request.nome());
-        g.setTipoUso(request.tipoUso());
-        g.setLocalSala(request.localSala());
-        g.setFabricante(request.fabricante());
-        g.setModelo(request.modelo());
-        g.setNumeroSerie(request.numeroSerie());
-        g.setTemperaturaMinCelsius(request.temperaturaMinCelsius());
-        g.setTemperaturaMaxCelsius(request.temperaturaMaxCelsius());
-        g.setFrequenciaLeituraHoras(request.frequenciaLeituraHoras());
-        g.setAtivo(request.ativo() != null ? request.ativo() : true);
-        g.setObservacoes(request.observacoes());
+        applyGeladeiraFields(g, request);
         return toGeladeiraDto(geladeiraRepository.save(g));
     }
 
@@ -126,18 +216,7 @@ public class EnvironmentalService {
         GeladeiraMedicamentos g = geladeiraRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Geladeira não encontrada"));
         tenantScopeGuard.checkRequestedTenant(g.getTenant().getId());
-
-        g.setNome(request.nome());
-        g.setTipoUso(request.tipoUso());
-        g.setLocalSala(request.localSala());
-        g.setFabricante(request.fabricante());
-        g.setModelo(request.modelo());
-        g.setNumeroSerie(request.numeroSerie());
-        g.setTemperaturaMinCelsius(request.temperaturaMinCelsius());
-        g.setTemperaturaMaxCelsius(request.temperaturaMaxCelsius());
-        g.setFrequenciaLeituraHoras(request.frequenciaLeituraHoras());
-        if (request.ativo() != null) g.setAtivo(request.ativo());
-        g.setObservacoes(request.observacoes());
+        applyGeladeiraFields(g, request);
         return toGeladeiraDto(geladeiraRepository.save(g));
     }
 
@@ -149,15 +228,31 @@ public class EnvironmentalService {
         return toGeladeiraDto(geladeiraRepository.save(g));
     }
 
+    @Transactional(readOnly = true)
     public Page<GeladeiraMedicamentosDto> listGeladeiras(Pageable pageable) {
         return geladeiraRepository.findAllByTenantId(tenantScopeGuard.currentTenantId(), pageable)
                 .map(this::toGeladeiraDto);
     }
 
+    @Transactional(readOnly = true)
     public GeladeiraMedicamentosDto findGeladeiraById(Long id) {
         return geladeiraRepository.findById(id)
                 .map(this::toGeladeiraDto)
                 .orElseThrow(() -> new EntityNotFoundException("Geladeira não encontrada"));
+    }
+
+    private void applyGeladeiraFields(GeladeiraMedicamentos g, GeladeiraMedicamentosRequest r) {
+        g.setNome(r.nome());
+        g.setTipoUso(r.tipoUso());
+        g.setLocalSala(r.localSala());
+        g.setFabricante(r.fabricante());
+        g.setModelo(r.modelo());
+        g.setNumeroSerie(r.numeroSerie());
+        g.setTemperaturaMinCelsius(r.temperaturaMinCelsius());
+        g.setTemperaturaMaxCelsius(r.temperaturaMaxCelsius());
+        g.setFrequenciaLeituraHoras(r.frequenciaLeituraHoras());
+        if (r.ativo() != null) g.setAtivo(r.ativo());
+        g.setObservacoes(r.observacoes());
     }
 
     private GeladeiraMedicamentosDto toGeladeiraDto(GeladeiraMedicamentos g) {
@@ -168,36 +263,25 @@ public class EnvironmentalService {
                 g.getFrequenciaLeituraHoras(), g.isAtivo(), g.getObservacoes());
     }
 
-    // ---- Registro de Temperatura de Geladeira ----
+    // ============================================================
+    // Registro de Temperatura de Geladeira
+    // ============================================================
 
     public RegistroTemperaturaGeladeiraDto registrarTemperatura(RegistroTemperaturaGeladeiraRequest request) {
         tenantScopeGuard.checkRequestedTenant(request.tenantId());
-        Tenant tenant = tenantRepository.findById(request.tenantId())
-                .orElseThrow(() -> new EntityNotFoundException("Tenant não encontrado"));
+        Tenant tenant = loadTenant(request.tenantId());
         GeladeiraMedicamentos geladeira = geladeiraRepository.findById(request.geladeiraId())
                 .orElseThrow(() -> new EntityNotFoundException("Geladeira não encontrada"));
 
-        RegistroTemperaturaGeladeira r = new RegistroTemperaturaGeladeira();
-        r.setTenant(tenant);
-        r.setGeladeira(geladeira);
-        r.setDataHora(request.dataHora());
-        r.setTemperaturaCelsius(request.temperaturaCelsius());
-        r.setUmidadeRelativa(request.umidadeRelativa());
-
-        // Auto-avalia o resultado com base nos limites da geladeira (se não fornecido)
-        ResultadoMonitoramento resultado = request.resultado();
-        if (resultado == null) {
-            resultado = avaliarResultado(request.temperaturaCelsius(), geladeira);
-        }
-        r.setResultado(resultado);
-        r.setAcaoCorretiva(request.acaoCorretiva());
-        if (request.responsavelId() != null) {
-            r.setResponsavel(loadUser(request.responsavelId()));
-        }
-        r.setObservacoes(request.observacoes());
+        RegistroTemperaturaGeladeira r = buildRegistroTemperatura(tenant, geladeira,
+                request.dataHora(), request.temperaturaCelsius(), request.umidadeRelativa(),
+                request.resultado(), request.acaoCorretiva(),
+                request.responsavelId() != null ? loadUser(request.responsavelId()) : null,
+                request.observacoes());
         return toRegistroDto(registroRepository.save(r));
     }
 
+    @Transactional(readOnly = true)
     public Page<RegistroTemperaturaGeladeiraDto> listRegistros(Long geladeiraId, Pageable pageable) {
         Long tenantId = tenantScopeGuard.currentTenantId();
         Page<RegistroTemperaturaGeladeira> page = geladeiraId != null
@@ -206,25 +290,31 @@ public class EnvironmentalService {
         return page.map(this::toRegistroDto);
     }
 
+    @Transactional(readOnly = true)
     public RegistroTemperaturaGeladeiraDto findRegistroById(Long id) {
         return registroRepository.findById(id)
                 .map(this::toRegistroDto)
                 .orElseThrow(() -> new EntityNotFoundException("Registro de temperatura não encontrado"));
     }
 
-    /** Avalia o resultado automaticamente comparando a temperatura lida com os limites da geladeira. */
-    private ResultadoMonitoramento avaliarResultado(double temp, GeladeiraMedicamentos geladeira) {
-        Double min = geladeira.getTemperaturaMinCelsius();
-        Double max = geladeira.getTemperaturaMaxCelsius();
-        if (min == null || max == null) return ResultadoMonitoramento.CONFORME;
+    private RegistroTemperaturaGeladeira buildRegistroTemperatura(
+            Tenant tenant, GeladeiraMedicamentos geladeira,
+            LocalDateTime dataHora, Double tempC, Double umidade,
+            ResultadoMonitoramento resultadoOverride,
+            String acaoCorretiva, User responsavel, String observacoes) {
 
-        // Margem de alerta: 10% da faixa total
-        double faixa = max - min;
-        double margem = faixa * 0.10;
-
-        if (temp < min || temp > max) return ResultadoMonitoramento.NAO_CONFORME;
-        if (temp < (min + margem) || temp > (max - margem)) return ResultadoMonitoramento.ALERTA;
-        return ResultadoMonitoramento.CONFORME;
+        RegistroTemperaturaGeladeira r = new RegistroTemperaturaGeladeira();
+        r.setTenant(tenant);
+        r.setGeladeira(geladeira);
+        r.setDataHora(dataHora != null ? dataHora : LocalDateTime.now());
+        r.setTemperaturaCelsius(tempC != null ? tempC : 0.0);
+        r.setUmidadeRelativa(umidade);
+        r.setResultado(resultadoOverride != null ? resultadoOverride
+                : avaliarResultadoGeladeira(tempC != null ? tempC : 0.0, geladeira));
+        r.setAcaoCorretiva(acaoCorretiva);
+        r.setResponsavel(responsavel);
+        r.setObservacoes(observacoes);
+        return r;
     }
 
     private RegistroTemperaturaGeladeiraDto toRegistroDto(RegistroTemperaturaGeladeira r) {
@@ -237,7 +327,222 @@ public class EnvironmentalService {
                 r.getObservacoes());
     }
 
-    // ---- helpers ----
+    // ============================================================
+    // Dispositivos IoT
+    // ============================================================
+
+    public DispositivoIoTDto cadastrarDispositivo(DispositivoIoTRequest request) {
+        tenantScopeGuard.checkRequestedTenant(request.tenantId());
+        Tenant tenant = loadTenant(request.tenantId());
+        validarVinculoDispositivo(request);
+
+        DispositivoIoT d = new DispositivoIoT();
+        d.setTenant(tenant);
+        d.setDeviceId(request.deviceId());
+        d.setTipo(request.tipo());
+        d.setApiKey(UUID.randomUUID().toString().replace("-", ""));
+        d.setAtivo(request.ativo() != null ? request.ativo() : true);
+        d.setDescricao(request.descricao());
+        d.setLocalInstalacao(request.localInstalacao());
+
+        if (request.geladeiraId() != null) {
+            d.setGeladeira(geladeiraRepository.findById(request.geladeiraId())
+                    .orElseThrow(() -> new EntityNotFoundException("Geladeira não encontrada")));
+        }
+        if (request.ambienteId() != null) {
+            d.setAmbiente(ambienteRepository.findById(request.ambienteId())
+                    .orElseThrow(() -> new EntityNotFoundException("Ambiente não encontrado")));
+        }
+        return toDispositivoDto(dispositivoRepository.save(d));
+    }
+
+    public DispositivoIoTDto toggleDispositivoStatus(Long id, boolean ativo) {
+        DispositivoIoT d = dispositivoRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Dispositivo IoT não encontrado"));
+        tenantScopeGuard.checkRequestedTenant(d.getTenant().getId());
+        d.setAtivo(ativo);
+        return toDispositivoDto(dispositivoRepository.save(d));
+    }
+
+    public DispositivoIoTDto regenerarApiKey(Long id) {
+        DispositivoIoT d = dispositivoRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Dispositivo IoT não encontrado"));
+        tenantScopeGuard.checkRequestedTenant(d.getTenant().getId());
+        d.setApiKey(UUID.randomUUID().toString().replace("-", ""));
+        return toDispositivoDto(dispositivoRepository.save(d));
+    }
+
+    @Transactional(readOnly = true)
+    public Page<DispositivoIoTDto> listDispositivos(Pageable pageable) {
+        return dispositivoRepository.findAllByTenantId(tenantScopeGuard.currentTenantId(), pageable)
+                .map(this::toDispositivoDto);
+    }
+
+    @Transactional(readOnly = true)
+    public DispositivoIoTDto findDispositivoById(Long id) {
+        return dispositivoRepository.findById(id)
+                .map(this::toDispositivoDto)
+                .orElseThrow(() -> new EntityNotFoundException("Dispositivo IoT não encontrado"));
+    }
+
+    private void validarVinculoDispositivo(DispositivoIoTRequest r) {
+        if (r.tipo() == TipoDispositivoIoT.TEMPERATURA_GELADEIRA && r.geladeiraId() == null) {
+            throw new IllegalArgumentException("geladeiraId é obrigatório para dispositivos do tipo TEMPERATURA_GELADEIRA");
+        }
+        if (r.tipo() == TipoDispositivoIoT.MONITORAMENTO_AMBIENTAL && r.ambienteId() == null) {
+            throw new IllegalArgumentException("ambienteId é obrigatório para dispositivos do tipo MONITORAMENTO_AMBIENTAL");
+        }
+    }
+
+    private DispositivoIoTDto toDispositivoDto(DispositivoIoT d) {
+        GeladeiraMedicamentos gel = d.getGeladeira();
+        Ambiente amb = d.getAmbiente();
+        return new DispositivoIoTDto(
+                d.getId(), d.getTenant().getId(), d.getDeviceId(), d.getTipo(), d.getApiKey(),
+                gel != null ? gel.getId() : null, gel != null ? gel.getNome() : null,
+                amb != null ? amb.getId() : null, amb != null ? amb.getNome() : null,
+                d.isAtivo(), d.getDescricao(), d.getLocalInstalacao(), d.getUltimaLeitura());
+    }
+
+    // ============================================================
+    // IoT — processamento de leitura recebida via X-Device-Key
+    // ============================================================
+
+    /**
+     * Processa uma leitura enviada por um dispositivo IoT autenticado.
+     * Roteia para {@link RegistroTemperaturaGeladeira} ou {@link MonitoramentoAmbiental}
+     * de acordo com o tipo do dispositivo. Atualiza {@code ultimaLeitura} do dispositivo.
+     */
+    public IoTLeituraResponse processarLeituraIoT(DispositivoIoT dispositivo, IoTLeituraRequest leitura) {
+        LocalDateTime agora = LocalDateTime.now();
+        LocalDateTime dataHora = leitura.dataHora() != null ? leitura.dataHora() : agora;
+
+        // Atualiza timestamp de última leitura
+        dispositivo.setUltimaLeitura(agora);
+        dispositivoRepository.save(dispositivo);
+
+        return switch (dispositivo.getTipo()) {
+            case TEMPERATURA_GELADEIRA -> processarLeituraGeladeira(dispositivo, leitura, dataHora);
+            case MONITORAMENTO_AMBIENTAL -> processarLeituraAmbiental(dispositivo, leitura, dataHora);
+        };
+    }
+
+    private IoTLeituraResponse processarLeituraGeladeira(DispositivoIoT d, IoTLeituraRequest leitura,
+                                                          LocalDateTime dataHora) {
+        if (leitura.temperaturaC() == null) {
+            throw new IllegalArgumentException("temperaturaC é obrigatório para dispositivos de geladeira");
+        }
+        GeladeiraMedicamentos geladeira = d.getGeladeira();
+        if (geladeira == null) {
+            throw new IllegalStateException("Dispositivo " + d.getDeviceId() + " não está vinculado a uma geladeira");
+        }
+
+        RegistroTemperaturaGeladeira r = buildRegistroTemperatura(
+                geladeira.getTenant(), geladeira,
+                dataHora, leitura.temperaturaC(), leitura.umidade(),
+                null, null, null, "Leitura automática IoT — " + d.getDeviceId());
+
+        RegistroTemperaturaGeladeira saved = registroRepository.save(r);
+        return new IoTLeituraResponse(TipoDispositivoIoT.TEMPERATURA_GELADEIRA,
+                saved.getId(), saved.getResultado(), LocalDateTime.now());
+    }
+
+    private IoTLeituraResponse processarLeituraAmbiental(DispositivoIoT d, IoTLeituraRequest leitura,
+                                                          LocalDateTime dataHora) {
+        Ambiente ambiente = d.getAmbiente();
+        if (ambiente == null) {
+            throw new IllegalStateException("Dispositivo " + d.getDeviceId() + " não está vinculado a um ambiente");
+        }
+
+        MonitoramentoAmbiental m = new MonitoramentoAmbiental();
+        m.setTenant(ambiente.getTenant());
+        m.setDataHora(dataHora);
+        m.setAmbiente(ambiente);
+        m.setTipoAmbiente(ambiente.getTipoAmbiente());
+        m.setTemperaturaCelsius(leitura.temperaturaC());
+        m.setUmidadeRelativa(leitura.umidade());
+        m.setPressaoDiferencialPa(leitura.pressaoPa());
+        m.setResultado(avaliarResultadoAmbiental(
+                leitura.temperaturaC(), leitura.umidade(), leitura.pressaoPa(), ambiente));
+        m.setObservacoes("Leitura automática IoT — " + d.getDeviceId());
+
+        MonitoramentoAmbiental saved = monitoramentoRepository.save(m);
+        return new IoTLeituraResponse(TipoDispositivoIoT.MONITORAMENTO_AMBIENTAL,
+                saved.getId(), saved.getResultado(), LocalDateTime.now());
+    }
+
+    // ============================================================
+    // Avaliação automática de conformidade
+    // ============================================================
+
+    /**
+     * Avalia o resultado de temperatura de geladeira com margem de alerta de 10% da faixa.
+     */
+    private ResultadoMonitoramento avaliarResultadoGeladeira(double temp, GeladeiraMedicamentos geladeira) {
+        Double min = geladeira.getTemperaturaMinCelsius();
+        Double max = geladeira.getTemperaturaMaxCelsius();
+        if (min == null || max == null) return ResultadoMonitoramento.CONFORME;
+
+        double faixa = max - min;
+        double margem = faixa * 0.10;
+
+        if (temp < min || temp > max) return ResultadoMonitoramento.NAO_CONFORME;
+        if (temp < (min + margem) || temp > (max - margem)) return ResultadoMonitoramento.ALERTA;
+        return ResultadoMonitoramento.CONFORME;
+    }
+
+    /**
+     * Avalia o resultado de monitoramento ambiental comparando temperatura, umidade
+     * e pressão diferencial com os parâmetros alvo do ambiente cadastrado.
+     * Qualquer parâmetro fora do range resulta em NAO_CONFORME.
+     * Qualquer parâmetro dentro de 10% do limite resulta em ALERTA.
+     * Se o ambiente não tem parâmetros configurados, retorna CONFORME.
+     */
+    private ResultadoMonitoramento avaliarResultadoAmbiental(Double temp, Double umidade,
+                                                              Double pressao, Ambiente ambiente) {
+        if (ambiente == null) return ResultadoMonitoramento.CONFORME;
+
+        ResultadoMonitoramento pior = ResultadoMonitoramento.CONFORME;
+
+        pior = pior(pior, avaliarParametro(temp, ambiente.getTemperaturaMinCelsius(), ambiente.getTemperaturaMaxCelsius()));
+        pior = pior(pior, avaliarParametro(umidade, ambiente.getUmidadeMinPercentual(), ambiente.getUmidadeMaxPercentual()));
+        pior = pior(pior, avaliarParametro(pressao, ambiente.getPressaoMinPa(), ambiente.getPressaoMaxPa()));
+
+        return pior;
+    }
+
+    private ResultadoMonitoramento avaliarParametro(Double valor, Double min, Double max) {
+        if (valor == null || (min == null && max == null)) return ResultadoMonitoramento.CONFORME;
+        if (min != null && max != null) {
+            double faixa = max - min;
+            double margem = faixa * 0.10;
+            if (valor < min || valor > max) return ResultadoMonitoramento.NAO_CONFORME;
+            if (valor < (min + margem) || valor > (max - margem)) return ResultadoMonitoramento.ALERTA;
+        } else if (min != null && valor < min) {
+            return ResultadoMonitoramento.NAO_CONFORME;
+        } else if (max != null && valor > max) {
+            return ResultadoMonitoramento.NAO_CONFORME;
+        }
+        return ResultadoMonitoramento.CONFORME;
+    }
+
+    /** Retorna o resultado mais grave entre dois. */
+    private ResultadoMonitoramento pior(ResultadoMonitoramento a, ResultadoMonitoramento b) {
+        if (a == ResultadoMonitoramento.NAO_CONFORME || b == ResultadoMonitoramento.NAO_CONFORME)
+            return ResultadoMonitoramento.NAO_CONFORME;
+        if (a == ResultadoMonitoramento.ALERTA || b == ResultadoMonitoramento.ALERTA)
+            return ResultadoMonitoramento.ALERTA;
+        return ResultadoMonitoramento.CONFORME;
+    }
+
+    // ============================================================
+    // Helpers
+    // ============================================================
+
+    private Tenant loadTenant(Long id) {
+        return tenantRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Tenant não encontrado"));
+    }
 
     private User loadUser(Long id) {
         return userRepository.findById(id)

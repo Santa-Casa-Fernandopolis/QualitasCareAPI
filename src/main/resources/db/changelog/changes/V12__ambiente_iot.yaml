@@ -1,0 +1,225 @@
+databaseChangeLog:
+
+  # ============================================================
+  # V12-1  env_ambientes — cadastro de salas e áreas monitoradas
+  # ============================================================
+  - changeSet:
+      id: V12-1
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: env_ambientes
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: nome
+                  type: VARCHAR(120)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: tipo_ambiente
+                  type: VARCHAR(40)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: bloco
+                  type: VARCHAR(60)
+              - column:
+                  name: andar
+                  type: VARCHAR(30)
+              - column:
+                  name: setor
+                  type: VARCHAR(80)
+              - column:
+                  name: temperatura_min_celsius
+                  type: DOUBLE PRECISION
+              - column:
+                  name: temperatura_max_celsius
+                  type: DOUBLE PRECISION
+              - column:
+                  name: umidade_min_percentual
+                  type: DOUBLE PRECISION
+              - column:
+                  name: umidade_max_percentual
+                  type: DOUBLE PRECISION
+              - column:
+                  name: pressao_min_pa
+                  type: DOUBLE PRECISION
+              - column:
+                  name: pressao_max_pa
+                  type: DOUBLE PRECISION
+              - column:
+                  name: ativo
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: observacoes
+                  type: VARCHAR(255)
+        - addForeignKeyConstraint:
+            baseTableName: env_ambientes
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_env_amb_tenant
+        - createIndex:
+            tableName: env_ambientes
+            indexName: ix_env_amb_tenant_ativo
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: ativo
+        - createIndex:
+            tableName: env_ambientes
+            indexName: ix_env_amb_tenant_tipo
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: tipo_ambiente
+
+  # ============================================================
+  # V12-2  Adiciona FK ambiente_id em env_monitoramentos_ambientais
+  # ============================================================
+  - changeSet:
+      id: V12-2
+      author: qualitascare
+      changes:
+        - addColumn:
+            tableName: env_monitoramentos_ambientais
+            columns:
+              - column:
+                  name: ambiente_id
+                  type: BIGINT
+        - addForeignKeyConstraint:
+            baseTableName: env_monitoramentos_ambientais
+            baseColumnNames: ambiente_id
+            referencedTableName: env_ambientes
+            referencedColumnNames: id
+            constraintName: fk_env_mon_ambiente
+        - createIndex:
+            tableName: env_monitoramentos_ambientais
+            indexName: ix_env_mon_ambiente
+            columns:
+              - column:
+                  name: ambiente_id
+
+  # ============================================================
+  # V12-3  env_dispositivos_iot — registro de sensores IoT
+  # ============================================================
+  - changeSet:
+      id: V12-3
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: env_dispositivos_iot
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: device_id
+                  type: VARCHAR(80)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: tipo
+                  type: VARCHAR(30)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: api_key
+                  type: VARCHAR(80)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: geladeira_id
+                  type: BIGINT
+              - column:
+                  name: ambiente_id
+                  type: BIGINT
+              - column:
+                  name: ativo
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: descricao
+                  type: VARCHAR(200)
+              - column:
+                  name: local_instalacao
+                  type: VARCHAR(120)
+              - column:
+                  name: ultima_leitura
+                  type: TIMESTAMP
+        - addForeignKeyConstraint:
+            baseTableName: env_dispositivos_iot
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_env_iot_tenant
+        - addForeignKeyConstraint:
+            baseTableName: env_dispositivos_iot
+            baseColumnNames: geladeira_id
+            referencedTableName: env_geladeiras_medicamentos
+            referencedColumnNames: id
+            constraintName: fk_env_iot_geladeira
+        - addForeignKeyConstraint:
+            baseTableName: env_dispositivos_iot
+            baseColumnNames: ambiente_id
+            referencedTableName: env_ambientes
+            referencedColumnNames: id
+            constraintName: fk_env_iot_ambiente
+        - createIndex:
+            tableName: env_dispositivos_iot
+            indexName: ix_env_iot_tenant_ativo
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: ativo
+        - createIndex:
+            tableName: env_dispositivos_iot
+            indexName: ix_env_iot_tenant_tipo
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: tipo
+        - createIndex:
+            tableName: env_dispositivos_iot
+            indexName: ix_env_iot_api_key
+            unique: true
+            columns:
+              - column:
+                  name: api_key
+        - createIndex:
+            tableName: env_dispositivos_iot
+            indexName: ix_env_iot_device_id
+            unique: true
+            columns:
+              - column:
+                  name: device_id

@@ -21,3 +21,5 @@
       file: db/changelog/changes/V10__ged_document_management.yaml
   - include:
       file: db/changelog/changes/V11__environmental_monitoring.yaml
+  - include:
+      file: db/changelog/changes/V12__ambiente_iot.yaml
