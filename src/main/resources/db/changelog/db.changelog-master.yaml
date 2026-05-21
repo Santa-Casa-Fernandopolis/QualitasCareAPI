@@ -23,3 +23,5 @@
       file: db/changelog/changes/V11__environmental_monitoring.yaml
   - include:
       file: db/changelog/changes/V12__ambiente_iot.yaml
+  - include:
+      file: db/changelog/changes/V13__sys_configuracoes.yaml

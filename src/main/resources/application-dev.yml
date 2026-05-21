@@ -23,3 +23,10 @@
 
   liquibase:
     enabled: false              # DEV: desliga liquibase
+
+# Criptografia AES para valores SECRET em sys_configuracoes
+# NUNCA versionar em produção — usar variáveis de ambiente ENCRYPT_KEY e ENCRYPT_SALT
+app:
+  encrypt:
+    key: qualitascare-dev-encrypt-key-xyz
+    salt: cafebabe00000000       # hex string, mínimo 16 chars

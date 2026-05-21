@@ -29,3 +29,9 @@ logging:
   level:
     org.springframework: INFO
     com.erp.qualitascareapi: INFO
+
+# Criptografia AES — OBRIGATÓRIO definir via variáveis de ambiente em produção
+app:
+  encrypt:
+    key: ${ENCRYPT_KEY}
+    salt: ${ENCRYPT_SALT}
