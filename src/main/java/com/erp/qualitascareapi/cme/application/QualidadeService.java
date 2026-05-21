@@ -1,24 +1,15 @@
 package com.erp.qualitascareapi.cme.application;
 
-import com.erp.qualitascareapi.cme.api.dto.*;
-import com.erp.qualitascareapi.cme.domain.LoteEtiqueta;
-import com.erp.qualitascareapi.quality.domain.NaoConformidadeCME;
-import com.erp.qualitascareapi.cme.domain.SaneantePeraceticoLote;
-import com.erp.qualitascareapi.cme.repo.LoteEtiquetaRepository;
-import com.erp.qualitascareapi.cme.repo.NaoConformidadeCMERepository;
-import com.erp.qualitascareapi.cme.repo.SaneantePeraceticoLoteRepository;
+import com.erp.qualitascareapi.cme.api.dto.ExameCulturaDto;
+import com.erp.qualitascareapi.cme.api.dto.ExameCulturaRequest;
 import com.erp.qualitascareapi.common.domain.EvidenciaArquivo;
 import com.erp.qualitascareapi.common.repo.EvidenciaArquivoRepository;
 import com.erp.qualitascareapi.core.domain.ExameCultura;
 import com.erp.qualitascareapi.core.repo.ExameCulturaRepository;
-import com.erp.qualitascareapi.environmental.domain.GeracaoResiduo;
-import com.erp.qualitascareapi.environmental.repo.GeracaoResiduoRepository;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.domain.User;
 import com.erp.qualitascareapi.iam.repo.TenantRepository;
 import com.erp.qualitascareapi.iam.repo.UserRepository;
-import com.erp.qualitascareapi.quality.domain.TipoNaoConformidade;
-import com.erp.qualitascareapi.quality.repo.TipoNaoConformidadeRepository;
 import com.erp.qualitascareapi.security.application.TenantScopeGuard;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
@@ -38,32 +29,17 @@ public class QualidadeService {
     private final TenantRepository tenantRepository;
     private final UserRepository userRepository;
     private final ExameCulturaRepository exameCulturaRepository;
-    private final NaoConformidadeCMERepository naoConformidadeRepository;
-    private final TipoNaoConformidadeRepository tipoNaoConformidadeRepository;
-    private final GeracaoResiduoRepository geracaoResiduoRepository;
-    private final LoteEtiquetaRepository loteEtiquetaRepository;
-    private final SaneantePeraceticoLoteRepository saneanteRepository;
     private final EvidenciaArquivoRepository evidenciaArquivoRepository;
     private final TenantScopeGuard tenantScopeGuard;
 
     public QualidadeService(TenantRepository tenantRepository,
                             UserRepository userRepository,
                             ExameCulturaRepository exameCulturaRepository,
-                            NaoConformidadeCMERepository naoConformidadeRepository,
-                            TipoNaoConformidadeRepository tipoNaoConformidadeRepository,
-                            GeracaoResiduoRepository geracaoResiduoRepository,
-                            LoteEtiquetaRepository loteEtiquetaRepository,
-                            SaneantePeraceticoLoteRepository saneanteRepository,
                             EvidenciaArquivoRepository evidenciaArquivoRepository,
                             TenantScopeGuard tenantScopeGuard) {
         this.tenantRepository = tenantRepository;
         this.userRepository = userRepository;
         this.exameCulturaRepository = exameCulturaRepository;
-        this.naoConformidadeRepository = naoConformidadeRepository;
-        this.tipoNaoConformidadeRepository = tipoNaoConformidadeRepository;
-        this.geracaoResiduoRepository = geracaoResiduoRepository;
-        this.loteEtiquetaRepository = loteEtiquetaRepository;
-        this.saneanteRepository = saneanteRepository;
         this.evidenciaArquivoRepository = evidenciaArquivoRepository;
         this.tenantScopeGuard = tenantScopeGuard;
     }
@@ -101,105 +77,6 @@ public class QualidadeService {
                         exame.getResultado(),
                         exame.getRegistradoPor() != null ? exame.getRegistradoPor().getId() : null,
                         exame.getObservacoes(), toIdSet(exame.getEvidencias())));
-    }
-
-    public NaoConformidadeDto registrarNaoConformidade(NaoConformidadeRequest request) {
-        tenantScopeGuard.checkRequestedTenant(request.tenantId());
-        Tenant tenant = tenantRepository.findById(request.tenantId())
-                .orElseThrow(() -> new EntityNotFoundException("Tenant não encontrado"));
-        TipoNaoConformidade tipo = tipoNaoConformidadeRepository.findById(request.tipoId())
-                .orElseThrow(() -> new EntityNotFoundException("Tipo de não conformidade não encontrado"));
-        NaoConformidadeCME naoConformidade = new NaoConformidadeCME();
-        naoConformidade.setTenant(tenant);
-        naoConformidade.setTipo(tipo);
-        naoConformidade.setTitulo(request.titulo());
-        naoConformidade.setDescricao(request.descricao());
-        naoConformidade.setSeveridade(request.severidade());
-        if (request.status() != null) {
-            naoConformidade.setStatus(request.status());
-        }
-        naoConformidade.setDataAbertura(request.dataAbertura());
-        naoConformidade.setDataEncerramento(request.dataEncerramento());
-        if (request.responsavelId() != null) {
-            User user = userRepository.findById(request.responsavelId())
-                    .orElseThrow(() -> new EntityNotFoundException("Responsável não encontrado"));
-            naoConformidade.setResponsavel(user);
-        }
-        naoConformidade.setPlanoAcaoResumo(request.planoAcaoResumo());
-        naoConformidade.setEvidencias(loadEvidencias(request.evidenciasIds()));
-        NaoConformidadeCME saved = naoConformidadeRepository.save(naoConformidade);
-        return new NaoConformidadeDto(saved.getId(), tenant.getId(), saved.getTitulo(), saved.getDescricao(),
-                saved.getSeveridade(), saved.getStatus(), saved.getDataAbertura(), saved.getDataEncerramento(),
-                saved.getResponsavel() != null ? saved.getResponsavel().getId() : null,
-                saved.getPlanoAcaoResumo(), toIdSet(saved.getEvidencias()), saved.getTipo().getId());
-    }
-
-    public NaoConformidadeDto findNaoConformidadeById(Long id) {
-        NaoConformidadeCME nc = naoConformidadeRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Não conformidade não encontrada"));
-        return toNcDto(nc);
-    }
-
-    public NaoConformidadeDto updateNaoConformidadeStatus(Long id, com.erp.qualitascareapi.quality.enums.NaoConformidadeStatus status) {
-        NaoConformidadeCME nc = naoConformidadeRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Não conformidade não encontrada"));
-        nc.setStatus(status);
-        return toNcDto(naoConformidadeRepository.save(nc));
-    }
-
-    private NaoConformidadeDto toNcDto(NaoConformidadeCME nc) {
-        return new NaoConformidadeDto(nc.getId(), nc.getTenant().getId(), nc.getTitulo(), nc.getDescricao(),
-                nc.getSeveridade(), nc.getStatus(), nc.getDataAbertura(), nc.getDataEncerramento(),
-                nc.getResponsavel() != null ? nc.getResponsavel().getId() : null,
-                nc.getPlanoAcaoResumo(), toIdSet(nc.getEvidencias()),
-                nc.getTipo() != null ? nc.getTipo().getId() : null);
-    }
-
-    public Page<NaoConformidadeDto> listNaoConformidades(Pageable pageable) {
-        return naoConformidadeRepository.findAllByTenantId(tenantScopeGuard.currentTenantId(), pageable)
-                .map(nc -> new NaoConformidadeDto(nc.getId(), nc.getTenant().getId(), nc.getTitulo(), nc.getDescricao(),
-                        nc.getSeveridade(), nc.getStatus(), nc.getDataAbertura(), nc.getDataEncerramento(),
-                        nc.getResponsavel() != null ? nc.getResponsavel().getId() : null,
-                        nc.getPlanoAcaoResumo(), toIdSet(nc.getEvidencias()),
-                        nc.getTipo() != null ? nc.getTipo().getId() : null));
-    }
-
-    public GeracaoResiduoDto registrarGeracaoResiduo(GeracaoResiduoRequest request) {
-        tenantScopeGuard.checkRequestedTenant(request.tenantId());
-        Tenant tenant = tenantRepository.findById(request.tenantId())
-                .orElseThrow(() -> new EntityNotFoundException("Tenant não encontrado"));
-        GeracaoResiduo residuo = new GeracaoResiduo();
-        residuo.setTenant(tenant);
-        residuo.setDataRegistro(request.dataRegistro());
-        residuo.setClasseResiduo(request.classeResiduo());
-        residuo.setPesoEstimadoKg(request.pesoEstimadoKg());
-        residuo.setDestinoFinal(request.destinoFinal());
-        if (request.loteId() != null) {
-            LoteEtiqueta lote = loteEtiquetaRepository.findById(request.loteId())
-                    .orElseThrow(() -> new EntityNotFoundException("Lote não encontrado"));
-            residuo.setLoteRelacionada(lote);
-        }
-        if (request.saneanteId() != null) {
-            SaneantePeraceticoLote saneante = saneanteRepository.findById(request.saneanteId())
-                    .orElseThrow(() -> new EntityNotFoundException("Saneante não encontrado"));
-            residuo.setSaneanteRelacionado(saneante);
-        }
-        residuo.setObservacoes(request.observacoes());
-        GeracaoResiduo saved = geracaoResiduoRepository.save(residuo);
-        return new GeracaoResiduoDto(saved.getId(), tenant.getId(), saved.getDataRegistro(), saved.getClasseResiduo(),
-                saved.getPesoEstimadoKg(), saved.getDestinoFinal(),
-                saved.getLoteRelacionada() != null ? saved.getLoteRelacionada().getId() : null,
-                saved.getSaneanteRelacionado() != null ? saved.getSaneanteRelacionado().getId() : null,
-                saved.getObservacoes());
-    }
-
-    public Page<GeracaoResiduoDto> listGeracoesResiduo(Pageable pageable) {
-        return geracaoResiduoRepository.findAllByTenantId(tenantScopeGuard.currentTenantId(), pageable)
-                .map(g -> new GeracaoResiduoDto(g.getId(), g.getTenant().getId(), g.getDataRegistro(), g.getClasseResiduo(),
-                        g.getPesoEstimadoKg(), g.getDestinoFinal(),
-                        g.getLoteRelacionada() != null ? g.getLoteRelacionada().getId() : null,
-                        g.getSaneanteRelacionado() != null ? g.getSaneanteRelacionado().getId() : null,
-                        g.getObservacoes()));
     }
 
     private Set<EvidenciaArquivo> loadEvidencias(Set<Long> ids) {

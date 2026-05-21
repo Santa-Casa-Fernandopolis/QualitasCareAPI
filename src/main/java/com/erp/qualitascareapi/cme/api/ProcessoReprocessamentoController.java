@@ -3,6 +3,7 @@ package com.erp.qualitascareapi.cme.api;
 import com.erp.qualitascareapi.cme.api.dto.*;
 import com.erp.qualitascareapi.cme.application.ProcessoReprocessamentoService;
 import com.erp.qualitascareapi.cme.enums.ProcessoStatus;
+import org.springframework.http.HttpStatus;
 import com.erp.qualitascareapi.security.annotation.RequiresPermission;
 import com.erp.qualitascareapi.security.enums.Action;
 import com.erp.qualitascareapi.security.enums.ResourceType;
@@ -75,5 +76,35 @@ public class ProcessoReprocessamentoController {
     @RequiresPermission(resource = ResourceType.CME_PROCESSO_REPROCESSAMENTO, action = Action.READ)
     public LimpezaManualDto findLimpezaById(@PathVariable Long id) {
         return service.findLimpezaById(id);
+    }
+
+    // ---- Secagem de Material ----
+
+    @PostMapping("/secagens")
+    @ResponseStatus(HttpStatus.CREATED)
+    @RequiresPermission(resource = ResourceType.CME_PROCESSO_REPROCESSAMENTO, action = Action.CREATE)
+    public SecagemMaterialDto registrarSecagem(@Valid @RequestBody SecagemMaterialRequest request) {
+        return service.registrarSecagem(request);
+    }
+
+    @GetMapping("/secagens")
+    @RequiresPermission(resource = ResourceType.CME_PROCESSO_REPROCESSAMENTO, action = Action.READ)
+    public Page<SecagemMaterialDto> listSecagens(Pageable pageable) {
+        return service.listSecagens(pageable);
+    }
+
+    // ---- Conferência de Kit ----
+
+    @PostMapping("/conferencias-kit")
+    @ResponseStatus(HttpStatus.CREATED)
+    @RequiresPermission(resource = ResourceType.CME_PROCESSO_REPROCESSAMENTO, action = Action.CREATE)
+    public ConferenciaKitDto registrarConferencia(@Valid @RequestBody ConferenciaKitRequest request) {
+        return service.registrarConferencia(request);
+    }
+
+    @GetMapping("/conferencias-kit")
+    @RequiresPermission(resource = ResourceType.CME_PROCESSO_REPROCESSAMENTO, action = Action.READ)
+    public Page<ConferenciaKitDto> listConferencias(Pageable pageable) {
+        return service.listConferencias(pageable);
     }
 }

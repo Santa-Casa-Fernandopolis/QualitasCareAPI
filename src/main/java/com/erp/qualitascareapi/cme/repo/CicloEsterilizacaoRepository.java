@@ -21,4 +21,7 @@ public interface CicloEsterilizacaoRepository extends JpaRepository<CicloEsteril
 
     @Query("SELECT AVG(c.duracaoMinutos) FROM CicloEsterilizacao c WHERE c.tenant.id = :tenantId AND c.inicio > :after AND c.duracaoMinutos IS NOT NULL")
     Double avgDuracaoMinutosByTenantAndInicioAfter(@Param("tenantId") Long tenantId, @Param("after") LocalDateTime after);
+
+    @Query("SELECT c.status, COUNT(c) FROM CicloEsterilizacao c WHERE c.tenant.id = :tenantId GROUP BY c.status")
+    List<Object[]> groupByStatusForTenant(@Param("tenantId") Long tenantId);
 }
