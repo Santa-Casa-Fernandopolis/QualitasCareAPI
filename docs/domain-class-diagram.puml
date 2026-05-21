@@ -301,6 +301,7 @@ package "CME" #FFF8E8 {
   class ProcessoReprocessamento {
     -id : Long
     -numeroProcesso : String
+    -tipoFluxo : TipoFluxoCME
     -status : ProcessoStatus
     -dataAbertura : LocalDateTime
     -dataConclusao : LocalDateTime
@@ -327,9 +328,28 @@ package "CME" #FFF8E8 {
     -observacoes : String
   }
 
+  class SecagemMaterial {
+    -id : Long
+    -tipoSecagem : TipoSecagem
+    -dataHoraInicio : LocalDateTime
+    -dataHoraFim : LocalDateTime
+    -equipamentoDescricao : String
+    -conformidade : ResultadoConformidade
+    -observacoes : String
+  }
+
+  class ConferenciaKit {
+    -id : Long
+    -dataHoraConferencia : LocalDateTime
+    -conformidade : ResultadoConformidade
+    -itensNaoConformes : String
+    -observacoes : String
+  }
+
   class LoteEtiqueta {
     -id : Long
     -codigo : String
+    -tipoFluxo : TipoFluxoCME
     -dataHoraInicioMontagem : LocalDateTime
     -dataHoraFimMontagem : LocalDateTime
     -dataEmpacotamento : LocalDate
@@ -421,17 +441,6 @@ package "CME" #FFF8E8 {
     -observacoes : String
   }
 
-  class MonitoramentoAmbiental {
-    -id : Long
-    -dataHora : LocalDateTime
-    -localSala : String
-    -temperaturaCelsius : Double
-    -umidadeRelativa : Double
-    -pressaoDiferencialPa : Double
-    -resultado : ResultadoMonitoramento
-    -observacoes : String
-  }
-
   class SaneantePeraceticoLote {
     -id : Long
     -numeroLote : String
@@ -468,6 +477,12 @@ package "CME" #FFF8E8 {
     VENCIDO
   }
 
+  enum TipoFluxoCME {
+    REPROCESSAMENTO
+    KIT
+    AVULSO
+  }
+
   enum ProcessoStatus {
     ABERTO
     EM_ANDAMENTO
@@ -493,6 +508,12 @@ package "CME" #FFF8E8 {
     AUTOMATIZADO
   }
 
+  enum TipoSecagem {
+    ESTUFA
+    COMPRESSA
+    AR_COMPRIMIDO
+  }
+
   enum MovimentacaoTipo {
     ENTRADA
     SAIDA
@@ -511,89 +532,107 @@ package "CME" #FFF8E8 {
     CANCELADA
   }
 
+  enum UsoSaneanteEtapa {
+    LIMPEZA
+    DESINFECCAO
+    ESTERILIZACAO_QUIMICA
+  }
+
   Autoclave "0..*" --> "1" Tenant
   RecebimentoMaterial "0..*" --> "1" Tenant
-  RecebimentoMaterial "0..*" --> "1" Setor : setorOrigem
-  RecebimentoMaterial "0..*" --> "1" User : responsavel
+  RecebimentoMaterial "0..*" --> "0..1" Setor : setorOrigem
+  RecebimentoMaterial "0..*" --> "0..1" User : responsavel
   RecebimentoMaterial "0..*" --> "0..*" EvidenciaArquivo
 
   ProcessoReprocessamento "0..*" --> "1" Tenant
-  ProcessoReprocessamento "0..*" --> "1" RecebimentoMaterial
+  ProcessoReprocessamento "0..*" --> "0..1" RecebimentoMaterial
+  ProcessoReprocessamento ..> TipoFluxoCME
+  ProcessoReprocessamento ..> ProcessoStatus
 
   LimpezaManual "0..*" --> "1" Tenant
-  LimpezaManual "0..*" --> "1" ProcessoReprocessamento
+  LimpezaManual "0..*" --> "0..1" ProcessoReprocessamento
   LimpezaManual "0..*" --> "1" User : responsavel
   LimpezaManual "0..*" --> "0..*" EvidenciaArquivo
 
   HigienizacaoUltrassonica "0..*" --> "1" Tenant
-  HigienizacaoUltrassonica "0..*" --> "1" ProcessoReprocessamento
-  HigienizacaoUltrassonica "0..*" --> "1" User : responsavel
+  HigienizacaoUltrassonica "0..*" --> "0..1" ProcessoReprocessamento
+  HigienizacaoUltrassonica "0..*" --> "0..1" User : responsavel
   HigienizacaoUltrassonica "0..*" --> "0..*" EvidenciaArquivo
 
+  SecagemMaterial "0..*" --> "1" Tenant
+  SecagemMaterial "0..*" --> "0..1" ProcessoReprocessamento
+  SecagemMaterial "0..*" --> "1" User : responsavel
+  SecagemMaterial "0..*" --> "0..*" EvidenciaArquivo
+  SecagemMaterial ..> TipoSecagem
+
+  ConferenciaKit "0..*" --> "1" Tenant
+  ConferenciaKit "0..*" --> "0..1" ProcessoReprocessamento
+  ConferenciaKit "0..*" --> "1" User : responsavel
+  ConferenciaKit "0..*" --> "0..*" EvidenciaArquivo
+
   LoteEtiqueta "0..*" --> "1" Tenant
-  LoteEtiqueta "0..*" --> "1" ProcessoReprocessamento
-  LoteEtiqueta "0..*" --> "1" KitVersion
-  LoteEtiqueta "0..*" --> "1" User : montadoPor
+  LoteEtiqueta "0..*" --> "0..1" ProcessoReprocessamento
+  LoteEtiqueta "0..*" --> "0..1" KitVersion
+  LoteEtiqueta "0..*" --> "0..1" User : montadoPor
   LoteEtiqueta ..|> ApprovableTarget
+  LoteEtiqueta ..> TipoFluxoCME
+  LoteEtiqueta ..> LoteStatus
 
   CicloEsterilizacao "0..*" --> "1" Tenant
   CicloEsterilizacao "0..*" --> "1" Autoclave
-  CicloEsterilizacao "0..*" --> "1" ProcessoReprocessamento
-  CicloEsterilizacao "0..*" --> "1" LoteEtiqueta
+  CicloEsterilizacao "0..*" --> "0..1" ProcessoReprocessamento
+  CicloEsterilizacao "1" -- "0..*" LoteEtiqueta
   CicloEsterilizacao "0..*" --> "0..1" User : liberadoPor
-  CicloEsterilizacao "0..*" --> "1" Setor : setorExecutor
-  CicloEsterilizacao "0..*" --> "0..*" EvidenciaArquivo
+  CicloEsterilizacao "0..*" --> "0..1" Setor : setorExecutor
   CicloEsterilizacao ..|> ApprovableTarget
+  CicloEsterilizacao ..> CicloStatus
 
   IndicadorQuimico "0..*" --> "1" CicloEsterilizacao
   IndicadorQuimico "0..*" --> "0..*" EvidenciaArquivo
+  IndicadorQuimico ..> ResultadoConformidade
 
   IndicadorBiologico "0..*" --> "1" CicloEsterilizacao
   IndicadorBiologico "0..*" --> "0..*" EvidenciaArquivo
+  IndicadorBiologico ..> ResultadoConformidade
 
   CicloLavadora "0..*" --> "1" Tenant
-  CicloLavadora "0..*" --> "1" User : responsavel
+  CicloLavadora "0..*" --> "0..1" User : responsavel
   CicloLavadora "0..*" --> "0..*" EvidenciaArquivo
 
   HigienizacaoAutoclaveProfunda "0..*" --> "1" Autoclave
-  HigienizacaoAutoclaveProfunda "0..*" --> "1" User : responsavel
+  HigienizacaoAutoclaveProfunda "0..*" --> "0..1" User : responsavel
   HigienizacaoAutoclaveProfunda "0..*" --> "0..*" EvidenciaArquivo
 
   ManutencaoAutoclave "0..*" --> "1" Autoclave
   ManutencaoAutoclave "0..*" --> "0..*" EvidenciaArquivo
+  ManutencaoAutoclave ..> ManutencaoTipo
+  ManutencaoAutoclave ..> ManutencaoStatus
 
   PlanoPreventivoAutoclave "0..*" --> "1" Autoclave
 
   TesteBowieDick "0..*" --> "1" Autoclave
-  TesteBowieDick "0..*" --> "1" User : executadoPor
+  TesteBowieDick "0..*" --> "0..1" User : executadoPor
   TesteBowieDick "0..*" --> "0..*" EvidenciaArquivo
+  TesteBowieDick ..> ResultadoConformidade
 
   MovimentacaoCME "0..*" --> "1" Tenant
   MovimentacaoCME "0..*" --> "1" LoteEtiqueta
-  MovimentacaoCME "0..*" --> "1" Setor : setorOrigem
-  MovimentacaoCME "0..*" --> "1" Setor : setorDestino
-  MovimentacaoCME "0..*" --> "1" User : responsavel
-
-  MonitoramentoAmbiental "0..*" --> "1" Tenant
-  MonitoramentoAmbiental "0..*" --> "1" User : responsavel
-  MonitoramentoAmbiental "0..*" --> "0..*" EvidenciaArquivo
+  MovimentacaoCME "0..*" --> "0..1" Setor : setorOrigem
+  MovimentacaoCME "0..*" --> "0..1" Setor : setorDestino
+  MovimentacaoCME "0..*" --> "0..1" User : responsavel
+  MovimentacaoCME ..> MovimentacaoTipo
 
   SaneantePeraceticoLote "0..*" --> "1" Tenant
   UsoSaneante "0..*" --> "1" SaneantePeraceticoLote
-  UsoSaneante "0..*" --> "1" User : usadoPor
+  UsoSaneante "0..*" --> "0..1" ProcessoReprocessamento
+  UsoSaneante "0..*" --> "0..1" User : usadoPor
+  UsoSaneante ..> UsoSaneanteEtapa
 
-  CicloEsterilizacao ..> CicloStatus
-  LoteEtiqueta ..> LoteStatus
-  ProcessoReprocessamento ..> ProcessoStatus
-  RecebimentoMaterial ..> RecebimentoStatus
   LimpezaManual ..> MetodoLimpeza
   LimpezaManual ..> ResultadoConformidade
-  IndicadorQuimico ..> ResultadoConformidade
-  IndicadorBiologico ..> ResultadoConformidade
-  TesteBowieDick ..> ResultadoConformidade
-  MovimentacaoCME ..> MovimentacaoTipo
-  ManutencaoAutoclave ..> ManutencaoTipo
-  ManutencaoAutoclave ..> ManutencaoStatus
+  SecagemMaterial ..> ResultadoConformidade
+  ConferenciaKit ..> ResultadoConformidade
+  RecebimentoMaterial ..> RecebimentoStatus
 }
 
 ' ============================================================
@@ -644,6 +683,17 @@ package "GED" #E8FDF8 {
     -dataVigenciaInicio : LocalDate
     -pdfSha256 : String
     -geradoEm : LocalDateTime
+    -aprovadoEm : LocalDateTime
+    -publicadoEm : LocalDateTime
+  }
+
+  class DocumentSignature {
+    -id : Long
+    -roleLabel : String
+    -status : DocumentSignatureStatus
+    -requestedAt : LocalDateTime
+    -signedAt : LocalDateTime
+    -comment : String
   }
 
   class DocumentLink {
@@ -700,12 +750,8 @@ package "GED" #E8FDF8 {
     -area : String
     -objetivo : String
     -escopo : String
-    -definicoes : String
     -responsabilidades : String
-    -materiais : String
-    -precaucoesSeguranca : String
     -registrosGerados : String
-    -referencias : String
   }
 
   class PopStep {
@@ -749,13 +795,19 @@ package "GED" #E8FDF8 {
     CONFIDENCIAL
   }
 
+  enum DocumentSignatureStatus {
+    PENDENTE
+    ASSINADO
+    RECUSADO
+  }
+
   DocCategory "0..*" --> "1" Tenant
   DocTag "0..*" --> "1" Tenant
   RetentionPolicy "0..*" --> "1" Tenant
 
   Document "0..*" --> "1" Tenant
-  Document "0..*" --> "1" DocCategory
-  Document "0..*" --> "1" Setor : setorResponsavel
+  Document "0..*" --> "0..1" DocCategory
+  Document "0..*" --> "0..1" Setor : setorResponsavel
   Document "0..*" --> "0..1" RetentionPolicy
   Document "0..*" --> "0..1" DocumentVersion : versaoAtual
   Document "0..*" --> "0..*" DocTag
@@ -763,7 +815,13 @@ package "GED" #E8FDF8 {
   DocumentVersion "0..*" --> "1" Tenant
   DocumentVersion "0..*" --> "1" Document
   DocumentVersion "0..*" --> "0..1" EvidenciaArquivo : pdfArquivo
+  DocumentVersion "0..*" --> "0..1" EvidenciaArquivo : arquivoPublicado
   DocumentVersion ..|> ApprovableTarget
+
+  DocumentSignature "0..*" --> "1" Tenant
+  DocumentSignature "0..*" --> "1" DocumentVersion
+  DocumentSignature "0..*" --> "1" User : signer
+  DocumentSignature ..> DocumentSignatureStatus
 
   DocumentLink "0..*" --> "1" Tenant
   DocumentLink "0..*" --> "1" Document : origem
@@ -775,7 +833,7 @@ package "GED" #E8FDF8 {
   ChangeRequest "0..*" --> "1" Tenant
   ChangeRequest "0..*" --> "1" Document
   ChangeRequest "0..*" --> "1" User : solicitante
-  ChangeRequest "0..*" --> "1" User : responsavel
+  ChangeRequest "0..*" --> "0..1" User : responsavel
   ChangeRequest "1" *-- "0..*" ChangeRequestItem
 
   CommunicationProfile "0..*" --> "1" Tenant
@@ -818,6 +876,7 @@ package "Approval" #FDF5E8 {
     -scopeByTargetSetor : Boolean
     -minApprovers : Integer
     -dualApproval : Boolean
+    -optional : Boolean
   }
 
   class ApprovalRequest {
@@ -974,19 +1033,19 @@ package "Quality" #FDE8E8 {
     CANCELADO
   }
 
-  TipoNaoConformidade "0..*" --> "1" Tenant
+  TipoNaoConformidade "0..*" --> "0..1" Tenant
 
   NaoConformidadeCME "0..*" --> "1" Tenant
   NaoConformidadeCME "0..*" --> "1" TipoNaoConformidade
-  NaoConformidadeCME "0..*" --> "1" User : responsavel
-  NaoConformidadeCME "0..*" --> "1" Setor : setorOrigem
-  NaoConformidadeCME "0..*" --> "1" Setor : setorResponsavel
+  NaoConformidadeCME "0..*" --> "0..1" User : responsavel
+  NaoConformidadeCME "0..*" --> "0..1" Setor : setorOrigem
+  NaoConformidadeCME "0..*" --> "0..1" Setor : setorResponsavel
   NaoConformidadeCME "0..*" --> "0..*" EvidenciaArquivo
   NaoConformidadeCME ..|> ApprovableTarget
   NaoConformidadeCME ..|> NaoConformidadeBase
 
   NaoConformidadeCME "1" *-- "0..*" PlanoAcaoItem
-  PlanoAcaoItem "0..*" --> "1" User : quem
+  PlanoAcaoItem "0..*" --> "0..1" User : quem
 
   NCEficaciaAvaliacao "0..*" --> "1" Tenant
   NCEficaciaAvaliacao "0..*" --> "1" NaoConformidadeCME
@@ -1263,8 +1322,10 @@ package "EDU" #F8FDE8 {
   Course "0..*" --> "1" Tenant
   Course "0..*" --> "1" TrainingProvider
   Course "1" *-- "0..*" CourseModule
+  CourseModule "0..*" --> "1" Tenant
   CourseModule "1" *-- "0..*" CourseItem
-  CourseItem "0..*" --> "0..1" DocumentVersion
+  CourseItem "0..*" --> "1" Tenant
+  CourseItem "0..*" --> "0..1" DocumentVersion : documentoBase
 
   CourseInstructor "0..*" --> "1" Tenant
   CourseInstructor "0..*" --> "1" TrainingProvider
@@ -1281,6 +1342,7 @@ package "EDU" #F8FDE8 {
   Enrollment "0..*" --> "1" Offering
   Enrollment "0..*" --> "1" Colaborador
   Enrollment "1" *-- "0..*" Attempt
+  Attempt "0..*" --> "1" Tenant
   Attempt "0..*" --> "1" CourseItem
 
   Attendance "0..*" --> "1" Tenant
@@ -1315,6 +1377,7 @@ package "EDU" #F8FDE8 {
   TrainingPlan "0..*" --> "1" Setor
   TrainingPlan "0..*" --> "1" User : solicitante
   TrainingPlan "1" *-- "0..*" TrainingPlanItem
+  TrainingPlanItem "0..*" --> "1" Tenant
   TrainingPlanItem "0..*" --> "1" Course
   TrainingPlanItem "0..*" --> "0..1" Setor : publicoAlvoSetor
   TrainingPlan ..|> ApprovableTarget
@@ -1322,7 +1385,7 @@ package "EDU" #F8FDE8 {
   ResourceBooking "0..*" --> "1" Tenant
   ResourceBooking "0..*" --> "1" TrainingResource
   ResourceBooking "0..*" --> "1" Session
-  ResourceBooking "0..*" --> "1" User : solicitadoPor
+  ResourceBooking "0..*" --> "0..1" User : solicitadoPor
 
   Course ..> DeliveryMode
   Course ..> GradeScale
@@ -1336,10 +1399,87 @@ package "EDU" #F8FDE8 {
 }
 
 ' ============================================================
-' MÓDULO: ENVIRONMENTAL
+' MÓDULO: ENVIRONMENTAL (V11 + V12)
 ' ============================================================
 
-package "Environmental" #F5F5F5 {
+package "Environmental" #F0F5FF {
+
+  ' --- Ambiente / Sala Monitorada (V12) ---
+
+  class Ambiente {
+    -id : Long
+    -nome : String
+    -tipoAmbiente : TipoAmbiente
+    -bloco : String
+    -andar : String
+    -setor : String
+    -temperaturaMinCelsius : Double
+    -temperaturaMaxCelsius : Double
+    -umidadeMinPercentual : Double
+    -umidadeMaxPercentual : Double
+    -pressaoMinPa : Double
+    -pressaoMaxPa : Double
+    -ativo : boolean
+    -observacoes : String
+  }
+
+  ' --- Monitoramento Ambiental (V11 — migrado do CME) ---
+
+  class MonitoramentoAmbiental {
+    -id : Long
+    -dataHora : LocalDateTime
+    -tipoAmbiente : TipoAmbiente
+    -localSala : String
+    -temperaturaCelsius : Double
+    -umidadeRelativa : Double
+    -pressaoDiferencialPa : Double
+    -resultado : ResultadoMonitoramento
+    -observacoes : String
+  }
+
+  ' --- Geladeira de Medicamentos / Vacinas (V11) ---
+
+  class GeladeiraMedicamentos {
+    -id : Long
+    -nome : String
+    -tipoUso : TipoUsoGeladeira
+    -localSala : String
+    -fabricante : String
+    -modelo : String
+    -numeroSerie : String
+    -temperaturaMinCelsius : Double
+    -temperaturaMaxCelsius : Double
+    -frequenciaLeituraHoras : Integer
+    -ativo : boolean
+    -observacoes : String
+  }
+
+  ' --- Registro de Temperatura de Geladeira (V11) ---
+
+  class RegistroTemperaturaGeladeira {
+    -id : Long
+    -dataHora : LocalDateTime
+    -temperaturaCelsius : Double
+    -umidadeRelativa : Double
+    -resultado : ResultadoMonitoramento
+    -acaoCorretiva : String
+    -observacoes : String
+  }
+
+  ' --- Dispositivo IoT / ESP32 (V12) ---
+
+  class DispositivoIoT {
+    -id : Long
+    -deviceId : String
+    -tipo : TipoDispositivoIoT
+    -apiKey : String
+    -ativo : boolean
+    -descricao : String
+    -localInstalacao : String
+    -ultimaLeitura : LocalDateTime
+  }
+
+  ' --- Geração de Resíduo (PGRSS) ---
 
   class GeracaoResiduo {
     -id : Long
@@ -1350,6 +1490,40 @@ package "Environmental" #F5F5F5 {
     -observacoes : String
   }
 
+  ' --- Enums ---
+
+  enum TipoAmbiente {
+    CME_SALA_LIMPEZA
+    CME_SALA_ESTERILIZACAO
+    CME_SALA_ESTOCAGEM
+    FARMACIA
+    UTI
+    BLOCO_CIRURGICO
+    SALA_PROCEDIMENTO
+    LABORATORIO
+    BANCO_SANGUE
+    OUTRO
+  }
+
+  enum ResultadoMonitoramento {
+    CONFORME
+    ALERTA
+    NAO_CONFORME
+  }
+
+  enum TipoUsoGeladeira {
+    VACINAS
+    MEDICAMENTOS
+    BIOLOGICOS
+    AMOSTRAS_LABORATORIO
+    MULTIPLO
+  }
+
+  enum TipoDispositivoIoT {
+    TEMPERATURA_GELADEIRA
+    MONITORAMENTO_AMBIENTAL
+  }
+
   enum ClasseResiduo {
     GRUPO_A
     GRUPO_B
@@ -1358,6 +1532,35 @@ package "Environmental" #F5F5F5 {
     GRUPO_E
   }
 
+  ' --- Relacionamentos: Ambiente ---
+  Ambiente "0..*" --> "1" Tenant
+  Ambiente ..> TipoAmbiente
+
+  ' --- Relacionamentos: MonitoramentoAmbiental ---
+  MonitoramentoAmbiental "0..*" --> "1" Tenant
+  MonitoramentoAmbiental "0..*" --> "0..1" Ambiente : ambiente
+  MonitoramentoAmbiental "0..*" --> "0..1" User : responsavel
+  MonitoramentoAmbiental "0..*" --> "0..*" EvidenciaArquivo
+  MonitoramentoAmbiental ..> TipoAmbiente
+  MonitoramentoAmbiental ..> ResultadoMonitoramento
+
+  ' --- Relacionamentos: GeladeiraMedicamentos ---
+  GeladeiraMedicamentos "0..*" --> "1" Tenant
+  GeladeiraMedicamentos ..> TipoUsoGeladeira
+
+  ' --- Relacionamentos: RegistroTemperaturaGeladeira ---
+  RegistroTemperaturaGeladeira "0..*" --> "1" Tenant
+  RegistroTemperaturaGeladeira "0..*" --> "1" GeladeiraMedicamentos : geladeira
+  RegistroTemperaturaGeladeira "0..*" --> "0..1" User : responsavel
+  RegistroTemperaturaGeladeira ..> ResultadoMonitoramento
+
+  ' --- Relacionamentos: DispositivoIoT ---
+  DispositivoIoT "0..*" --> "1" Tenant
+  DispositivoIoT "0..*" --> "0..1" GeladeiraMedicamentos : geladeira
+  DispositivoIoT "0..*" --> "0..1" Ambiente : ambiente
+  DispositivoIoT ..> TipoDispositivoIoT
+
+  ' --- Relacionamentos: GeracaoResiduo ---
   GeracaoResiduo "0..*" --> "1" Tenant
   GeracaoResiduo "0..*" --> "0..1" LoteEtiqueta
   GeracaoResiduo "0..*" --> "0..1" SaneantePeraceticoLote
