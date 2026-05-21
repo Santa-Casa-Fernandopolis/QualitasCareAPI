@@ -33,3 +33,5 @@
       file: db/changelog/changes/V16__notificacoes.yaml
   - include:
       file: db/changelog/changes/V17__notificacao_subscricoes.yaml
+  - include:
+      file: db/changelog/changes/V18__notificacoes_usuario_ged.yaml

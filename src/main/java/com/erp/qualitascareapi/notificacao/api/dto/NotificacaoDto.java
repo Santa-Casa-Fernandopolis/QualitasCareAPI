@@ -6,19 +6,9 @@ import com.erp.qualitascareapi.notificacao.enums.TipoNotificacao;
 import java.time.LocalDateTime;
 
 /**
- * Projeção de leitura de {@code Notificacao} retornada pela API.
+ * Projeção de leitura de {@code Notificacao}.
  *
- * @param id            identificador único
- * @param tenantId      tenant ao qual a notificação pertence
- * @param tipo          tipo semântico da notificação
- * @param nivel         nível de severidade (INFO, ALERTA, CRITICO)
- * @param titulo        título resumido (max 200 chars)
- * @param mensagem      descrição detalhada (max 500 chars)
- * @param referenciaId  ID do registro de origem (pode ser null)
- * @param referenciaTipo tipo do registro de origem: "GELADEIRA", "AMBIENTE", "IOT"
- * @param lida          se o usuário já marcou como lida
- * @param dataHora      momento em que a notificação foi gerada
- * @param lidaEm        momento em que foi marcada como lida (null se ainda não lida)
+ * @param usuarioId quando não-nulo, indica que a notificação é pessoal (ex.: parecer GED)
  */
 public record NotificacaoDto(
         Long id,
@@ -29,6 +19,7 @@ public record NotificacaoDto(
         String mensagem,
         Long referenciaId,
         String referenciaTipo,
+        Long usuarioId,
         boolean lida,
         LocalDateTime dataHora,
         LocalDateTime lidaEm

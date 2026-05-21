@@ -1,7 +1,6 @@
 package com.erp.qualitascareapi.notificacao.repo;
 
 import com.erp.qualitascareapi.notificacao.domain.Notificacao;
-import com.erp.qualitascareapi.notificacao.enums.NivelNotificacao;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,22 +12,58 @@ import java.time.LocalDateTime;
 
 public interface NotificacaoRepository extends JpaRepository<Notificacao, Long> {
 
-    Page<Notificacao> findByTenantIdOrderByDataHoraDesc(Long tenantId, Pageable pageable);
+    /**
+     * Lista todas as notificações visíveis para o usuário:
+     * globais ({@code usuarioId IS NULL}) + pessoais do próprio usuário.
+     */
+    @Query("""
+            SELECT n FROM Notificacao n
+            WHERE n.tenantId = :tenantId
+              AND (n.usuarioId IS NULL OR n.usuarioId = :usuarioId)
+            ORDER BY n.dataHora DESC
+            """)
+    Page<Notificacao> findVisiveisParaUsuario(@Param("tenantId") Long tenantId,
+                                              @Param("usuarioId") Long usuarioId,
+                                              Pageable pageable);
 
-    Page<Notificacao> findByTenantIdAndLidaFalseOrderByDataHoraDesc(Long tenantId, Pageable pageable);
+    /**
+     * Lista notificações não lidas visíveis para o usuário.
+     */
+    @Query("""
+            SELECT n FROM Notificacao n
+            WHERE n.tenantId = :tenantId
+              AND n.lida = false
+              AND (n.usuarioId IS NULL OR n.usuarioId = :usuarioId)
+            ORDER BY n.dataHora DESC
+            """)
+    Page<Notificacao> findNaoLidasParaUsuario(@Param("tenantId") Long tenantId,
+                                               @Param("usuarioId") Long usuarioId,
+                                               Pageable pageable);
 
-    Page<Notificacao> findByTenantIdAndNivelOrderByDataHoraDesc(
-            Long tenantId, NivelNotificacao nivel, Pageable pageable);
+    /**
+     * Contagem de não lidas — usada para badge do sininho.
+     */
+    @Query("""
+            SELECT COUNT(n) FROM Notificacao n
+            WHERE n.tenantId = :tenantId
+              AND n.lida = false
+              AND (n.usuarioId IS NULL OR n.usuarioId = :usuarioId)
+            """)
+    long countNaoLidasParaUsuario(@Param("tenantId") Long tenantId,
+                                   @Param("usuarioId") Long usuarioId);
 
-    /** Total de notificações não lidas — usado para badge no frontend. */
-    long countByTenantIdAndLidaFalse(Long tenantId);
-
-    /** Marca todas as não-lidas do tenant como lidas em uma só query. */
+    /**
+     * Marca como lidas em massa somente as notificações visíveis para o usuário.
+     */
     @Modifying
     @Query("""
             UPDATE Notificacao n
             SET n.lida = true, n.lidaEm = :agora
-            WHERE n.tenantId = :tenantId AND n.lida = false
+            WHERE n.tenantId = :tenantId
+              AND n.lida = false
+              AND (n.usuarioId IS NULL OR n.usuarioId = :usuarioId)
             """)
-    int marcarTodasComoLidas(@Param("tenantId") Long tenantId, @Param("agora") LocalDateTime agora);
+    int marcarTodasComoLidas(@Param("tenantId") Long tenantId,
+                              @Param("usuarioId") Long usuarioId,
+                              @Param("agora") LocalDateTime agora);
 }

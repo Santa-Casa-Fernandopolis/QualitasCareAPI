@@ -7,21 +7,21 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 /**
- * Notificação de sistema gerada automaticamente quando uma leitura ambiental
- * ou de geladeira resulta em ALERTA ou NAO_CONFORME.
+ * Notificação de sistema.
  *
- * <p>Visível para qualquer usuário do tenant com permissão {@code ENV_MONITORAMENTO / READ}.
- * Pode ser marcada como lida individualmente ou em massa.</p>
- *
- * <p>Opcionalmente, o {@code NotificacaoService} também envia e-mail
- * quando {@code NOTIFICACAO_EMAIL_ATIVO = true} em {@code sys_configuracoes}.</p>
+ * <h3>Visibilidade</h3>
+ * <ul>
+ *   <li>{@code usuarioId = null} → visível para todos os usuários do tenant (notificações globais).</li>
+ *   <li>{@code usuarioId != null} → visível apenas para o usuário indicado (ex.: parecer ou assinatura GED).</li>
+ * </ul>
  */
 @Entity
 @Table(name = "notificacoes",
         indexes = {
-                @Index(name = "ix_not_tenant_lida_data", columnList = "tenant_id,lida,data_hora"),
-                @Index(name = "ix_not_tenant_nivel",     columnList = "tenant_id,nivel"),
-                @Index(name = "ix_not_referencia",       columnList = "referencia_tipo,referencia_id")
+                @Index(name = "ix_not_tenant_lida_data",  columnList = "tenant_id,lida,data_hora"),
+                @Index(name = "ix_not_tenant_nivel",      columnList = "tenant_id,nivel"),
+                @Index(name = "ix_not_referencia",        columnList = "referencia_tipo,referencia_id"),
+                @Index(name = "ix_not_usuario_id",        columnList = "usuario_id")
         })
 public class Notificacao {
 
@@ -33,7 +33,7 @@ public class Notificacao {
     private Long tenantId;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 50)
+    @Column(nullable = false, length = 60)
     private TipoNotificacao tipo;
 
     @Enumerated(EnumType.STRING)
@@ -46,18 +46,23 @@ public class Notificacao {
     @Column(nullable = false, length = 500)
     private String mensagem;
 
-    /**
-     * ID do registro que gerou a notificação
-     * (ex.: id do RegistroTemperaturaGeladeira ou MonitoramentoAmbiental).
-     */
+    /** ID do registro de origem. */
     @Column(name = "referencia_id")
     private Long referenciaId;
 
     /**
-     * Tipo do registro de origem: {@code "GELADEIRA"}, {@code "AMBIENTE"}, {@code "IOT"}.
+     * Tipo do registro de origem: {@code "GELADEIRA"}, {@code "AMBIENTE"}, {@code "IOT"},
+     * {@code "APPROVAL_STEP"}, {@code "ASSINATURA"}.
      */
     @Column(name = "referencia_tipo", length = 30)
     private String referenciaTipo;
+
+    /**
+     * Quando preenchido, a notificação é visível <b>somente</b> para este usuário.
+     * Quando {@code null}, é visível para todos os usuários do tenant.
+     */
+    @Column(name = "usuario_id")
+    private Long usuarioId;
 
     @Column(nullable = false)
     private boolean lida = false;
@@ -92,6 +97,9 @@ public class Notificacao {
 
     public String getReferenciaTipo() { return referenciaTipo; }
     public void setReferenciaTipo(String referenciaTipo) { this.referenciaTipo = referenciaTipo; }
+
+    public Long getUsuarioId() { return usuarioId; }
+    public void setUsuarioId(Long usuarioId) { this.usuarioId = usuarioId; }
 
     public boolean isLida() { return lida; }
     public void setLida(boolean lida) { this.lida = lida; }

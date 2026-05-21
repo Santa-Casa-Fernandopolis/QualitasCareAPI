@@ -1,0 +1,33 @@
+databaseChangeLog:
+
+  # ─── V18-1: coluna usuario_id em notificacoes ─────────────────────────────────
+  # Nullable: notificações globais do tenant ficam com usuario_id = NULL (backward-compat).
+  # Notificações pessoais (GED parecer / assinatura) armazenam o id do destinatário.
+  - changeSet:
+      id: V18-1-notificacoes-usuario-id
+      author: qualitascare
+      changes:
+        - addColumn:
+            tableName: notificacoes
+            columns:
+              - column:
+                  name: usuario_id
+                  type: BIGINT
+                  constraints:
+                    nullable: true
+
+        - createIndex:
+            indexName: ix_not_usuario_id
+            tableName: notificacoes
+            columns:
+              - column: { name: usuario_id }
+
+  # ─── V18-2: aumenta comprimento do enum tipo (novo valores GED) ───────────────
+  - changeSet:
+      id: V18-2-notificacoes-tipo-length
+      author: qualitascare
+      changes:
+        - modifyDataType:
+            tableName: notificacoes
+            columnName: tipo
+            newDataType: VARCHAR(60)

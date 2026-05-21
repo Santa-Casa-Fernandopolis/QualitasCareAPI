@@ -3,6 +3,7 @@ package com.erp.qualitascareapi.notificacao.api;
 import com.erp.qualitascareapi.notificacao.api.dto.NotificacaoDto;
 import com.erp.qualitascareapi.notificacao.application.NotificacaoService;
 import com.erp.qualitascareapi.security.annotation.RequiresPermission;
+import com.erp.qualitascareapi.security.app.AuthContext;
 import com.erp.qualitascareapi.security.application.TenantScopeGuard;
 import com.erp.qualitascareapi.security.enums.Action;
 import com.erp.qualitascareapi.security.enums.ResourceType;
@@ -15,11 +16,15 @@ import java.util.Map;
 /**
  * Endpoints de notificações in-app.
  *
+ * <p>Cada operação filtra automaticamente as notificações visíveis para o usuário
+ * autenticado: globais do tenant ({@code usuarioId IS NULL}) + pessoais do próprio
+ * usuário ({@code usuarioId = currentUser}).</p>
+ *
  * <ul>
- *   <li>{@code GET  /api/notificacoes}                   — lista paginada (filtro ?apenasNaoLidas=true)</li>
- *   <li>{@code GET  /api/notificacoes/contagem}           — total de não lidas (badge)</li>
- *   <li>{@code PATCH /api/notificacoes/{id}/lida}         — marca uma notificação como lida</li>
- *   <li>{@code PATCH /api/notificacoes/marcar-todas-lidas}— marca todas como lidas</li>
+ *   <li>{@code GET   /api/notificacoes}                    — lista paginada</li>
+ *   <li>{@code GET   /api/notificacoes/contagem}            — badge de não lidas</li>
+ *   <li>{@code PATCH /api/notificacoes/{id}/lida}           — marca uma como lida</li>
+ *   <li>{@code PATCH /api/notificacoes/marcar-todas-lidas}  — marca todas como lidas</li>
  * </ul>
  */
 @RestController
@@ -35,52 +40,33 @@ public class NotificacaoController {
         this.tenantScopeGuard   = tenantScopeGuard;
     }
 
-    /**
-     * Lista notificações do tenant autenticado, opcionalmente filtrando apenas as não lidas.
-     *
-     * @param apenasNaoLidas quando {@code true}, retorna somente notificações não lidas
-     * @param pageable       paginação (padrão: page=0, size=20, sort=dataHora,desc)
-     */
     @GetMapping
     @RequiresPermission(resource = ResourceType.NOTIFICACAO, action = Action.READ)
     public Page<NotificacaoDto> listar(
             @RequestParam(required = false) Boolean apenasNaoLidas,
             Pageable pageable) {
-        Long tenantId = tenantScopeGuard.currentTenantId();
-        return notificacaoService.listar(tenantId, apenasNaoLidas, pageable);
+        AuthContext ctx = tenantScopeGuard.currentContext();
+        return notificacaoService.listar(ctx.tenantId(), ctx.userId(), apenasNaoLidas, pageable);
     }
 
-    /**
-     * Retorna o total de notificações não lidas — usado para badge no frontend.
-     *
-     * @return {@code {"total": N}}
-     */
     @GetMapping("/contagem")
     @RequiresPermission(resource = ResourceType.NOTIFICACAO, action = Action.READ)
     public Map<String, Long> contarNaoLidas() {
-        Long tenantId = tenantScopeGuard.currentTenantId();
-        return Map.of("total", notificacaoService.contarNaoLidas(tenantId));
+        AuthContext ctx = tenantScopeGuard.currentContext();
+        return Map.of("total", notificacaoService.contarNaoLidas(ctx.tenantId(), ctx.userId()));
     }
 
-    /**
-     * Marca uma notificação específica como lida.
-     */
     @PatchMapping("/{id}/lida")
     @RequiresPermission(resource = ResourceType.NOTIFICACAO, action = Action.UPDATE)
     public NotificacaoDto marcarComoLida(@PathVariable Long id) {
-        Long tenantId = tenantScopeGuard.currentTenantId();
-        return notificacaoService.marcarComoLida(tenantId, id);
+        AuthContext ctx = tenantScopeGuard.currentContext();
+        return notificacaoService.marcarComoLida(ctx.tenantId(), ctx.userId(), id);
     }
 
-    /**
-     * Marca todas as notificações não lidas do tenant como lidas.
-     *
-     * @return {@code {"atualizadas": N}}
-     */
     @PatchMapping("/marcar-todas-lidas")
     @RequiresPermission(resource = ResourceType.NOTIFICACAO, action = Action.UPDATE)
     public Map<String, Integer> marcarTodasComoLidas() {
-        Long tenantId = tenantScopeGuard.currentTenantId();
-        return Map.of("atualizadas", notificacaoService.marcarTodasComoLidas(tenantId));
+        AuthContext ctx = tenantScopeGuard.currentContext();
+        return Map.of("atualizadas", notificacaoService.marcarTodasComoLidas(ctx.tenantId(), ctx.userId()));
     }
 }

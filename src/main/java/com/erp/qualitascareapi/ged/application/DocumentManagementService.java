@@ -23,6 +23,9 @@ import com.erp.qualitascareapi.iam.domain.User;
 import com.erp.qualitascareapi.iam.repo.SetorRepository;
 import com.erp.qualitascareapi.iam.repo.TenantRepository;
 import com.erp.qualitascareapi.iam.repo.UserRepository;
+import com.erp.qualitascareapi.notificacao.application.NotificacaoService;
+import com.erp.qualitascareapi.notificacao.enums.NivelNotificacao;
+import com.erp.qualitascareapi.notificacao.enums.TipoNotificacao;
 import com.erp.qualitascareapi.security.application.TenantScopeGuard;
 import com.erp.qualitascareapi.security.app.AuthContext;
 import jakarta.persistence.criteria.Predicate;
@@ -54,6 +57,7 @@ public class DocumentManagementService {
     private final TenantScopeGuard tenantScopeGuard;
     private final DocumentFileStorageService fileStorageService;
     private final DocumentApprovalService approvalService;
+    private final NotificacaoService notificacaoService;
 
     public DocumentManagementService(DocumentRepository documentRepository,
                                      DocumentVersionRepository versionRepository,
@@ -65,7 +69,8 @@ public class DocumentManagementService {
                                      ApprovalStepRepository approvalStepRepository,
                                      TenantScopeGuard tenantScopeGuard,
                                      DocumentFileStorageService fileStorageService,
-                                     DocumentApprovalService approvalService) {
+                                     DocumentApprovalService approvalService,
+                                     NotificacaoService notificacaoService) {
         this.documentRepository = documentRepository;
         this.versionRepository = versionRepository;
         this.signatureRepository = signatureRepository;
@@ -77,6 +82,7 @@ public class DocumentManagementService {
         this.tenantScopeGuard = tenantScopeGuard;
         this.fileStorageService = fileStorageService;
         this.approvalService = approvalService;
+        this.notificacaoService = notificacaoService;
     }
 
     @Transactional(readOnly = true)
@@ -253,7 +259,21 @@ public class DocumentManagementService {
         signature.setSigner(signer);
         signature.setRoleLabel(request.roleLabel());
         signature.setStatus(DocumentSignatureStatus.PENDENTE);
-        return toSignatureDto(signatureRepository.save(signature));
+        DocumentSignature salva = signatureRepository.save(signature);
+
+        // Notifica o signatário pessoalmente
+        String docTitulo   = version.getDocumento().getTitulo();
+        String roleLabel   = request.roleLabel() != null ? request.roleLabel() : "Signatário";
+        String titulo      = "Assinatura solicitada: " + docTitulo;
+        String mensagem    = String.format(
+                "Você foi solicitado a assinar o documento '%s' na condição de '%s'. " +
+                "Acesse o sistema para revisar e assinar.",
+                docTitulo, roleLabel);
+        notificacaoService.gerar(version.getTenant().getId(),
+                TipoNotificacao.GED_ASSINATURA_SOLICITADA, NivelNotificacao.INFO,
+                titulo, mensagem, salva.getId(), "ASSINATURA", signer.getId());
+
+        return toSignatureDto(salva);
     }
 
     public DocumentSignatureDto sign(Long signatureId, String comment) {

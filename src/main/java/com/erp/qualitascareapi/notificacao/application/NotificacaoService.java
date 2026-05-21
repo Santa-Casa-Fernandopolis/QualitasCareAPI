@@ -24,22 +24,18 @@ import java.util.List;
 /**
  * Gerencia notificações in-app e, opcionalmente, envio de e-mail.
  *
- * <h3>In-app</h3>
- * Toda notificação é sempre persistida na tabela {@code notificacoes} e ficará
- * visível para usuários autorizados do tenant via {@code GET /api/notificacoes}.
+ * <h3>Visibilidade</h3>
+ * <ul>
+ *   <li>Notificações com {@code usuarioId = null} são visíveis para todos do tenant
+ *       (ex.: alertas de temperatura).</li>
+ *   <li>Notificações com {@code usuarioId != null} são visíveis somente para aquele
+ *       usuário (ex.: parecer e assinatura de documentos GED).</li>
+ * </ul>
  *
  * <h3>E-mail (opcional)</h3>
  * Ativado quando {@code NOTIFICACAO_EMAIL_ATIVO = true} em {@code sys_configuracoes}
- * (módulo {@code SISTEMA}) <b>e</b> o bean {@link JavaMailSender} estiver disponível
- * (requer {@code spring.mail.*} configurado).
- *
- * <p>Parâmetros de e-mail em {@code sys_configuracoes} (módulo {@code SISTEMA}):
- * <ul>
- *   <li>{@code NOTIFICACAO_EMAIL_ATIVO}       — {@code true} / {@code false}</li>
- *   <li>{@code NOTIFICACAO_EMAIL_FROM}        — remetente (ex.: {@code qualitascare@hospital.com})</li>
- *   <li>{@code NOTIFICACAO_EMAIL_DESTINATARIOS} — lista de e-mails separada por vírgula</li>
- * </ul>
- * </p>
+ * <b>e</b> o bean {@link JavaMailSender} estiver disponível.
+ * Os destinatários são obtidos via {@link NotificacaoSubscricaoRepository#findEmailsDestinatarios}.
  */
 @Service
 public class NotificacaoService {
@@ -70,20 +66,26 @@ public class NotificacaoService {
     // ─── Geração ─────────────────────────────────────────────────────────────
 
     /**
-     * Persiste uma notificação in-app e, se e-mail estiver configurado, envia para os destinatários.
-     *
-     * @param tenantId       tenant do evento
-     * @param tipo           tipo da notificação
-     * @param nivel          nível de severidade
-     * @param titulo         título curto (max 200 chars)
-     * @param mensagem       descrição detalhada (max 500 chars)
-     * @param referenciaId   ID do registro de origem (pode ser null)
-     * @param referenciaTipo tipo do registro de origem: "GELADEIRA", "AMBIENTE", "IOT"
+     * Persiste uma notificação <b>global</b> (visível a todos do tenant) e,
+     * se configurado, envia e-mail para os assinantes do tipo.
      */
     @Transactional
     public NotificacaoDto gerar(Long tenantId, TipoNotificacao tipo, NivelNotificacao nivel,
                                 String titulo, String mensagem,
                                 Long referenciaId, String referenciaTipo) {
+        return gerar(tenantId, tipo, nivel, titulo, mensagem, referenciaId, referenciaTipo, null);
+    }
+
+    /**
+     * Persiste uma notificação, opcionalmente direcionada a um usuário específico.
+     *
+     * @param usuarioId quando não-nulo, somente este usuário verá a notificação no feed
+     */
+    @Transactional
+    public NotificacaoDto gerar(Long tenantId, TipoNotificacao tipo, NivelNotificacao nivel,
+                                String titulo, String mensagem,
+                                Long referenciaId, String referenciaTipo,
+                                Long usuarioId) {
         Notificacao n = new Notificacao();
         n.setTenantId(tenantId);
         n.setTipo(tipo);
@@ -92,10 +94,11 @@ public class NotificacaoService {
         n.setMensagem(mensagem);
         n.setReferenciaId(referenciaId);
         n.setReferenciaTipo(referenciaTipo);
+        n.setUsuarioId(usuarioId);
         n.setDataHora(LocalDateTime.now());
 
         Notificacao salva = repository.save(n);
-        log.info("[NOTIFICACAO] {} [{}] tenant={} — {}", nivel, tipo, tenantId, titulo);
+        log.info("[NOTIFICACAO] {} [{}] tenant={} usuario={} — {}", nivel, tipo, tenantId, usuarioId, titulo);
 
         enviarEmailSeConfigurado(tenantId, tipo, titulo, mensagem, nivel);
 
@@ -105,24 +108,26 @@ public class NotificacaoService {
     // ─── Consulta ─────────────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
-    public Page<NotificacaoDto> listar(Long tenantId, Boolean apenasNaoLidas, Pageable pageable) {
+    public Page<NotificacaoDto> listar(Long tenantId, Long usuarioId,
+                                       Boolean apenasNaoLidas, Pageable pageable) {
         if (Boolean.TRUE.equals(apenasNaoLidas)) {
-            return repository.findByTenantIdAndLidaFalseOrderByDataHoraDesc(tenantId, pageable).map(this::toDto);
+            return repository.findNaoLidasParaUsuario(tenantId, usuarioId, pageable).map(this::toDto);
         }
-        return repository.findByTenantIdOrderByDataHoraDesc(tenantId, pageable).map(this::toDto);
+        return repository.findVisiveisParaUsuario(tenantId, usuarioId, pageable).map(this::toDto);
     }
 
     @Transactional(readOnly = true)
-    public long contarNaoLidas(Long tenantId) {
-        return repository.countByTenantIdAndLidaFalse(tenantId);
+    public long contarNaoLidas(Long tenantId, Long usuarioId) {
+        return repository.countNaoLidasParaUsuario(tenantId, usuarioId);
     }
 
     // ─── Marcação como lida ───────────────────────────────────────────────────
 
     @Transactional
-    public NotificacaoDto marcarComoLida(Long tenantId, Long id) {
+    public NotificacaoDto marcarComoLida(Long tenantId, Long usuarioId, Long id) {
         Notificacao n = repository.findById(id)
                 .filter(x -> x.getTenantId().equals(tenantId))
+                .filter(x -> x.getUsuarioId() == null || x.getUsuarioId().equals(usuarioId))
                 .orElseThrow(() -> new EntityNotFoundException("Notificação não encontrada: id=" + id));
         if (!n.isLida()) {
             n.setLida(true);
@@ -133,24 +138,12 @@ public class NotificacaoService {
     }
 
     @Transactional
-    public int marcarTodasComoLidas(Long tenantId) {
-        return repository.marcarTodasComoLidas(tenantId, LocalDateTime.now());
+    public int marcarTodasComoLidas(Long tenantId, Long usuarioId) {
+        return repository.marcarTodasComoLidas(tenantId, usuarioId, LocalDateTime.now());
     }
 
     // ─── E-mail ──────────────────────────────────────────────────────────────
 
-    /**
-     * Envia e-mail para todos os usuários do tenant que assinaram {@code tipo} com
-     * {@code canalEmail = true} e têm e-mail cadastrado.
-     *
-     * <p>Requisitos para o envio:
-     * <ol>
-     *   <li>{@code JavaMailSender} disponível (requer {@code spring.mail.host}).</li>
-     *   <li>{@code NOTIFICACAO_EMAIL_ATIVO = true} em {@code sys_configuracoes}.</li>
-     *   <li>Pelo menos um usuário com assinatura ativa para o tipo informado.</li>
-     * </ol>
-     * </p>
-     */
     private void enviarEmailSeConfigurado(Long tenantId, TipoNotificacao tipo,
                                            String titulo, String mensagem,
                                            NivelNotificacao nivel) {
@@ -160,10 +153,7 @@ public class NotificacaoService {
                 ModuloConfiguracao.SISTEMA, "NOTIFICACAO_EMAIL_ATIVO", false);
         if (!ativo) return;
 
-        // Busca e-mails dos assinantes com canal e-mail ativo para este tipo
-        List<String> destinatarios = subscricaoRepository
-                .findEmailsDestinatarios(tenantId, tipo);
-
+        List<String> destinatarios = subscricaoRepository.findEmailsDestinatarios(tenantId, tipo);
         if (destinatarios.isEmpty()) return;
 
         String from = configuracaoService.getValor(ModuloConfiguracao.SISTEMA, "NOTIFICACAO_EMAIL_FROM");
@@ -178,7 +168,6 @@ public class NotificacaoService {
             log.info("[NOTIFICACAO-EMAIL] tipo={} → e-mail enviado para {} destinatários",
                     tipo, destinatarios.size());
         } catch (Exception e) {
-            // Falha no e-mail não deve impedir a persistência da notificação in-app
             log.error("[NOTIFICACAO-EMAIL] Falha ao enviar e-mail: {}", e.getMessage(), e);
         }
     }
@@ -190,6 +179,7 @@ public class NotificacaoService {
                 n.getId(), n.getTenantId(), n.getTipo(), n.getNivel(),
                 n.getTitulo(), n.getMensagem(),
                 n.getReferenciaId(), n.getReferenciaTipo(),
+                n.getUsuarioId(),
                 n.isLida(), n.getDataHora(), n.getLidaEm()
         );
     }

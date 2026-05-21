@@ -5,5 +5,9 @@ public enum TipoNotificacao {
     TEMPERATURA_GELADEIRA_NAO_CONFORME,
     MONITORAMENTO_AMBIENTAL_ALERTA,
     MONITORAMENTO_AMBIENTAL_NAO_CONFORME,
-    DISPOSITIVO_IOT_OFFLINE
+    DISPOSITIVO_IOT_OFFLINE,
+    /** Usuário foi designado para dar parecer em uma etapa do fluxo de aprovação de documento. */
+    GED_PARECER_SOLICITADO,
+    /** Usuário foi solicitado a assinar uma versão de documento. */
+    GED_ASSINATURA_SOLICITADA
 }
