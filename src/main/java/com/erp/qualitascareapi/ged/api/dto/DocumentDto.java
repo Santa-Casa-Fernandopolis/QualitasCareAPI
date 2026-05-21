@@ -23,6 +23,9 @@ public record DocumentDto(
         String versaoAtual,
         Boolean exigeTreinamento,
         Boolean necessitaParecerJuridico,
-        Integer periodicidadeRevisaoMeses
+        Integer periodicidadeRevisaoMeses,
+        String nivelONATarget,
+        String regulacoes,
+        String observacoesFluxo
 ) {
 }

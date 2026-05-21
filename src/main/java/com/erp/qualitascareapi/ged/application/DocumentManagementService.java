@@ -351,7 +351,10 @@ public class DocumentManagementService {
                 version != null ? version.getSemVer() : null,
                 document.getExigeTreinamento(),
                 document.getNecessitaParecerJuridico(),
-                document.getPeriodicidadeRevisaoMeses()
+                document.getPeriodicidadeRevisaoMeses(),
+                document.getNivelONATarget(),
+                document.getRegulacoes(),
+                document.getObservacoesFluxo()
         );
     }
 
