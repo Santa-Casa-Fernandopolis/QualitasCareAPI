@@ -12,6 +12,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/pgrss/setores")
 public class SetorGeradorController {
@@ -33,6 +35,12 @@ public class SetorGeradorController {
     @RequiresPermission(resource = ResourceType.PGRSS_CADASTRO, action = Action.READ)
     public Page<SetorGeradorDto> findAll(Pageable pageable) {
         return service.findAll(pageable);
+    }
+
+    @GetMapping("/ativos")
+    @RequiresPermission(resource = ResourceType.PGRSS_CADASTRO, action = Action.READ)
+    public List<SetorGeradorDto> findAllAtivos() {
+        return service.findAllAtivos();
     }
 
     @GetMapping("/{id}")

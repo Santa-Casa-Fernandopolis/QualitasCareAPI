@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface SameLegacyIntegrationSourceRepository extends JpaRepository<SameLegacyIntegrationSource, Long> {
@@ -14,5 +15,12 @@ public interface SameLegacyIntegrationSourceRepository extends JpaRepository<Sam
 
     Page<SameLegacyIntegrationSource> findAllByTenantId(Long tenantId, Pageable pageable);
 
-    Optional<SameLegacyIntegrationSource> findByTenantIdAndSourceSystemAndActiveTrue(Long tenantId, SameSourceSystem sourceSystem);
+    Page<SameLegacyIntegrationSource> findAllByTenantIdAndSourceSystem(Long tenantId, SameSourceSystem sourceSystem, Pageable pageable);
+
+    Page<SameLegacyIntegrationSource> findAllByTenantIdAndActive(Long tenantId, boolean active, Pageable pageable);
+
+    Page<SameLegacyIntegrationSource> findAllByTenantIdAndSourceSystemAndActive(
+            Long tenantId, SameSourceSystem sourceSystem, boolean active, Pageable pageable);
+
+    List<SameLegacyIntegrationSource> findAllByTenantIdAndSourceSystemAndActiveTrue(Long tenantId, SameSourceSystem sourceSystem);
 }

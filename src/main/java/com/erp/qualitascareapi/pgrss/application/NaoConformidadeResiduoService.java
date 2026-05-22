@@ -93,7 +93,7 @@ public class NaoConformidadeResiduoService {
     public Page<NaoConformidadeResiduoDto> search(Long setorId, SeveridadeNaoConformidade severidade,
                                                    StatusNaoConformidade status, Pageable pageable) {
         Long tenantId = tenantScopeGuard.currentTenantId();
-        return repository.findAllByTenant_Id(tenantId, pageable)
+        return repository.search(tenantId, setorId, severidade, status, pageable)
                 .map(this::toDto);
     }
 

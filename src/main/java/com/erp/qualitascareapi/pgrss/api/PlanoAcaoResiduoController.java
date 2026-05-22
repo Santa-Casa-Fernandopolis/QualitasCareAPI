@@ -33,8 +33,9 @@ public class PlanoAcaoResiduoController {
 
     @GetMapping("/planos-acao")
     @RequiresPermission(resource = ResourceType.PGRSS_NAO_CONFORMIDADE, action = Action.READ)
-    public Page<PlanoAcaoResiduoDto> search(Pageable pageable) {
-        return service.search(pageable);
+    public Page<PlanoAcaoResiduoDto> search(@RequestParam(required = false) Long naoConformidadeId,
+                                             Pageable pageable) {
+        return service.search(naoConformidadeId, pageable);
     }
 
     @PatchMapping("/planos-acao/{id}/concluir")

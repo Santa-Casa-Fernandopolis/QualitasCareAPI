@@ -66,8 +66,12 @@ public class PlanoAcaoResiduoService {
     }
 
     @Transactional(readOnly = true)
-    public Page<PlanoAcaoResiduoDto> search(Pageable pageable) {
+    public Page<PlanoAcaoResiduoDto> search(Long naoConformidadeId, Pageable pageable) {
         Long tenantId = tenantScopeGuard.currentTenantId();
+        if (naoConformidadeId != null) {
+            return repository.findAllByTenant_IdAndNaoConformidade_Id(tenantId, naoConformidadeId, pageable)
+                    .map(this::toDto);
+        }
         return repository.findAllByTenant_Id(tenantId, pageable).map(this::toDto);
     }
 

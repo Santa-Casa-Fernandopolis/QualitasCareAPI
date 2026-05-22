@@ -13,6 +13,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @Transactional
 public class SetorGeradorService {
@@ -65,6 +67,15 @@ public class SetorGeradorService {
     public Page<SetorGeradorDto> findAll(Pageable pageable) {
         Long tenantId = tenantScopeGuard.currentTenantId();
         return repository.findAllByTenant_Id(tenantId, pageable).map(this::toDto);
+    }
+
+    @Transactional(readOnly = true)
+    public List<SetorGeradorDto> findAllAtivos() {
+        Long tenantId = tenantScopeGuard.currentTenantId();
+        return repository.findAllByTenant_IdAndAtivoTrue(tenantId)
+                .stream()
+                .map(this::toDto)
+                .toList();
     }
 
     @Transactional(readOnly = true)

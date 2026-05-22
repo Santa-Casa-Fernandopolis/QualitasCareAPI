@@ -13,6 +13,8 @@ public interface PlanoAcaoResiduoRepository extends JpaRepository<PlanoAcaoResid
 
     Page<PlanoAcaoResiduo> findAllByTenant_Id(Long tenantId, Pageable pageable);
 
+    Page<PlanoAcaoResiduo> findAllByTenant_IdAndNaoConformidade_Id(Long tenantId, Long naoConformidadeId, Pageable pageable);
+
     List<PlanoAcaoResiduo> findAllByTenant_IdAndStatusIn(Long tenantId, List<StatusPlanoAcao> statuses);
 
     long countByTenant_IdAndStatusIn(Long tenantId, List<StatusPlanoAcao> statuses);
