@@ -3,7 +3,7 @@ package com.erp.qualitascareapi.pgrss.application;
 import com.erp.qualitascareapi.notificacao.application.NotificacaoService;
 import com.erp.qualitascareapi.notificacao.enums.NivelNotificacao;
 import com.erp.qualitascareapi.notificacao.enums.TipoNotificacao;
-import com.erp.qualitascareapi.pgrss.api.dto.EmpresaColetorDto;
+import com.erp.qualitascareapi.pgrss.domain.EmpresaColetora;
 import com.erp.qualitascareapi.pgrss.domain.PlanoAcaoResiduo;
 import com.erp.qualitascareapi.pgrss.enums.StatusPlanoAcao;
 import com.erp.qualitascareapi.pgrss.repo.EmpresaColetorRepository;
@@ -52,11 +52,8 @@ public class PgrssScheduledTasks {
     @Transactional
     public void verificarPlanosVencidos() {
         LocalDate hoje = LocalDate.now();
-        List<PlanoAcaoResiduo> candidatos = planoRepository.findAll().stream()
-                .filter(p -> (p.getStatus() == StatusPlanoAcao.ABERTO || p.getStatus() == StatusPlanoAcao.EM_ANDAMENTO)
-                             && p.getDataPrazo() != null
-                             && p.getDataPrazo().isBefore(hoje))
-                .toList();
+        List<PlanoAcaoResiduo> candidatos = planoRepository.findAllByStatusInAndDataPrazoBefore(
+                List.of(StatusPlanoAcao.ABERTO, StatusPlanoAcao.EM_ANDAMENTO), hoje);
 
         if (candidatos.isEmpty()) {
             return;
@@ -92,42 +89,35 @@ public class PgrssScheduledTasks {
         LocalDate limite30 = hoje.plusDays(30);
 
         // Licenças já vencidas
-        empresaRepository.findAll().stream()
-                .filter(e -> e.isAtivo()
-                             && e.getDataVencimentoLicenca() != null
-                             && e.getDataVencimentoLicenca().isBefore(hoje))
-                .forEach(e -> {
-                    Long tenantId = e.getTenant().getId();
-                    notificacaoService.gerar(
-                            tenantId,
-                            TipoNotificacao.PGRSS_LICENCA_VENCIDA,
-                            NivelNotificacao.CRITICO,
-                            "Licença ambiental vencida",
-                            "A empresa coletora \"" + e.getRazaoSocial() + "\" possui licença ambiental vencida desde "
-                                    + e.getDataVencimentoLicenca() + ".",
-                            e.getId(),
-                            "EMPRESA_COLETORA"
-                    );
-                });
+        List<EmpresaColetora> vencidas = empresaRepository.findAllByAtivoTrueAndDataVencimentoLicencaBefore(hoje);
+        vencidas.forEach(e -> {
+            Long tenantId = e.getTenant().getId();
+            notificacaoService.gerar(
+                    tenantId,
+                    TipoNotificacao.PGRSS_LICENCA_VENCIDA,
+                    NivelNotificacao.CRITICO,
+                    "Licença ambiental vencida",
+                    "A empresa coletora \"" + e.getRazaoSocial() + "\" possui licença ambiental vencida desde "
+                            + e.getDataVencimentoLicenca() + ".",
+                    e.getId(),
+                    "EMPRESA_COLETORA"
+            );
+        });
 
         // Licenças próximas do vencimento (até 30 dias)
-        empresaRepository.findAll().stream()
-                .filter(e -> e.isAtivo()
-                             && e.getDataVencimentoLicenca() != null
-                             && !e.getDataVencimentoLicenca().isBefore(hoje)
-                             && !e.getDataVencimentoLicenca().isAfter(limite30))
-                .forEach(e -> {
-                    Long tenantId = e.getTenant().getId();
-                    notificacaoService.gerar(
-                            tenantId,
-                            TipoNotificacao.PGRSS_LICENCA_PROXIMA_VENCIMENTO,
-                            NivelNotificacao.ALERTA,
-                            "Licença ambiental próxima do vencimento",
-                            "A empresa coletora \"" + e.getRazaoSocial() + "\" tem licença ambiental vencendo em "
-                                    + e.getDataVencimentoLicenca() + ".",
-                            e.getId(),
-                            "EMPRESA_COLETORA"
-                    );
-                });
+        List<EmpresaColetora> proximasVencer = empresaRepository.findAllByAtivoTrueAndDataVencimentoLicencaBetween(hoje, limite30);
+        proximasVencer.forEach(e -> {
+            Long tenantId = e.getTenant().getId();
+            notificacaoService.gerar(
+                    tenantId,
+                    TipoNotificacao.PGRSS_LICENCA_PROXIMA_VENCIMENTO,
+                    NivelNotificacao.ALERTA,
+                    "Licença ambiental próxima do vencimento",
+                    "A empresa coletora \"" + e.getRazaoSocial() + "\" tem licença ambiental vencendo em "
+                            + e.getDataVencimentoLicenca() + ".",
+                    e.getId(),
+                    "EMPRESA_COLETORA"
+            );
+        });
     }
 }

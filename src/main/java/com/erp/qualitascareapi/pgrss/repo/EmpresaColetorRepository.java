@@ -15,4 +15,10 @@ public interface EmpresaColetorRepository extends JpaRepository<EmpresaColetora,
     List<EmpresaColetora> findAllByTenant_IdAndAtivoTrueAndDataVencimentoLicencaBefore(Long tenantId, LocalDate data);
 
     List<EmpresaColetora> findAllByTenant_IdAndAtivoTrueAndDataVencimentoLicencaBetween(Long tenantId, LocalDate inicio, LocalDate fim);
+
+    /** Cross-tenant: used exclusively by the daily scheduler. */
+    List<EmpresaColetora> findAllByAtivoTrueAndDataVencimentoLicencaBefore(LocalDate data);
+
+    /** Cross-tenant: used exclusively by the daily scheduler. */
+    List<EmpresaColetora> findAllByAtivoTrueAndDataVencimentoLicencaBetween(LocalDate inicio, LocalDate fim);
 }

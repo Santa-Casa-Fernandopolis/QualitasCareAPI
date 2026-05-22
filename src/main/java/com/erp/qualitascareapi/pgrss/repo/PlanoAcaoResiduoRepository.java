@@ -20,4 +20,7 @@ public interface PlanoAcaoResiduoRepository extends JpaRepository<PlanoAcaoResid
     long countByTenant_IdAndStatusIn(Long tenantId, List<StatusPlanoAcao> statuses);
 
     List<PlanoAcaoResiduo> findAllByTenant_IdAndDataPrazoBefore(Long tenantId, LocalDate data);
+
+    /** Cross-tenant: used exclusively by the nightly scheduler. */
+    List<PlanoAcaoResiduo> findAllByStatusInAndDataPrazoBefore(List<StatusPlanoAcao> statuses, LocalDate data);
 }

@@ -21,4 +21,23 @@ public interface ColetaExternaRepository extends JpaRepository<ColetaExterna, Lo
 
     @Query("SELECT COUNT(c) FROM ColetaExterna c WHERE c.tenant.id = :tid AND c.status = 'REGISTRADA' AND c.numeroCertificadoDestinacao IS NULL")
     long countSemDocumento(@Param("tid") Long tid);
+
+    @Query("""
+            SELECT c FROM ColetaExterna c
+            WHERE c.tenant.id = :tenantId
+              AND (:empresaId IS NULL OR c.empresa.id = :empresaId)
+              AND (:grupoId IS NULL OR c.grupo.id = :grupoId)
+              AND (:status IS NULL OR c.status = :status)
+              AND (:dataInicio IS NULL OR c.dataColeta >= :dataInicio)
+              AND (:dataFim IS NULL OR c.dataColeta <= :dataFim)
+            ORDER BY c.dataColeta DESC
+            """)
+    Page<ColetaExterna> search(
+            @Param("tenantId") Long tenantId,
+            @Param("empresaId") Long empresaId,
+            @Param("grupoId") Long grupoId,
+            @Param("status") StatusColetaExterna status,
+            @Param("dataInicio") LocalDate dataInicio,
+            @Param("dataFim") LocalDate dataFim,
+            Pageable pageable);
 }

@@ -84,9 +84,11 @@ public class ColetaExternaService {
     }
 
     @Transactional(readOnly = true)
-    public Page<ColetaExternaDto> search(Pageable pageable) {
+    public Page<ColetaExternaDto> search(Long empresaId, Long grupoId, LocalDate dataInicio,
+                                          LocalDate dataFim, StatusColetaExterna status,
+                                          Pageable pageable) {
         Long tenantId = tenantScopeGuard.currentTenantId();
-        return repository.findAllByTenant_Id(tenantId, pageable).map(this::toDto);
+        return repository.search(tenantId, empresaId, grupoId, status, dataInicio, dataFim, pageable).map(this::toDto);
     }
 
     @Transactional(readOnly = true)
