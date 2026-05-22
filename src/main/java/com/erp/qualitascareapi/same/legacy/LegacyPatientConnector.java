@@ -10,11 +10,11 @@ public interface LegacyPatientConnector {
 
     boolean supports(SameSourceSystem sourceSystem);
 
-    List<LegacyPatientRecord> searchByCpf(String cpf);
+    List<LegacyPatientRecord> searchByCpf(Long tenantId, String cpf);
 
-    List<LegacyPatientRecord> searchByMedicalRecordCode(SameSourceSystem sourceSystem, String code);
+    List<LegacyPatientRecord> searchByMedicalRecordCode(Long tenantId, SameSourceSystem sourceSystem, String code);
 
-    List<LegacyPatientRecord> searchByNameAndBirthDate(String name, LocalDate birthDate);
+    List<LegacyPatientRecord> searchByNameAndBirthDate(Long tenantId, String name, LocalDate birthDate);
 
-    Optional<LegacyPatientRecord> getByExternalPatientId(String id);
+    Optional<LegacyPatientRecord> getByExternalPatientId(Long tenantId, String id);
 }

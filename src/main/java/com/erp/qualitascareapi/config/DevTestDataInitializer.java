@@ -97,6 +97,10 @@ public class DevTestDataInitializer implements ApplicationRunner {
         Role scfGestor = roleRepository.save(new Role(null, "GESTOR", scf, "Gestor assistencial (nível gerência)"));
         Role scfOperador = roleRepository.save(new Role(null, "OPERADOR", scf, "Operador dos módulos assistenciais"));
         Role scfLeitor = roleRepository.save(new Role(null, "LEITOR", scf, "Somente leitura"));
+        Role scfSameManager = roleRepository.save(new Role(null, "SAME_MANAGER", scf, "Gestor do SAME"));
+        Role scfSameOperator = roleRepository.save(new Role(null, "SAME_OPERATOR", scf, "Operador do SAME"));
+        Role scfClinicalViewer = roleRepository.save(new Role(null, "CLINICAL_VIEWER", scf, "Consulta clínica de prontuários"));
+        Role scfAuditor = roleRepository.save(new Role(null, "AUDITOR", scf, "Auditoria e rastreabilidade"));
 
 
         // ===== IAM ROLES – SCJ (mesma tipologia, outro tenant) =====
@@ -107,6 +111,10 @@ public class DevTestDataInitializer implements ApplicationRunner {
         Role scjGestor = roleRepository.save(new Role(null, "GESTOR", scj, "Gestor assistencial (nível gerência)"));
         Role scjOperador = roleRepository.save(new Role(null, "OPERADOR", scj, "Operador dos módulos assistenciais"));
         Role scjLeitor = roleRepository.save(new Role(null, "LEITOR", scj, "Somente leitura"));
+        Role scjSameManager = roleRepository.save(new Role(null, "SAME_MANAGER", scj, "Gestor do SAME"));
+        Role scjSameOperator = roleRepository.save(new Role(null, "SAME_OPERATOR", scj, "Operador do SAME"));
+        Role scjClinicalViewer = roleRepository.save(new Role(null, "CLINICAL_VIEWER", scj, "Consulta clínica de prontuários"));
+        Role scjAuditor = roleRepository.save(new Role(null, "AUDITOR", scj, "Auditoria e rastreabilidade"));
 
 
 
@@ -123,6 +131,10 @@ public class DevTestDataInitializer implements ApplicationRunner {
         createUserIfMissing("enf.cme.scf",      "Enfermeira CME",      "CME",             scf, scfOperador,         now, createdUsers);
         createUserIfMissing("dir.clinico.scf",  "Diretor Clínico",     "Diretoria",       scf, scfAdminAssistencial,now, createdUsers);
         createUserIfMissing("gest.edu.scf",     "Gestor Educação",     "Educação",        scf, scfGestor,           now, createdUsers);
+        createUserIfMissing("same.manager.scf", "Gestor SAME SCF",      "SAME",            scf, scfSameManager,      now, createdUsers);
+        createUserIfMissing("same.oper.scf",    "Operador SAME SCF",    "SAME",            scf, scfSameOperator,     now, createdUsers);
+        createUserIfMissing("clin.viewer.scf",  "Visualizador Clínico", "Assistencial",    scf, scfClinicalViewer,   now, createdUsers);
+        createUserIfMissing("auditor.scf",      "Auditor SCF",          "Auditoria",       scf, scfAuditor,          now, createdUsers);
 
         // SCJ
         createUserIfMissing("jefferson.passerini.scj", "SysAdmin SCJ",        "TI",              scj, scjSystemAdmin,      now, createdUsers);
@@ -134,6 +146,10 @@ public class DevTestDataInitializer implements ApplicationRunner {
         createUserIfMissing("enf.cme.scj",      "Enfermeira CME",      "CME",             scj, scjOperador,         now, createdUsers);
         createUserIfMissing("dir.clinico.scj",  "Diretor Clínico",     "Diretoria",       scj, scjAdminAssistencial,now, createdUsers);
         createUserIfMissing("gest.edu.scj",     "Gestor Educação",     "Educação",        scj, scjGestor,           now, createdUsers);
+        createUserIfMissing("same.manager.scj", "Gestor SAME SCJ",      "SAME",            scj, scjSameManager,      now, createdUsers);
+        createUserIfMissing("same.oper.scj",    "Operador SAME SCJ",    "SAME",            scj, scjSameOperator,     now, createdUsers);
+        createUserIfMissing("clin.viewer.scj",  "Visualizador Clínico", "Assistencial",    scj, scjClinicalViewer,   now, createdUsers);
+        createUserIfMissing("auditor.scj",      "Auditor SCJ",          "Auditoria",       scj, scjAuditor,          now, createdUsers);
 
         // ===== PERMISSÕES BASE – IAM / SECURITY (SCF) =====
         // IAM_TENANT – gestão de tenants
@@ -1005,6 +1021,9 @@ public class DevTestDataInitializer implements ApplicationRunner {
             }
         }
 
+        configureSameRolePermissions(scf, scfSameManager, scfSameOperator, scfClinicalViewer, scfAuditor);
+        configureSameRolePermissions(scj, scjSameManager, scjSameOperator, scjClinicalViewer, scjAuditor);
+
         //=========================== PAPEIS ORGANIZACIONAIS =========================================================
         // ===== SETORES (IAM / ORG) =====
         Setor setorCmeScf = setorRepository.save(
@@ -1182,6 +1201,83 @@ public class DevTestDataInitializer implements ApplicationRunner {
         Policy policy = new Policy(null, tenant, resource, action, feature, effect, true, priority, description);
         policy.setRoles(roles);
         return policy;
+    }
+
+    private void configureSameRolePermissions(Tenant tenant,
+                                              Role sameManager,
+                                              Role sameOperator,
+                                              Role clinicalViewer,
+                                              Role auditor) {
+        for (ResourceType resource : List.of(
+                ResourceType.SAME_PATIENT,
+                ResourceType.SAME_IDENTIFIER,
+                ResourceType.SAME_DOCUMENT,
+                ResourceType.SAME_AUDIT,
+                ResourceType.SAME_LEGACY_SOURCE)) {
+            for (Action action : List.of(Action.READ, Action.CREATE, Action.UPDATE, Action.DELETE,
+                    Action.DOWNLOAD, Action.ARCHIVE, Action.BLOCK, Action.IMPORT, Action.EXPORT)) {
+                Permission permission = findOrCreatePermission(
+                        tenant,
+                        resource,
+                        action,
+                        action == Action.READ ? "LISTA" : "FORM",
+                        resource.name() + "_" + action.name() + "@" + (action == Action.READ ? "LISTA" : "FORM"));
+
+                if (allowsSameManager(resource, action)) {
+                    ensureRolePermission(sameManager, permission, tenant);
+                }
+                if (allowsSameOperator(resource, action)) {
+                    ensureRolePermission(sameOperator, permission, tenant);
+                }
+                if (allowsClinicalViewer(resource, action)) {
+                    ensureRolePermission(clinicalViewer, permission, tenant);
+                }
+                if (allowsAuditor(resource, action)) {
+                    ensureRolePermission(auditor, permission, tenant);
+                }
+            }
+        }
+    }
+
+    private boolean allowsSameManager(ResourceType resource, Action action) {
+        if (resource == ResourceType.SAME_AUDIT) {
+            return action == Action.READ || action == Action.EXPORT;
+        }
+        if (resource == ResourceType.SAME_DOCUMENT) {
+            return action == Action.READ || action == Action.CREATE || action == Action.UPDATE
+                    || action == Action.DOWNLOAD || action == Action.ARCHIVE || action == Action.BLOCK
+                    || action == Action.EXPORT;
+        }
+        if (resource == ResourceType.SAME_LEGACY_SOURCE) {
+            return action == Action.READ || action == Action.CREATE || action == Action.UPDATE
+                    || action == Action.IMPORT || action == Action.EXPORT;
+        }
+        return action == Action.READ || action == Action.CREATE || action == Action.UPDATE || action == Action.DELETE;
+    }
+
+    private boolean allowsSameOperator(ResourceType resource, Action action) {
+        if (resource == ResourceType.SAME_PATIENT || resource == ResourceType.SAME_IDENTIFIER) {
+            return action == Action.READ || action == Action.CREATE || action == Action.UPDATE;
+        }
+        if (resource == ResourceType.SAME_DOCUMENT) {
+            return action == Action.READ || action == Action.CREATE || action == Action.UPDATE || action == Action.DOWNLOAD;
+        }
+        if (resource == ResourceType.SAME_LEGACY_SOURCE) {
+            return action == Action.READ || action == Action.IMPORT;
+        }
+        return false;
+    }
+
+    private boolean allowsClinicalViewer(ResourceType resource, Action action) {
+        return (resource == ResourceType.SAME_PATIENT || resource == ResourceType.SAME_IDENTIFIER
+                || resource == ResourceType.SAME_DOCUMENT)
+                && (action == Action.READ || (resource == ResourceType.SAME_DOCUMENT && action == Action.DOWNLOAD));
+    }
+
+    private boolean allowsAuditor(ResourceType resource, Action action) {
+        return (resource == ResourceType.SAME_PATIENT || resource == ResourceType.SAME_IDENTIFIER
+                || resource == ResourceType.SAME_DOCUMENT || resource == ResourceType.SAME_AUDIT)
+                && (action == Action.READ || action == Action.EXPORT);
     }
 
     private Role findOrCreateRole(Tenant tenant, String name, String description) {
