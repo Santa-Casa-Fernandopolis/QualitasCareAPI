@@ -9,8 +9,11 @@
       minimum-idle: 2
       pool-name: QualitasPool
 
+  h2:
+    console:
+      enabled: false
+
   jpa:
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: update          # DEV: Hibernate cuida do schema
     properties:
