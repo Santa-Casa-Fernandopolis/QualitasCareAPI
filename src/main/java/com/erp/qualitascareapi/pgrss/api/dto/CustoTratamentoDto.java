@@ -6,13 +6,10 @@ import java.time.LocalDate;
 public record CustoTratamentoDto(
         Long id,
         Long tenantId,
-        Long empresaColetorId,
-        String empresaColetorRazaoSocial,
-        Long tipoResiduoId,
-        String tipoResiduoNome,
-        BigDecimal valorPorKg,
-        String moeda,
-        LocalDate vigenciaInicio,
-        LocalDate vigenciaFim,
-        String observacoes
+        Long grupoId,
+        String grupoNome,
+        BigDecimal custoPorKg,
+        LocalDate dataInicioVigencia,
+        LocalDate dataFimVigencia,
+        Boolean ativo
 ) {}

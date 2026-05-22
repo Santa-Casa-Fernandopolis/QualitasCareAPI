@@ -11,7 +11,5 @@ public interface CustoTratamentoRepository extends JpaRepository<CustoTratamento
 
     Page<CustoTratamento> findAllByTenant_Id(Long tenantId, Pageable pageable);
 
-    List<CustoTratamento> findAllByTenant_IdAndEmpresaColetora_Id(Long tenantId, Long empresaId);
-
-    List<CustoTratamento> findAllByTenant_IdAndTipoResiduo_Id(Long tenantId, Long tipoResiduoId);
+    List<CustoTratamento> findAllByTenant_IdAndGrupo_IdAndAtivoTrue(Long tenantId, Long grupoId);
 }

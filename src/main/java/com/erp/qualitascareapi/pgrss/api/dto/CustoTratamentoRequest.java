@@ -8,11 +8,8 @@ import java.time.LocalDate;
 
 public record CustoTratamentoRequest(
         @NotNull Long tenantId,
-        @NotNull Long empresaColetorId,
-        @NotNull Long tipoResiduoId,
-        @NotNull @DecimalMin("0.0001") BigDecimal valorPorKg,
-        String moeda,
-        @NotNull LocalDate vigenciaInicio,
-        LocalDate vigenciaFim,
-        String observacoes
+        @NotNull Long grupoId,
+        @NotNull @DecimalMin("0.0001") BigDecimal custoPorKg,
+        @NotNull LocalDate dataInicioVigencia,
+        LocalDate dataFimVigencia
 ) {}

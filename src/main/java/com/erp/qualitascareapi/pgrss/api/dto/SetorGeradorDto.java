@@ -1,14 +1,13 @@
 package com.erp.qualitascareapi.pgrss.api.dto;
 
-import com.erp.qualitascareapi.pgrss.enums.SetorGeradorTipo;
+import com.erp.qualitascareapi.pgrss.enums.TipoSetorGerador;
 
 public record SetorGeradorDto(
         Long id,
         Long tenantId,
-        Long setorId,
         String nome,
-        String codigoInterno,
-        SetorGeradorTipo tipo,
-        String descricao,
-        Boolean ativo
+        String centroCusto,
+        TipoSetorGerador tipo,
+        Boolean ativo,
+        String observacoes
 ) {}

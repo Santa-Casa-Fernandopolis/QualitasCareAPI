@@ -1,6 +1,7 @@
 package com.erp.qualitascareapi.pgrss.api;
 
-import com.erp.qualitascareapi.pgrss.api.dto.*;
+import com.erp.qualitascareapi.pgrss.api.dto.EmpresaColetorDto;
+import com.erp.qualitascareapi.pgrss.api.dto.EmpresaColetorRequest;
 import com.erp.qualitascareapi.pgrss.application.EmpresaColetorService;
 import com.erp.qualitascareapi.security.annotation.RequiresPermission;
 import com.erp.qualitascareapi.security.enums.Action;
@@ -23,19 +24,17 @@ public class EmpresaColetorController {
         this.service = service;
     }
 
-    // ── EmpresaColetora ────────────────────────────────────────────────────
-
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @RequiresPermission(resource = ResourceType.PGRSS_CADASTRO, action = Action.CREATE)
-    public EmpresaColetorDto create(@Validated @RequestBody EmpresaColetorRequest request) {
-        return service.create(request);
+    public EmpresaColetorDto create(@Validated @RequestBody EmpresaColetorRequest req) {
+        return service.create(req);
     }
 
     @GetMapping
     @RequiresPermission(resource = ResourceType.PGRSS_CADASTRO, action = Action.READ)
-    public Page<EmpresaColetorDto> list(@RequestParam(required = false) Boolean ativo, Pageable pageable) {
-        return service.list(ativo, pageable);
+    public Page<EmpresaColetorDto> findAll(Pageable pageable) {
+        return service.findAll(pageable);
     }
 
     @GetMapping("/{id}")
@@ -46,35 +45,19 @@ public class EmpresaColetorController {
 
     @PutMapping("/{id}")
     @RequiresPermission(resource = ResourceType.PGRSS_CADASTRO, action = Action.UPDATE)
-    public EmpresaColetorDto update(@PathVariable Long id, @Validated @RequestBody EmpresaColetorRequest request) {
-        return service.update(id, request);
+    public EmpresaColetorDto update(@PathVariable Long id, @Validated @RequestBody EmpresaColetorRequest req) {
+        return service.update(id, req);
     }
 
-    @PatchMapping("/{id}/status")
+    @PatchMapping("/{id}/ativo")
     @RequiresPermission(resource = ResourceType.PGRSS_CADASTRO, action = Action.UPDATE)
-    public EmpresaColetorDto toggleAtivo(@PathVariable Long id, @RequestParam Boolean ativo) {
-        return service.toggleAtivo(id, ativo);
+    public EmpresaColetorDto toggleAtivo(@PathVariable Long id) {
+        return service.toggleAtivo(id);
     }
 
-    // ── Custos de Tratamento ───────────────────────────────────────────────
-
-    @PostMapping("/custos")
-    @ResponseStatus(HttpStatus.CREATED)
-    @RequiresPermission(resource = ResourceType.PGRSS_CADASTRO, action = Action.CREATE)
-    public CustoTratamentoDto createCusto(@Validated @RequestBody CustoTratamentoRequest request) {
-        return service.createCusto(request);
-    }
-
-    @GetMapping("/{id}/custos")
+    @GetMapping("/licencas/vencendo")
     @RequiresPermission(resource = ResourceType.PGRSS_CADASTRO, action = Action.READ)
-    public List<CustoTratamentoDto> listCustos(@PathVariable Long id) {
-        return service.listCustosByEmpresa(id);
-    }
-
-    @DeleteMapping("/custos/{custoId}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    @RequiresPermission(resource = ResourceType.PGRSS_CADASTRO, action = Action.DELETE)
-    public void deleteCusto(@PathVariable Long custoId) {
-        service.deleteCusto(custoId);
+    public List<EmpresaColetorDto> licencasVencendo(@RequestParam(defaultValue = "30") int dias) {
+        return service.findLicencasProximasVencimento(dias);
     }
 }

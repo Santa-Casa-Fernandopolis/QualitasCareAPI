@@ -1,20 +1,16 @@
 package com.erp.qualitascareapi.pgrss.api.dto;
 
-import com.erp.qualitascareapi.pgrss.enums.*;
+import com.erp.qualitascareapi.pgrss.enums.TipoAcondicionamento;
 
 public record TipoResiduoDto(
         Long id,
         Long tenantId,
-        Long grupoResiduoId,
-        String grupoResiduoNome,
-        String codigo,
+        Long grupoId,
+        String grupoNome,
         String nome,
         String descricao,
-        PericulosidadeResiduo periculosidade,
-        EstadoFisicoResiduo estadoFisico,
         TipoAcondicionamento tipoAcondicionamento,
-        TipoTratamento tipoTratamento,
-        TipoDestinacaoFinal tipoDestinacaoFinal,
-        Boolean requerLicenca,
+        Boolean requerIdentificacao,
+        Boolean requerPesagem,
         Boolean ativo
 ) {}

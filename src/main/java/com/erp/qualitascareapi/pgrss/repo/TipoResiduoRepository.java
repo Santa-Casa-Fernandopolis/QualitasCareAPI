@@ -11,9 +11,7 @@ public interface TipoResiduoRepository extends JpaRepository<TipoResiduo, Long> 
 
     Page<TipoResiduo> findAllByTenant_Id(Long tenantId, Pageable pageable);
 
-    Page<TipoResiduo> findAllByTenant_IdAndAtivo(Long tenantId, Boolean ativo, Pageable pageable);
+    List<TipoResiduo> findAllByTenant_IdAndGrupo_IdAndAtivoTrue(Long tenantId, Long grupoId);
 
-    List<TipoResiduo> findAllByTenant_IdAndGrupoResiduo_Id(Long tenantId, Long grupoResiduoId);
-
-    boolean existsByTenant_IdAndCodigoIgnoreCase(Long tenantId, String codigo);
+    List<TipoResiduo> findAllByTenant_IdAndAtivoTrue(Long tenantId);
 }

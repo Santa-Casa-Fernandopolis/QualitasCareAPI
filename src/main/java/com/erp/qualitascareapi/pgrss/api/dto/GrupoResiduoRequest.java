@@ -1,13 +1,15 @@
 package com.erp.qualitascareapi.pgrss.api.dto;
 
-import com.erp.qualitascareapi.pgrss.enums.GrupoResiduoCodigo;
+import com.erp.qualitascareapi.pgrss.enums.RiscoResiduo;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public record GrupoResiduoRequest(
         @NotNull Long tenantId,
-        @NotNull GrupoResiduoCodigo codigo,
+        @NotBlank String codigo,
         @NotBlank String nome,
         String descricao,
-        String corIdentificacao
+        @NotNull RiscoResiduo risco,
+        String padraoCorIdentificacao,
+        Boolean requerTratamento
 ) {}

@@ -13,7 +13,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/pgrss/setores-geradores")
+@RequestMapping("/api/pgrss/setores")
 public class SetorGeradorController {
 
     private final SetorGeradorService service;
@@ -25,14 +25,14 @@ public class SetorGeradorController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @RequiresPermission(resource = ResourceType.PGRSS_CADASTRO, action = Action.CREATE)
-    public SetorGeradorDto create(@Validated @RequestBody SetorGeradorRequest request) {
-        return service.create(request);
+    public SetorGeradorDto create(@Validated @RequestBody SetorGeradorRequest req) {
+        return service.create(req);
     }
 
     @GetMapping
     @RequiresPermission(resource = ResourceType.PGRSS_CADASTRO, action = Action.READ)
-    public Page<SetorGeradorDto> list(@RequestParam(required = false) Boolean ativo, Pageable pageable) {
-        return service.list(ativo, pageable);
+    public Page<SetorGeradorDto> findAll(Pageable pageable) {
+        return service.findAll(pageable);
     }
 
     @GetMapping("/{id}")
@@ -43,13 +43,13 @@ public class SetorGeradorController {
 
     @PutMapping("/{id}")
     @RequiresPermission(resource = ResourceType.PGRSS_CADASTRO, action = Action.UPDATE)
-    public SetorGeradorDto update(@PathVariable Long id, @Validated @RequestBody SetorGeradorRequest request) {
-        return service.update(id, request);
+    public SetorGeradorDto update(@PathVariable Long id, @Validated @RequestBody SetorGeradorRequest req) {
+        return service.update(id, req);
     }
 
-    @PatchMapping("/{id}/status")
+    @PatchMapping("/{id}/ativo")
     @RequiresPermission(resource = ResourceType.PGRSS_CADASTRO, action = Action.UPDATE)
-    public SetorGeradorDto toggleAtivo(@PathVariable Long id, @RequestParam Boolean ativo) {
-        return service.toggleAtivo(id, ativo);
+    public SetorGeradorDto toggleAtivo(@PathVariable Long id) {
+        return service.toggleAtivo(id);
     }
 }

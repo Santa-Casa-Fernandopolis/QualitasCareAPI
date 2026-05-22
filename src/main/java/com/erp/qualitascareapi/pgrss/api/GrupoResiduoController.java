@@ -1,8 +1,7 @@
 package com.erp.qualitascareapi.pgrss.api;
 
-import com.erp.qualitascareapi.pgrss.api.dto.GrupoResiduoDto;
-import com.erp.qualitascareapi.pgrss.api.dto.GrupoResiduoRequest;
-import com.erp.qualitascareapi.pgrss.application.GrupoResiduoService;
+import com.erp.qualitascareapi.pgrss.api.dto.*;
+import com.erp.qualitascareapi.pgrss.application.GrupoTipoResiduoService;
 import com.erp.qualitascareapi.security.annotation.RequiresPermission;
 import com.erp.qualitascareapi.security.enums.Action;
 import com.erp.qualitascareapi.security.enums.ResourceType;
@@ -15,49 +14,86 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/pgrss/grupos-residuo")
+@RequestMapping("/api/pgrss")
 public class GrupoResiduoController {
 
-    private final GrupoResiduoService service;
+    private final GrupoTipoResiduoService service;
 
-    public GrupoResiduoController(GrupoResiduoService service) {
+    public GrupoResiduoController(GrupoTipoResiduoService service) {
         this.service = service;
     }
 
-    @PostMapping
+    @PostMapping("/grupos")
     @ResponseStatus(HttpStatus.CREATED)
     @RequiresPermission(resource = ResourceType.PGRSS_CADASTRO, action = Action.CREATE)
-    public GrupoResiduoDto create(@Validated @RequestBody GrupoResiduoRequest request) {
-        return service.create(request);
+    public GrupoResiduoDto createGrupo(@Validated @RequestBody GrupoResiduoRequest req) {
+        return service.createGrupo(req);
     }
 
-    @GetMapping
+    @GetMapping("/grupos")
     @RequiresPermission(resource = ResourceType.PGRSS_CADASTRO, action = Action.READ)
-    public Page<GrupoResiduoDto> list(Pageable pageable) {
-        return service.list(pageable);
+    public Page<GrupoResiduoDto> listGrupos(Pageable pageable) {
+        return service.listGrupos(pageable);
     }
 
-    @GetMapping("/ativos")
+    @GetMapping("/grupos/ativos")
     @RequiresPermission(resource = ResourceType.PGRSS_CADASTRO, action = Action.READ)
-    public List<GrupoResiduoDto> listAtivos() {
-        return service.listAtivos();
+    public List<GrupoResiduoDto> listGruposAtivos() {
+        return service.listGruposAtivos();
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/grupos/{id}")
     @RequiresPermission(resource = ResourceType.PGRSS_CADASTRO, action = Action.READ)
-    public GrupoResiduoDto findById(@PathVariable Long id) {
-        return service.findById(id);
+    public GrupoResiduoDto getGrupo(@PathVariable Long id) {
+        return service.findGrupoById(id);
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/grupos/{id}")
     @RequiresPermission(resource = ResourceType.PGRSS_CADASTRO, action = Action.UPDATE)
-    public GrupoResiduoDto update(@PathVariable Long id, @Validated @RequestBody GrupoResiduoRequest request) {
-        return service.update(id, request);
+    public GrupoResiduoDto updateGrupo(@PathVariable Long id, @Validated @RequestBody GrupoResiduoRequest req) {
+        return service.updateGrupo(id, req);
     }
 
-    @PatchMapping("/{id}/status")
+    @PatchMapping("/grupos/{id}/ativo")
     @RequiresPermission(resource = ResourceType.PGRSS_CADASTRO, action = Action.UPDATE)
-    public GrupoResiduoDto toggleAtivo(@PathVariable Long id, @RequestParam Boolean ativo) {
-        return service.toggleAtivo(id, ativo);
+    public GrupoResiduoDto toggleGrupoAtivo(@PathVariable Long id) {
+        return service.toggleGrupoAtivo(id);
+    }
+
+    @PostMapping("/tipos")
+    @ResponseStatus(HttpStatus.CREATED)
+    @RequiresPermission(resource = ResourceType.PGRSS_CADASTRO, action = Action.CREATE)
+    public TipoResiduoDto createTipo(@Validated @RequestBody TipoResiduoRequest req) {
+        return service.createTipo(req);
+    }
+
+    @GetMapping("/tipos")
+    @RequiresPermission(resource = ResourceType.PGRSS_CADASTRO, action = Action.READ)
+    public Page<TipoResiduoDto> listTipos(Pageable pageable) {
+        return service.listTipos(pageable);
+    }
+
+    @GetMapping("/tipos/por-grupo/{grupoId}")
+    @RequiresPermission(resource = ResourceType.PGRSS_CADASTRO, action = Action.READ)
+    public List<TipoResiduoDto> listTiposByGrupo(@PathVariable Long grupoId) {
+        return service.listTiposByGrupo(grupoId);
+    }
+
+    @GetMapping("/tipos/{id}")
+    @RequiresPermission(resource = ResourceType.PGRSS_CADASTRO, action = Action.READ)
+    public TipoResiduoDto getTipo(@PathVariable Long id) {
+        return service.findTipoById(id);
+    }
+
+    @PutMapping("/tipos/{id}")
+    @RequiresPermission(resource = ResourceType.PGRSS_CADASTRO, action = Action.UPDATE)
+    public TipoResiduoDto updateTipo(@PathVariable Long id, @Validated @RequestBody TipoResiduoRequest req) {
+        return service.updateTipo(id, req);
+    }
+
+    @PatchMapping("/tipos/{id}/ativo")
+    @RequiresPermission(resource = ResourceType.PGRSS_CADASTRO, action = Action.UPDATE)
+    public TipoResiduoDto toggleTipoAtivo(@PathVariable Long id) {
+        return service.toggleTipoAtivo(id);
     }
 }
