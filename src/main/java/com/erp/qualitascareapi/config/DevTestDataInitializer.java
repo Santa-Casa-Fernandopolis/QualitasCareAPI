@@ -962,7 +962,16 @@ public class DevTestDataInitializer implements ApplicationRunner {
                 ResourceType.DOCUMENTO,
                 ResourceType.DOCUMENTO_VERSAO,
                 ResourceType.DOCUMENTO_ACK,
-                ResourceType.DOCUMENTO_ALTERACAO
+                ResourceType.DOCUMENTO_ALTERACAO,
+                ResourceType.ENV_AMBIENTE,
+                ResourceType.ENV_MONITORAMENTO,
+                ResourceType.ENV_GELADEIRA,
+                ResourceType.ENV_IOT_DEVICE,
+                ResourceType.SAME_PATIENT,
+                ResourceType.SAME_IDENTIFIER,
+                ResourceType.SAME_DOCUMENT,
+                ResourceType.SAME_AUDIT,
+                ResourceType.SAME_LEGACY_SOURCE
         );
 
         for (ResourceType rt : futureResources) {
@@ -984,6 +993,16 @@ public class DevTestDataInitializer implements ApplicationRunner {
             ensureRolePermission(scjSystemAdmin, scjCreate, scj);
             ensureRolePermission(scjSystemAdmin, scjUpdate, scj);
             ensureRolePermission(scjSystemAdmin, scjDelete, scj);
+        }
+
+        for (ResourceType rt : List.of(ResourceType.SAME_DOCUMENT, ResourceType.SAME_AUDIT, ResourceType.SAME_LEGACY_SOURCE)) {
+            String key = rt.name();
+            for (Action action : List.of(Action.DOWNLOAD, Action.ARCHIVE, Action.BLOCK, Action.IMPORT, Action.EXPORT)) {
+                Permission scfPermission = findOrCreatePermission(scf, rt, action, "FORM", key + "_" + action.name() + "@FORM");
+                Permission scjPermission = findOrCreatePermission(scj, rt, action, "FORM", key + "_" + action.name() + "@FORM");
+                ensureRolePermission(scfSystemAdmin, scfPermission, scf);
+                ensureRolePermission(scjSystemAdmin, scjPermission, scj);
+            }
         }
 
         //=========================== PAPEIS ORGANIZACIONAIS =========================================================

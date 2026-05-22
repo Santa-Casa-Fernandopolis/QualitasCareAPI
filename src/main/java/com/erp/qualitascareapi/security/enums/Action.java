@@ -1,5 +1,5 @@
 package com.erp.qualitascareapi.security.enums;
 
 public enum Action {
-    READ, CREATE, UPDATE, DELETE, APPROVE, EXPORT, CLOSE
+    READ, CREATE, UPDATE, DELETE, APPROVE, EXPORT, CLOSE, DOWNLOAD, ARCHIVE, BLOCK, IMPORT
 }

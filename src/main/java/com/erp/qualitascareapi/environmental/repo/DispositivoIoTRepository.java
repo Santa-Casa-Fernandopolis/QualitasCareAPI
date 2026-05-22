@@ -12,6 +12,8 @@ import java.util.Optional;
 
 public interface DispositivoIoTRepository extends JpaRepository<DispositivoIoT, Long> {
 
+    Optional<DispositivoIoT> findByIdAndTenantId(Long id, Long tenantId);
+
     Page<DispositivoIoT> findAllByTenantId(Long tenantId, Pageable pageable);
 
     Optional<DispositivoIoT> findByApiKey(String apiKey);

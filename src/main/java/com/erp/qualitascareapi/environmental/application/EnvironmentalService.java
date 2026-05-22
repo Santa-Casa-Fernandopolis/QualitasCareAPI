@@ -79,17 +79,13 @@ public class EnvironmentalService {
     }
 
     public AmbienteDto updateAmbiente(Long id, AmbienteRequest request) {
-        Ambiente a = ambienteRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Ambiente não encontrado"));
-        tenantScopeGuard.checkRequestedTenant(a.getTenant().getId());
+        Ambiente a = loadAmbiente(id, tenantScopeGuard.currentTenantId());
         applyAmbienteFields(a, request);
         return toAmbienteDto(ambienteRepository.save(a));
     }
 
     public AmbienteDto toggleAmbienteStatus(Long id, boolean ativo) {
-        Ambiente a = ambienteRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Ambiente não encontrado"));
-        tenantScopeGuard.checkRequestedTenant(a.getTenant().getId());
+        Ambiente a = loadAmbiente(id, tenantScopeGuard.currentTenantId());
         a.setAtivo(ativo);
         return toAmbienteDto(ambienteRepository.save(a));
     }
@@ -105,7 +101,7 @@ public class EnvironmentalService {
 
     @Transactional(readOnly = true)
     public AmbienteDto findAmbienteById(Long id) {
-        return ambienteRepository.findById(id)
+        return ambienteRepository.findByIdAndTenantId(id, tenantScopeGuard.currentTenantId())
                 .map(this::toAmbienteDto)
                 .orElseThrow(() -> new EntityNotFoundException("Ambiente não encontrado"));
     }
@@ -150,8 +146,7 @@ public class EnvironmentalService {
 
         Ambiente ambiente = null;
         if (request.ambienteId() != null) {
-            ambiente = ambienteRepository.findById(request.ambienteId())
-                    .orElseThrow(() -> new EntityNotFoundException("Ambiente não encontrado"));
+            ambiente = loadAmbiente(request.ambienteId(), tenant.getId());
             m.setAmbiente(ambiente);
             m.setTipoAmbiente(ambiente.getTipoAmbiente());
         } else {
@@ -171,9 +166,9 @@ public class EnvironmentalService {
         }
         m.setResultado(resultado);
 
-        if (request.responsavelId() != null) m.setResponsavel(loadUser(request.responsavelId()));
+        if (request.responsavelId() != null) m.setResponsavel(loadUser(request.responsavelId(), tenant.getId()));
         m.setObservacoes(request.observacoes());
-        m.setEvidencias(loadEvidencias(request.evidenciasIds()));
+        m.setEvidencias(loadEvidencias(request.evidenciasIds(), tenant.getId()));
         MonitoramentoAmbiental salvo = monitoramentoRepository.save(m);
         dispararNotificacaoAmbiental(salvo);
         return toMonitoramentoDto(salvo);
@@ -187,7 +182,7 @@ public class EnvironmentalService {
 
     @Transactional(readOnly = true)
     public MonitoramentoAmbientalDto findMonitoramentoById(Long id) {
-        return monitoramentoRepository.findById(id)
+        return monitoramentoRepository.findByIdAndTenantId(id, tenantScopeGuard.currentTenantId())
                 .map(this::toMonitoramentoDto)
                 .orElseThrow(() -> new EntityNotFoundException("Monitoramento ambiental não encontrado"));
     }
@@ -220,17 +215,13 @@ public class EnvironmentalService {
     }
 
     public GeladeiraMedicamentosDto updateGeladeira(Long id, GeladeiraMedicamentosRequest request) {
-        GeladeiraMedicamentos g = geladeiraRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Geladeira não encontrada"));
-        tenantScopeGuard.checkRequestedTenant(g.getTenant().getId());
+        GeladeiraMedicamentos g = loadGeladeira(id, tenantScopeGuard.currentTenantId());
         applyGeladeiraFields(g, request);
         return toGeladeiraDto(geladeiraRepository.save(g));
     }
 
     public GeladeiraMedicamentosDto toggleGeladeiraStatus(Long id, boolean ativo) {
-        GeladeiraMedicamentos g = geladeiraRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Geladeira não encontrada"));
-        tenantScopeGuard.checkRequestedTenant(g.getTenant().getId());
+        GeladeiraMedicamentos g = loadGeladeira(id, tenantScopeGuard.currentTenantId());
         g.setAtivo(ativo);
         return toGeladeiraDto(geladeiraRepository.save(g));
     }
@@ -243,7 +234,7 @@ public class EnvironmentalService {
 
     @Transactional(readOnly = true)
     public GeladeiraMedicamentosDto findGeladeiraById(Long id) {
-        return geladeiraRepository.findById(id)
+        return geladeiraRepository.findByIdAndTenantId(id, tenantScopeGuard.currentTenantId())
                 .map(this::toGeladeiraDto)
                 .orElseThrow(() -> new EntityNotFoundException("Geladeira não encontrada"));
     }
@@ -277,13 +268,12 @@ public class EnvironmentalService {
     public RegistroTemperaturaGeladeiraDto registrarTemperatura(RegistroTemperaturaGeladeiraRequest request) {
         tenantScopeGuard.checkRequestedTenant(request.tenantId());
         Tenant tenant = loadTenant(request.tenantId());
-        GeladeiraMedicamentos geladeira = geladeiraRepository.findById(request.geladeiraId())
-                .orElseThrow(() -> new EntityNotFoundException("Geladeira não encontrada"));
+        GeladeiraMedicamentos geladeira = loadGeladeira(request.geladeiraId(), tenant.getId());
 
         RegistroTemperaturaGeladeira r = buildRegistroTemperatura(tenant, geladeira,
                 request.dataHora(), request.temperaturaCelsius(), request.umidadeRelativa(),
                 request.resultado(), request.acaoCorretiva(),
-                request.responsavelId() != null ? loadUser(request.responsavelId()) : null,
+                request.responsavelId() != null ? loadUser(request.responsavelId(), tenant.getId()) : null,
                 request.observacoes());
         RegistroTemperaturaGeladeira salvo = registroRepository.save(r);
         dispararNotificacaoGeladeira(salvo);
@@ -301,7 +291,7 @@ public class EnvironmentalService {
 
     @Transactional(readOnly = true)
     public RegistroTemperaturaGeladeiraDto findRegistroById(Long id) {
-        return registroRepository.findById(id)
+        return registroRepository.findByIdAndTenantId(id, tenantScopeGuard.currentTenantId())
                 .map(this::toRegistroDto)
                 .orElseThrow(() -> new EntityNotFoundException("Registro de temperatura não encontrado"));
     }
@@ -355,28 +345,22 @@ public class EnvironmentalService {
         d.setLocalInstalacao(request.localInstalacao());
 
         if (request.geladeiraId() != null) {
-            d.setGeladeira(geladeiraRepository.findById(request.geladeiraId())
-                    .orElseThrow(() -> new EntityNotFoundException("Geladeira não encontrada")));
+            d.setGeladeira(loadGeladeira(request.geladeiraId(), tenant.getId()));
         }
         if (request.ambienteId() != null) {
-            d.setAmbiente(ambienteRepository.findById(request.ambienteId())
-                    .orElseThrow(() -> new EntityNotFoundException("Ambiente não encontrado")));
+            d.setAmbiente(loadAmbiente(request.ambienteId(), tenant.getId()));
         }
         return toDispositivoDto(dispositivoRepository.save(d));
     }
 
     public DispositivoIoTDto toggleDispositivoStatus(Long id, boolean ativo) {
-        DispositivoIoT d = dispositivoRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Dispositivo IoT não encontrado"));
-        tenantScopeGuard.checkRequestedTenant(d.getTenant().getId());
+        DispositivoIoT d = loadDispositivo(id, tenantScopeGuard.currentTenantId());
         d.setAtivo(ativo);
         return toDispositivoDto(dispositivoRepository.save(d));
     }
 
     public DispositivoIoTDto regenerarApiKey(Long id) {
-        DispositivoIoT d = dispositivoRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Dispositivo IoT não encontrado"));
-        tenantScopeGuard.checkRequestedTenant(d.getTenant().getId());
+        DispositivoIoT d = loadDispositivo(id, tenantScopeGuard.currentTenantId());
         d.setApiKey(UUID.randomUUID().toString().replace("-", ""));
         return toDispositivoDto(dispositivoRepository.save(d));
     }
@@ -389,7 +373,7 @@ public class EnvironmentalService {
 
     @Transactional(readOnly = true)
     public DispositivoIoTDto findDispositivoById(Long id) {
-        return dispositivoRepository.findById(id)
+        return dispositivoRepository.findByIdAndTenantId(id, tenantScopeGuard.currentTenantId())
                 .map(this::toDispositivoDto)
                 .orElseThrow(() -> new EntityNotFoundException("Dispositivo IoT não encontrado"));
     }
@@ -753,14 +737,34 @@ public class EnvironmentalService {
                 .orElseThrow(() -> new EntityNotFoundException("Tenant não encontrado"));
     }
 
-    private User loadUser(Long id) {
-        return userRepository.findById(id)
+    private Ambiente loadAmbiente(Long id, Long tenantId) {
+        return ambienteRepository.findByIdAndTenantId(id, tenantId)
+                .orElseThrow(() -> new EntityNotFoundException("Ambiente não encontrado"));
+    }
+
+    private GeladeiraMedicamentos loadGeladeira(Long id, Long tenantId) {
+        return geladeiraRepository.findByIdAndTenantId(id, tenantId)
+                .orElseThrow(() -> new EntityNotFoundException("Geladeira não encontrada"));
+    }
+
+    private DispositivoIoT loadDispositivo(Long id, Long tenantId) {
+        return dispositivoRepository.findByIdAndTenantId(id, tenantId)
+                .orElseThrow(() -> new EntityNotFoundException("Dispositivo IoT não encontrado"));
+    }
+
+    private User loadUser(Long id, Long tenantId) {
+        return userRepository.findByIdAndTenant_Id(id, tenantId)
                 .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado"));
     }
 
-    private Set<EvidenciaArquivo> loadEvidencias(Set<Long> ids) {
+    private Set<EvidenciaArquivo> loadEvidencias(Set<Long> ids, Long tenantId) {
         if (ids == null || ids.isEmpty()) return Collections.emptySet();
-        return new HashSet<>(evidenciaArquivoRepository.findAllById(ids));
+        Set<Long> distinctIds = new HashSet<>(ids);
+        List<EvidenciaArquivo> evidencias = evidenciaArquivoRepository.findAllByTenant_IdAndIdIn(tenantId, distinctIds);
+        if (evidencias.size() != distinctIds.size()) {
+            throw new EntityNotFoundException("Uma ou mais evidências não foram encontradas");
+        }
+        return new HashSet<>(evidencias);
     }
 
     private Set<Long> toIdSet(Set<EvidenciaArquivo> evidencias) {

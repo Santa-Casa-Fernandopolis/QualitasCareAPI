@@ -11,8 +11,11 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface MonitoramentoAmbientalRepository extends JpaRepository<MonitoramentoAmbiental, Long> {
+
+    Optional<MonitoramentoAmbiental> findByIdAndTenantId(Long id, Long tenantId);
 
     Page<MonitoramentoAmbiental> findAllByTenantId(Long tenantId, Pageable pageable);
 
