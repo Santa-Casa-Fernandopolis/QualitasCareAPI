@@ -1,0 +1,237 @@
+databaseChangeLog:
+
+  # ============================================================
+  # V13-1  sys_configuracoes — tabela de parâmetros de sistema
+  # ============================================================
+  - changeSet:
+      id: V13-1
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: sys_configuracoes
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  # null = configuração global
+              - column:
+                  name: modulo
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: chave
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: valor
+                  type: TEXT
+              - column:
+                  name: tipo_valor
+                  type: VARCHAR(20)
+                  defaultValue: STRING
+                  constraints:
+                    nullable: false
+              - column:
+                  name: descricao
+                  type: VARCHAR(255)
+              - column:
+                  name: editavel
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+
+        # FK opcional para tenant
+        - addForeignKeyConstraint:
+            baseTableName: sys_configuracoes
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_sys_conf_tenant
+
+        # Índice por módulo
+        - createIndex:
+            tableName: sys_configuracoes
+            indexName: ix_sys_conf_modulo
+            columns:
+              - column:
+                  name: modulo
+
+        # Índice por tenant + módulo
+        - createIndex:
+            tableName: sys_configuracoes
+            indexName: ix_sys_conf_tenant_modulo
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: modulo
+
+        # Unique parcial: configurações GLOBAIS (tenant_id IS NULL)
+        - sql:
+            sql: >
+              CREATE UNIQUE INDEX uq_sys_conf_global
+              ON sys_configuracoes (modulo, chave)
+              WHERE tenant_id IS NULL
+
+        # Unique parcial: configurações POR TENANT
+        - sql:
+            sql: >
+              CREATE UNIQUE INDEX uq_sys_conf_tenant
+              ON sys_configuracoes (tenant_id, modulo, chave)
+              WHERE tenant_id IS NOT NULL
+
+  # ============================================================
+  # V13-2  Seed — parâmetros de integração com Soul MV
+  # ============================================================
+  - changeSet:
+      id: V13-2
+      author: qualitascare
+      changes:
+        # --- Tipo de integração ---
+        - insert:
+            tableName: sys_configuracoes
+            columns:
+              - column: { name: modulo,     value: MV }
+              - column: { name: chave,      value: MV_INTEGRACAO_TIPO }
+              - column: { name: valor,      value: API }
+              - column: { name: tipo_valor, value: STRING }
+              - column: { name: descricao,  value: "Tipo de integração com Soul MV: API ou BANCO_DADOS" }
+              - column: { name: editavel,   valueBoolean: true }
+
+        # --- API REST ---
+        - insert:
+            tableName: sys_configuracoes
+            columns:
+              - column: { name: modulo,     value: MV }
+              - column: { name: chave,      value: MV_API_URL }
+              - column: { name: valor,      value: "" }
+              - column: { name: tipo_valor, value: STRING }
+              - column: { name: descricao,  value: "URL base da API REST do Soul MV. Ex: https://mv.hospital.com.br/api" }
+              - column: { name: editavel,   valueBoolean: true }
+
+        - insert:
+            tableName: sys_configuracoes
+            columns:
+              - column: { name: modulo,     value: MV }
+              - column: { name: chave,      value: MV_API_CLIENT_ID }
+              - column: { name: valor,      value: "" }
+              - column: { name: tipo_valor, value: STRING }
+              - column: { name: descricao,  value: "Client ID OAuth2 para autenticação na API do Soul MV" }
+              - column: { name: editavel,   valueBoolean: true }
+
+        - insert:
+            tableName: sys_configuracoes
+            columns:
+              - column: { name: modulo,     value: MV }
+              - column: { name: chave,      value: MV_API_CLIENT_SECRET }
+              - column: { name: valor,      value: "" }
+              - column: { name: tipo_valor, value: SECRET }
+              - column: { name: descricao,  value: "Client Secret OAuth2 para autenticação na API do Soul MV (armazenado cifrado)" }
+              - column: { name: editavel,   valueBoolean: true }
+
+        - insert:
+            tableName: sys_configuracoes
+            columns:
+              - column: { name: modulo,     value: MV }
+              - column: { name: chave,      value: MV_API_TOKEN_URL }
+              - column: { name: valor,      value: "" }
+              - column: { name: tipo_valor, value: STRING }
+              - column: { name: descricao,  value: "URL do endpoint OAuth2 de token do Soul MV. Ex: https://mv.hospital.com.br/oauth/token" }
+              - column: { name: editavel,   valueBoolean: true }
+
+        # --- Banco de dados direto ---
+        - insert:
+            tableName: sys_configuracoes
+            columns:
+              - column: { name: modulo,     value: MV }
+              - column: { name: chave,      value: MV_DB_URL }
+              - column: { name: valor,      value: "" }
+              - column: { name: tipo_valor, value: STRING }
+              - column: { name: descricao,  value: "JDBC URL do banco de dados do Soul MV. Ex: jdbc:sqlserver://srv:1433;databaseName=MVSOUL" }
+              - column: { name: editavel,   valueBoolean: true }
+
+        - insert:
+            tableName: sys_configuracoes
+            columns:
+              - column: { name: modulo,     value: MV }
+              - column: { name: chave,      value: MV_DB_USERNAME }
+              - column: { name: valor,      value: "" }
+              - column: { name: tipo_valor, value: STRING }
+              - column: { name: descricao,  value: "Usuário de leitura do banco de dados do Soul MV" }
+              - column: { name: editavel,   valueBoolean: true }
+
+        - insert:
+            tableName: sys_configuracoes
+            columns:
+              - column: { name: modulo,     value: MV }
+              - column: { name: chave,      value: MV_DB_PASSWORD }
+              - column: { name: valor,      value: "" }
+              - column: { name: tipo_valor, value: SECRET }
+              - column: { name: descricao,  value: "Senha do banco de dados do Soul MV (armazenada cifrada)" }
+              - column: { name: editavel,   valueBoolean: true }
+
+        # --- Sincronização ---
+        - insert:
+            tableName: sys_configuracoes
+            columns:
+              - column: { name: modulo,     value: MV }
+              - column: { name: chave,      value: MV_SYNC_INTERVALO_MIN }
+              - column: { name: valor,      value: "15" }
+              - column: { name: tipo_valor, value: INTEGER }
+              - column: { name: descricao,  value: "Intervalo em minutos entre sincronizações de cirurgias agendadas do MV" }
+              - column: { name: editavel,   valueBoolean: true }
+
+        - insert:
+            tableName: sys_configuracoes
+            columns:
+              - column: { name: modulo,     value: MV }
+              - column: { name: chave,      value: MV_SYNC_DIAS_ANTECEDENCIA }
+              - column: { name: valor,      value: "7" }
+              - column: { name: tipo_valor, value: INTEGER }
+              - column: { name: descricao,  value: "Quantos dias à frente buscar cirurgias agendadas do MV" }
+              - column: { name: editavel,   valueBoolean: true }
+
+  # ============================================================
+  # V13-3  Seed — parâmetros gerais do sistema
+  # ============================================================
+  - changeSet:
+      id: V13-3
+      author: qualitascare
+      changes:
+        - insert:
+            tableName: sys_configuracoes
+            columns:
+              - column: { name: modulo,     value: SISTEMA }
+              - column: { name: chave,      value: SISTEMA_NOME }
+              - column: { name: valor,      value: QualitasCare }
+              - column: { name: tipo_valor, value: STRING }
+              - column: { name: descricao,  value: "Nome do sistema exibido na interface" }
+              - column: { name: editavel,   valueBoolean: true }
+
+        - insert:
+            tableName: sys_configuracoes
+            columns:
+              - column: { name: modulo,     value: SISTEMA }
+              - column: { name: chave,      value: SISTEMA_VERSAO }
+              - column: { name: valor,      value: "1.0.0" }
+              - column: { name: tipo_valor, value: STRING }
+              - column: { name: descricao,  value: "Versão atual do sistema" }
+              - column: { name: editavel,   valueBoolean: false }

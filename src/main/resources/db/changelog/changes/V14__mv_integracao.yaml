@@ -1,0 +1,139 @@
+databaseChangeLog:
+
+  # ============================================================
+  # V14-1  cme_cirurgias_agendadas — espelho local das cirurgias MV
+  # ============================================================
+  - changeSet:
+      id: V14-1
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: cme_cirurgias_agendadas
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: id_mv
+                  type: VARCHAR(40)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: codigo_paciente
+                  type: VARCHAR(40)
+              - column:
+                  name: nome_paciente
+                  type: VARCHAR(150)
+              - column:
+                  name: data_hora_inicio
+                  type: TIMESTAMP
+              - column:
+                  name: data_hora_fim_prevista
+                  type: TIMESTAMP
+              - column:
+                  name: tipo_cirurgia
+                  type: VARCHAR(150)
+              - column:
+                  name: sala_cirurgica
+                  type: VARCHAR(80)
+              - column:
+                  name: nome_cirurgiao
+                  type: VARCHAR(150)
+              - column:
+                  name: status_mv
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: ultima_sincronizacao
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            baseTableName: cme_cirurgias_agendadas
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_cir_tenant
+
+        # Unique: uma cirurgia MV por tenant
+        - sql:
+            sql: >
+              CREATE UNIQUE INDEX uq_cir_tenant_idmv
+              ON cme_cirurgias_agendadas (tenant_id, id_mv)
+
+        - createIndex:
+            tableName: cme_cirurgias_agendadas
+            indexName: ix_cir_tenant_data
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: data_hora_inicio
+
+        - createIndex:
+            tableName: cme_cirurgias_agendadas
+            indexName: ix_cir_tenant_status
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: status_mv
+
+        - createIndex:
+            tableName: cme_cirurgias_agendadas
+            indexName: ix_cir_tenant_sala
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: sala_cirurgica
+
+  # ============================================================
+  # V14-2  Seed — parâmetros adicionais de integração MV
+  # ============================================================
+  - changeSet:
+      id: V14-2
+      author: qualitascare
+      changes:
+        # Flag de ativação da integração (padrão: desativada)
+        - insert:
+            tableName: sys_configuracoes
+            columns:
+              - column: { name: modulo,     value: MV }
+              - column: { name: chave,      value: MV_INTEGRACAO_ATIVA }
+              - column: { name: valor,      value: "false" }
+              - column: { name: tipo_valor, value: BOOLEAN }
+              - column: { name: descricao,  value: "Habilita a sincronização automática de cirurgias do Soul MV. Configure as credenciais antes de ativar." }
+              - column: { name: editavel,   valueBoolean: true }
+
+        # Tenant que receberá as cirurgias importadas
+        - insert:
+            tableName: sys_configuracoes
+            columns:
+              - column: { name: modulo,     value: MV }
+              - column: { name: chave,      value: MV_TENANT_ID }
+              - column: { name: valor,      value: "" }
+              - column: { name: tipo_valor, value: INTEGER }
+              - column: { name: descricao,  value: "ID do tenant que receberá as cirurgias importadas do Soul MV" }
+              - column: { name: editavel,   valueBoolean: true }
+
+        # Query customizável para integração via banco de dados
+        - insert:
+            tableName: sys_configuracoes
+            columns:
+              - column: { name: modulo,     value: MV }
+              - column: { name: chave,      value: MV_DB_QUERY_CIRURGIAS }
+              - column: { name: valor,      value: "" }
+              - column: { name: tipo_valor, value: STRING }
+              - column: { name: descricao,  value: "SQL customizado para buscar cirurgias no banco MV (opcional — usa query padrão se vazio). Deve retornar: id_mv, codigo_paciente, nome_paciente, data_hora_inicio, data_hora_fim_prevista, tipo_cirurgia, sala_cirurgica, nome_cirurgiao, status_mv. Parâmetros: :dataInicio e :dataFim (TIMESTAMP)." }
+              - column: { name: editavel,   valueBoolean: true }

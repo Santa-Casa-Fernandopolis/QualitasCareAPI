@@ -2,11 +2,9 @@ package com.erp.qualitascareapi.cme.application;
 
 import com.erp.qualitascareapi.cme.api.dto.*;
 import com.erp.qualitascareapi.cme.domain.CicloLavadora;
-import com.erp.qualitascareapi.cme.domain.MonitoramentoAmbiental;
 import com.erp.qualitascareapi.cme.domain.RecebimentoMaterial;
 import com.erp.qualitascareapi.cme.enums.RecebimentoStatus;
 import com.erp.qualitascareapi.cme.repo.CicloLavadoraRepository;
-import com.erp.qualitascareapi.cme.repo.MonitoramentoAmbientalRepository;
 import com.erp.qualitascareapi.cme.repo.RecebimentoMaterialRepository;
 import com.erp.qualitascareapi.common.domain.EvidenciaArquivo;
 import com.erp.qualitascareapi.common.repo.EvidenciaArquivoRepository;
@@ -38,7 +36,6 @@ public class ProcessamentoService {
     private final EvidenciaArquivoRepository evidenciaArquivoRepository;
     private final RecebimentoMaterialRepository recebimentoRepository;
     private final CicloLavadoraRepository cicloLavadoraRepository;
-    private final MonitoramentoAmbientalRepository monitoramentoRepository;
     private final TenantScopeGuard tenantScopeGuard;
 
     public ProcessamentoService(TenantRepository tenantRepository,
@@ -47,7 +44,6 @@ public class ProcessamentoService {
                                 EvidenciaArquivoRepository evidenciaArquivoRepository,
                                 RecebimentoMaterialRepository recebimentoRepository,
                                 CicloLavadoraRepository cicloLavadoraRepository,
-                                MonitoramentoAmbientalRepository monitoramentoRepository,
                                 TenantScopeGuard tenantScopeGuard) {
         this.tenantRepository = tenantRepository;
         this.userRepository = userRepository;
@@ -55,7 +51,6 @@ public class ProcessamentoService {
         this.evidenciaArquivoRepository = evidenciaArquivoRepository;
         this.recebimentoRepository = recebimentoRepository;
         this.cicloLavadoraRepository = cicloLavadoraRepository;
-        this.monitoramentoRepository = monitoramentoRepository;
         this.tenantScopeGuard = tenantScopeGuard;
     }
 
@@ -152,48 +147,6 @@ public class ProcessamentoService {
                 c.getDuracaoMinutos(), c.getQuantidadeItens(), c.getResultado(),
                 c.getResponsavel() != null ? c.getResponsavel().getId() : null,
                 c.getObservacoes(), toIdSet(c.getEvidencias()));
-    }
-
-    // ---- Monitoramento Ambiental ----
-
-    public MonitoramentoAmbientalDto registrarMonitoramento(MonitoramentoAmbientalRequest request) {
-        tenantScopeGuard.checkRequestedTenant(request.tenantId());
-        Tenant tenant = tenantRepository.findById(request.tenantId())
-                .orElseThrow(() -> new EntityNotFoundException("Tenant não encontrado"));
-        MonitoramentoAmbiental monitoramento = new MonitoramentoAmbiental();
-        monitoramento.setTenant(tenant);
-        monitoramento.setDataHora(request.dataHora());
-        monitoramento.setLocalSala(request.localSala());
-        monitoramento.setTemperaturaCelsius(request.temperaturaCelsius());
-        monitoramento.setUmidadeRelativa(request.umidadeRelativa());
-        monitoramento.setPressaoDiferencialPa(request.pressaoDiferencialPa());
-        monitoramento.setResultado(request.resultado());
-        if (request.responsavelId() != null) {
-            User responsavel = userRepository.findById(request.responsavelId())
-                    .orElseThrow(() -> new EntityNotFoundException("Responsável não encontrado"));
-            monitoramento.setResponsavel(responsavel);
-        }
-        monitoramento.setObservacoes(request.observacoes());
-        monitoramento.setEvidencias(loadEvidencias(request.evidenciasIds()));
-        return toMonitoramentoDto(monitoramentoRepository.save(monitoramento));
-    }
-
-    public Page<MonitoramentoAmbientalDto> listMonitoramentos(Pageable pageable) {
-        return monitoramentoRepository.findAllByTenantId(tenantScopeGuard.currentTenantId(), pageable).map(this::toMonitoramentoDto);
-    }
-
-    public MonitoramentoAmbientalDto findMonitoramentoById(Long id) {
-        return monitoramentoRepository.findById(id)
-                .map(this::toMonitoramentoDto)
-                .orElseThrow(() -> new EntityNotFoundException("Monitoramento não encontrado"));
-    }
-
-    private MonitoramentoAmbientalDto toMonitoramentoDto(MonitoramentoAmbiental m) {
-        return new MonitoramentoAmbientalDto(m.getId(), m.getTenant().getId(), m.getDataHora(),
-                m.getLocalSala(), m.getTemperaturaCelsius(), m.getUmidadeRelativa(),
-                m.getPressaoDiferencialPa(), m.getResultado(),
-                m.getResponsavel() != null ? m.getResponsavel().getId() : null,
-                m.getObservacoes(), toIdSet(m.getEvidencias()));
     }
 
     private Set<EvidenciaArquivo> loadEvidencias(Set<Long> ids) {

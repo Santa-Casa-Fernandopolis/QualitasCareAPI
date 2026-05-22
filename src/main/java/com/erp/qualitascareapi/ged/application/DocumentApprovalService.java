@@ -12,10 +12,17 @@ import com.erp.qualitascareapi.ged.domain.Document;
 import com.erp.qualitascareapi.ged.domain.DocumentVersion;
 import com.erp.qualitascareapi.ged.enums.DocumentStatus;
 import com.erp.qualitascareapi.ged.repo.DocumentVersionRepository;
+import com.erp.qualitascareapi.iam.domain.OrgRoleAssignment;
 import com.erp.qualitascareapi.iam.domain.Setor;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.domain.User;
 import com.erp.qualitascareapi.iam.enums.OrgRoleType;
+import com.erp.qualitascareapi.iam.repo.OrgRoleAssignmentRepository;
+import com.erp.qualitascareapi.notificacao.application.NotificacaoService;
+import com.erp.qualitascareapi.notificacao.enums.NivelNotificacao;
+import com.erp.qualitascareapi.notificacao.enums.TipoNotificacao;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +35,7 @@ import java.util.Map;
 @Service
 public class DocumentApprovalService implements ApprovalEngine {
 
+    private static final Logger log = LoggerFactory.getLogger(DocumentApprovalService.class);
     private static final String CONDITION_LEGAL_REQUIRED = "DOCUMENT_REQUIRES_LEGAL_OPINION";
 
     private final ApprovalFlowDefRepository flowRepository;
@@ -37,6 +45,8 @@ public class DocumentApprovalService implements ApprovalEngine {
     private final ApprovalStepDecisionRepository decisionRepository;
     private final ApprovalAuditLogRepository auditLogRepository;
     private final DocumentVersionRepository documentVersionRepository;
+    private final OrgRoleAssignmentRepository orgRoleAssignmentRepository;
+    private final NotificacaoService notificacaoService;
 
     public DocumentApprovalService(ApprovalFlowDefRepository flowRepository,
                                    ApprovalStageDefRepository stageRepository,
@@ -44,7 +54,9 @@ public class DocumentApprovalService implements ApprovalEngine {
                                    ApprovalStepRepository stepRepository,
                                    ApprovalStepDecisionRepository decisionRepository,
                                    ApprovalAuditLogRepository auditLogRepository,
-                                   DocumentVersionRepository documentVersionRepository) {
+                                   DocumentVersionRepository documentVersionRepository,
+                                   OrgRoleAssignmentRepository orgRoleAssignmentRepository,
+                                   NotificacaoService notificacaoService) {
         this.flowRepository = flowRepository;
         this.stageRepository = stageRepository;
         this.requestRepository = requestRepository;
@@ -52,6 +64,8 @@ public class DocumentApprovalService implements ApprovalEngine {
         this.decisionRepository = decisionRepository;
         this.auditLogRepository = auditLogRepository;
         this.documentVersionRepository = documentVersionRepository;
+        this.orgRoleAssignmentRepository = orgRoleAssignmentRepository;
+        this.notificacaoService = notificacaoService;
     }
 
     @Override
@@ -73,6 +87,7 @@ public class DocumentApprovalService implements ApprovalEngine {
                 .filter(stage -> Boolean.TRUE.equals(stage.getEnabled()))
                 .filter(stage -> shouldIncludeStage(target, stage))
                 .toList();
+        List<ApprovalStep> savedSteps = new ArrayList<>();
         for (ApprovalStageDef stage : stages) {
             ApprovalStep step = new ApprovalStep();
             step.setRequest(saved);
@@ -81,9 +96,15 @@ public class DocumentApprovalService implements ApprovalEngine {
             step.setRequiredRole(stage.getRequiredRole());
             step.setScopeSetor(Boolean.TRUE.equals(stage.getScopeByTargetSetor()) ? target.getScopeSetor() : null);
             step.setStatus(ApprovalStepStatus.PENDENTE);
-            stepRepository.save(step);
+            savedSteps.add(stepRepository.save(step));
         }
         writeAudit(saved, null, "STARTED", requestedBy, "Fluxo iniciado");
+
+        // Notifica responsáveis pela primeira etapa
+        savedSteps.stream()
+                .min(Comparator.comparingInt(ApprovalStep::getStageOrder))
+                .ifPresent(primeiraEtapa -> notificarEtapa(saved, primeiraEtapa, resolveDocTitulo(target)));
+
         return saved;
     }
 
@@ -140,6 +161,8 @@ public class DocumentApprovalService implements ApprovalEngine {
             resetFromStage(request, target.getStageOrder());
             request.setStatus(ApprovalRequestStatus.EM_ANDAMENTO);
             updateTargetStatus(request, DocumentStatus.EM_APROVACAO);
+            // Notifica responsáveis pela etapa de retorno
+            notificarEtapa(request, target, resolveDocTituloFromRequest(request));
         } else if (decision == ApprovalDecision.REJEITAR) {
             step.setStatus(ApprovalStepStatus.REJEITADA);
             step.setDecision(decision);
@@ -257,15 +280,22 @@ public class DocumentApprovalService implements ApprovalEngine {
     }
 
     private void updateRequestAfterForward(ApprovalRequest request) {
-        boolean hasPending = stepRepository.findAllByRequest_IdOrderByStageOrderAsc(request.getId()).stream()
-                .anyMatch(step -> step.getStatus() == ApprovalStepStatus.PENDENTE);
-        if (!hasPending) {
-            request.setStatus(ApprovalRequestStatus.APROVADA);
-            approveTarget(request);
-        } else {
-            request.setStatus(ApprovalRequestStatus.EM_ANDAMENTO);
-            updateTargetStatus(request, DocumentStatus.EM_APROVACAO);
-        }
+        List<ApprovalStep> allSteps = stepRepository.findAllByRequest_IdOrderByStageOrderAsc(request.getId());
+        allSteps.stream()
+                .filter(s -> s.getStatus() == ApprovalStepStatus.PENDENTE)
+                .findFirst()
+                .ifPresentOrElse(
+                        proximaEtapa -> {
+                            request.setStatus(ApprovalRequestStatus.EM_ANDAMENTO);
+                            updateTargetStatus(request, DocumentStatus.EM_APROVACAO);
+                            // Notifica responsáveis pela próxima etapa
+                            notificarEtapa(request, proximaEtapa, resolveDocTituloFromRequest(request));
+                        },
+                        () -> {
+                            request.setStatus(ApprovalRequestStatus.APROVADA);
+                            approveTarget(request);
+                        }
+                );
     }
 
     private void resetFromStage(ApprovalRequest request, Integer stageOrder) {
@@ -347,6 +377,70 @@ public class DocumentApprovalService implements ApprovalEngine {
 
     private String displayName(User user) {
         return user.getFullName() != null && !user.getFullName().isBlank() ? user.getFullName() : user.getUsername();
+    }
+
+    // ─── Notificações de parecer ──────────────────────────────────────────────
+
+    /**
+     * Notifica individualmente cada usuário com o papel requerido pela etapa.
+     * Se a etapa tiver {@code scopeSetor}, filtra por aquele setor (com fallback global).
+     */
+    private void notificarEtapa(ApprovalRequest request, ApprovalStep step, String docTitulo) {
+        if (step.getRequiredRole() == null) return;
+        Long tenantId = request.getTenant().getId();
+        Long setorId  = step.getScopeSetor() != null ? step.getScopeSetor().getId() : null;
+
+        List<OrgRoleAssignment> assignments = orgRoleAssignmentRepository
+                .findAtivosParaEtapa(tenantId, step.getRequiredRole(), setorId);
+
+        if (assignments.isEmpty()) {
+            log.warn("[GED-NOTIF] Nenhum usuário com papel {} encontrado para tenant={} setor={}",
+                    step.getRequiredRole(), tenantId, setorId);
+            return;
+        }
+
+        String stageLabel = traduzirEtapa(step.getStageCode());
+        String titulo     = "Parecer necessário: " + docTitulo;
+        String mensagem   = String.format(
+                "O documento '%s' aguarda sua ação na etapa '%s'. Acesse o sistema para revisar e dar seu parecer.",
+                docTitulo, stageLabel);
+
+        for (OrgRoleAssignment a : assignments) {
+            notificacaoService.gerar(tenantId, TipoNotificacao.GED_PARECER_SOLICITADO, NivelNotificacao.INFO,
+                    titulo, mensagem, step.getId(), "APPROVAL_STEP", a.getUser().getId());
+        }
+    }
+
+    /** Título do documento a partir do {@link ApprovableTarget} quando disponível. */
+    private String resolveDocTitulo(ApprovableTarget target) {
+        if (target instanceof DocumentVersion version && version.getDocumento() != null) {
+            return version.getDocumento().getTitulo();
+        }
+        return "documento";
+    }
+
+    /** Título do documento resolvido a partir do {@code targetKey} da request. */
+    private String resolveDocTituloFromRequest(ApprovalRequest request) {
+        try {
+            DocumentVersion version = resolveDocumentVersion(request);
+            return version.getDocumento() != null ? version.getDocumento().getTitulo() : "documento";
+        } catch (Exception e) {
+            return "documento";
+        }
+    }
+
+    private static String traduzirEtapa(String stageCode) {
+        return switch (stageCode) {
+            case "APROVACAO_SETORIAL"          -> "Aprovação setorial";
+            case "VALIDACAO_GERENCIA_DIRETA"   -> "Validação — gerência direta";
+            case "PARECER_JURIDICO"            -> "Parecer jurídico";
+            case "APROVACAO_QUALIDADE"         -> "Aprovação — Qualidade";
+            case "APROVACAO_DIRETORIA_DIRETA"  -> "Aprovação — Diretoria direta";
+            case "APROVACAO_INSTITUCIONAL"     -> "Aprovação institucional";
+            case "COLETA_ASSINATURAS"          -> "Coleta de assinaturas";
+            case "PUBLICACAO"                  -> "Publicação";
+            default                            -> stageCode;
+        };
     }
 
     private record StageSeed(Integer order, String code, OrgRoleType role, Boolean scopeByTargetSetor, String conditionKey) {

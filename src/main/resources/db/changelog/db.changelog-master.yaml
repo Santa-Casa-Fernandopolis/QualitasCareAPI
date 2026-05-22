@@ -19,3 +19,23 @@
       file: db/changelog/changes/V9__cme_domain_corrections.yaml
   - include:
       file: db/changelog/changes/V10__ged_document_management.yaml
+  - include:
+      file: db/changelog/changes/V11__environmental_monitoring.yaml
+  - include:
+      file: db/changelog/changes/V12__ambiente_iot.yaml
+  - include:
+      file: db/changelog/changes/V13__sys_configuracoes.yaml
+  - include:
+      file: db/changelog/changes/V14__mv_integracao.yaml
+  - include:
+      file: db/changelog/changes/V15__movimentacao_cirurgia_fk.yaml
+  - include:
+      file: db/changelog/changes/V16__notificacoes.yaml
+  - include:
+      file: db/changelog/changes/V17__notificacao_subscricoes.yaml
+  - include:
+      file: db/changelog/changes/V18__notificacoes_usuario_ged.yaml
+  - include:
+      file: db/changelog/changes/V19__pgrss.yaml
+  - include:
+      file: db/changelog/changes/V20__same_module.yaml

@@ -4,6 +4,7 @@ import com.erp.qualitascareapi.cme.enums.MovimentacaoTipo;
 import com.erp.qualitascareapi.iam.domain.Setor;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.domain.User;
+import com.erp.qualitascareapi.integracao.mv.domain.CirurgiaAgendada;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import org.hibernate.envers.Audited;
@@ -49,6 +50,15 @@ public class MovimentacaoCME {
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "responsavel_id")
     private User responsavel;
 
+    /**
+     * Cirurgia agendada à qual este kit foi dispensado (opcional).
+     * Preenchido quando {@code tipo = DISPENSACAO} para uma cirurgia específica.
+     * Viabiliza a rastreabilidade: cirurgia → kit → lote de esterilização → paciente.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cirurgia_id")
+    private CirurgiaAgendada cirurgia;
+
     @Column(length = 800)
     private String observacoes;
 
@@ -68,6 +78,9 @@ public class MovimentacaoCME {
     public void setDataHora(LocalDateTime dataHora) { this.dataHora = dataHora; }
     public User getResponsavel() { return responsavel; }
     public void setResponsavel(User responsavel) { this.responsavel = responsavel; }
+    public CirurgiaAgendada getCirurgia() { return cirurgia; }
+    public void setCirurgia(CirurgiaAgendada cirurgia) { this.cirurgia = cirurgia; }
+
     public String getObservacoes() { return observacoes; }
     public void setObservacoes(String observacoes) { this.observacoes = observacoes; }
 

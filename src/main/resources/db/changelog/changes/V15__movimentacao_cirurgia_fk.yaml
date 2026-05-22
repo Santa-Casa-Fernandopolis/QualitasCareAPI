@@ -1,0 +1,31 @@
+databaseChangeLog:
+
+  # ============================================================
+  # V15-1  Vincula retirada de kit (cme_movimentacoes) à cirurgia agendada (MV)
+  # ============================================================
+  - changeSet:
+      id: V15-1
+      author: qualitascare
+      changes:
+        - addColumn:
+            tableName: cme_movimentacoes
+            columns:
+              - column:
+                  name: cirurgia_id
+                  type: BIGINT
+                  # Opcional — null quando a dispensação não está ligada a cirurgia
+
+        - addForeignKeyConstraint:
+            baseTableName: cme_movimentacoes
+            baseColumnNames: cirurgia_id
+            referencedTableName: cme_cirurgias_agendadas
+            referencedColumnNames: id
+            constraintName: fk_mov_cirurgia
+            onDelete: SET NULL
+
+        - createIndex:
+            tableName: cme_movimentacoes
+            indexName: ix_mov_cirurgia
+            columns:
+              - column:
+                  name: cirurgia_id

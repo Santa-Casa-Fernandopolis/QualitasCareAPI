@@ -1,8 +1,11 @@
 package com.erp.qualitascareapi.security.config;
 
+import com.erp.qualitascareapi.environmental.repo.DispositivoIoTRepository;
+import com.erp.qualitascareapi.security.filter.IoTDeviceAuthFilter;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,6 +31,7 @@ import org.springframework.security.oauth2.server.resource.web.DefaultBearerToke
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -84,6 +88,40 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", configuration);
         return source;
+    }
+
+    // ---- IoT device authentication (api key, sem JWT) ----
+
+    @Bean
+    IoTDeviceAuthFilter iotDeviceAuthFilter(DispositivoIoTRepository dispositivoRepository) {
+        return new IoTDeviceAuthFilter(dispositivoRepository);
+    }
+
+    /**
+     * Impede que o filtro IoT seja auto-registrado no filtro servlet global.
+     * Ele é adicionado manualmente apenas na cadeia {@code iotFilterChain}.
+     */
+    @Bean
+    FilterRegistrationBean<IoTDeviceAuthFilter> iotFilterRegistration(IoTDeviceAuthFilter filter) {
+        FilterRegistrationBean<IoTDeviceAuthFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
+    /**
+     * Cadeia de segurança dedicada a /api/iot/** — autenticação por X-Device-Key, sem JWT.
+     * Prioridade maior que a cadeia padrão (Order 1 < LOWEST_PRECEDENCE).
+     */
+    @Bean
+    @Order(1)
+    SecurityFilterChain iotFilterChain(HttpSecurity http, IoTDeviceAuthFilter iotFilter) throws Exception {
+        http
+                .securityMatcher("/api/iot/**")
+                .addFilterBefore(iotFilter, UsernamePasswordAuthenticationFilter.class)
+                .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+        return http.build();
     }
 
     @Bean

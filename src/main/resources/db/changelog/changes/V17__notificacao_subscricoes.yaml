@@ -1,0 +1,77 @@
+databaseChangeLog:
+
+  # ─── V17-1: Campo email na tabela users ───────────────────────────────────────
+  - changeSet:
+      id: V17-1-users-email
+      author: qualitascare
+      changes:
+        - addColumn:
+            tableName: users
+            columns:
+              - column:
+                  name: email
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: true
+
+  # ─── V17-2: Tabela notificacao_subscricoes ────────────────────────────────────
+  - changeSet:
+      id: V17-2-notificacao-subscricoes
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: notificacao_subscricoes
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: usuario_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_subscricao_usuario
+                    references: users(id)
+                    deleteCascade: true
+              - column:
+                  name: tipo
+                  type: VARCHAR(60)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: canal_email
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: criado_em
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addUniqueConstraint:
+            constraintName: uq_subscricao_usuario_tipo
+            tableName: notificacao_subscricoes
+            columnNames: usuario_id, tipo
+
+        - createIndex:
+            indexName: ix_sub_tenant_tipo
+            tableName: notificacao_subscricoes
+            columns:
+              - column: { name: tenant_id }
+              - column: { name: tipo }
+
+        - createIndex:
+            indexName: ix_sub_usuario
+            tableName: notificacao_subscricoes
+            columns:
+              - column: { name: usuario_id }

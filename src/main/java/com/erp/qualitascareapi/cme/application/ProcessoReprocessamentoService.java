@@ -4,6 +4,8 @@ import com.erp.qualitascareapi.cme.api.dto.*;
 import com.erp.qualitascareapi.cme.domain.*;
 import com.erp.qualitascareapi.cme.enums.ProcessoStatus;
 import com.erp.qualitascareapi.cme.repo.*;
+import com.erp.qualitascareapi.cme.domain.ConferenciaKit;
+import com.erp.qualitascareapi.cme.domain.SecagemMaterial;
 import com.erp.qualitascareapi.common.domain.EvidenciaArquivo;
 import com.erp.qualitascareapi.common.repo.EvidenciaArquivoRepository;
 import com.erp.qualitascareapi.iam.domain.Tenant;
@@ -32,6 +34,8 @@ public class ProcessoReprocessamentoService {
     private final ProcessoReprocessamentoRepository processoRepository;
     private final LimpezaManualRepository limpezaManualRepository;
     private final HigienizacaoUltrassonicaRepository higienizacaoUltrassonicaRepository;
+    private final SecagemMaterialRepository secagemMaterialRepository;
+    private final ConferenciaKitRepository conferenciaKitRepository;
     private final LoteEtiquetaRepository loteEtiquetaRepository;
     private final CicloEsterilizacaoRepository cicloEsterilizacaoRepository;
     private final RecebimentoMaterialRepository recebimentoRepository;
@@ -43,6 +47,8 @@ public class ProcessoReprocessamentoService {
                                           ProcessoReprocessamentoRepository processoRepository,
                                           LimpezaManualRepository limpezaManualRepository,
                                           HigienizacaoUltrassonicaRepository higienizacaoUltrassonicaRepository,
+                                          SecagemMaterialRepository secagemMaterialRepository,
+                                          ConferenciaKitRepository conferenciaKitRepository,
                                           LoteEtiquetaRepository loteEtiquetaRepository,
                                           CicloEsterilizacaoRepository cicloEsterilizacaoRepository,
                                           RecebimentoMaterialRepository recebimentoRepository,
@@ -53,6 +59,8 @@ public class ProcessoReprocessamentoService {
         this.processoRepository = processoRepository;
         this.limpezaManualRepository = limpezaManualRepository;
         this.higienizacaoUltrassonicaRepository = higienizacaoUltrassonicaRepository;
+        this.secagemMaterialRepository = secagemMaterialRepository;
+        this.conferenciaKitRepository = conferenciaKitRepository;
         this.loteEtiquetaRepository = loteEtiquetaRepository;
         this.cicloEsterilizacaoRepository = cicloEsterilizacaoRepository;
         this.recebimentoRepository = recebimentoRepository;
@@ -133,6 +141,66 @@ public class ProcessoReprocessamentoService {
         return limpezaManualRepository.findById(id)
                 .map(this::toLimpezaDto)
                 .orElseThrow(() -> new EntityNotFoundException("Limpeza manual não encontrada"));
+    }
+
+    // ---- SecagemMaterial CRUD ----
+
+    public SecagemMaterialDto registrarSecagem(SecagemMaterialRequest request) {
+        tenantScopeGuard.checkRequestedTenant(request.tenantId());
+        Tenant tenant = tenantRepository.findById(request.tenantId())
+                .orElseThrow(() -> new EntityNotFoundException("Tenant não encontrado"));
+        User responsavel = userRepository.findById(request.responsavelId())
+                .orElseThrow(() -> new EntityNotFoundException("Responsável não encontrado"));
+        SecagemMaterial secagem = new SecagemMaterial();
+        secagem.setTenant(tenant);
+        secagem.setResponsavel(responsavel);
+        if (request.processoId() != null) {
+            ProcessoReprocessamento processo = processoRepository.findById(request.processoId())
+                    .orElseThrow(() -> new EntityNotFoundException("Processo não encontrado"));
+            secagem.setProcesso(processo);
+        }
+        secagem.setTipoSecagem(request.tipoSecagem());
+        secagem.setDataHoraInicio(request.dataHoraInicio());
+        secagem.setDataHoraFim(request.dataHoraFim());
+        secagem.setEquipamentoDescricao(request.equipamentoDescricao());
+        secagem.setConformidade(request.conformidade());
+        secagem.setObservacoes(request.observacoes());
+        secagem.setEvidencias(loadEvidencias(request.evidenciasIds()));
+        return toSecagemDto(secagemMaterialRepository.save(secagem));
+    }
+
+    public Page<SecagemMaterialDto> listSecagens(Pageable pageable) {
+        return secagemMaterialRepository.findAllByTenantId(tenantScopeGuard.currentTenantId(), pageable)
+                .map(this::toSecagemDto);
+    }
+
+    // ---- ConferenciaKit CRUD ----
+
+    public ConferenciaKitDto registrarConferencia(ConferenciaKitRequest request) {
+        tenantScopeGuard.checkRequestedTenant(request.tenantId());
+        Tenant tenant = tenantRepository.findById(request.tenantId())
+                .orElseThrow(() -> new EntityNotFoundException("Tenant não encontrado"));
+        User responsavel = userRepository.findById(request.responsavelId())
+                .orElseThrow(() -> new EntityNotFoundException("Responsável não encontrado"));
+        ConferenciaKit conferencia = new ConferenciaKit();
+        conferencia.setTenant(tenant);
+        conferencia.setResponsavel(responsavel);
+        if (request.processoId() != null) {
+            ProcessoReprocessamento processo = processoRepository.findById(request.processoId())
+                    .orElseThrow(() -> new EntityNotFoundException("Processo não encontrado"));
+            conferencia.setProcesso(processo);
+        }
+        conferencia.setDataHoraConferencia(request.dataHoraConferencia());
+        conferencia.setConformidade(request.conformidade());
+        conferencia.setItensNaoConformes(request.itensNaoConformes());
+        conferencia.setObservacoes(request.observacoes());
+        conferencia.setEvidencias(loadEvidencias(request.evidenciasIds()));
+        return toConferenciaDto(conferenciaKitRepository.save(conferencia));
+    }
+
+    public Page<ConferenciaKitDto> listConferencias(Pageable pageable) {
+        return conferenciaKitRepository.findAllByTenantId(tenantScopeGuard.currentTenantId(), pageable)
+                .map(this::toConferenciaDto);
     }
 
     // ---- Timeline ----
@@ -216,6 +284,24 @@ public class ProcessoReprocessamentoService {
                 c.getPressaoMaxima(), c.getStatus(),
                 c.getLiberadoPor() != null ? c.getLiberadoPor().getId() : null,
                 c.getObservacoes());
+    }
+
+    private SecagemMaterialDto toSecagemDto(SecagemMaterial s) {
+        return new SecagemMaterialDto(s.getId(), s.getTenant().getId(),
+                s.getProcesso() != null ? s.getProcesso().getId() : null,
+                s.getTipoSecagem(), s.getResponsavel().getId(),
+                s.getDataHoraInicio(), s.getDataHoraFim(),
+                s.getEquipamentoDescricao(), s.getConformidade(),
+                s.getObservacoes(), toIdSet(s.getEvidencias()));
+    }
+
+    private ConferenciaKitDto toConferenciaDto(ConferenciaKit c) {
+        return new ConferenciaKitDto(c.getId(), c.getTenant().getId(),
+                c.getProcesso() != null ? c.getProcesso().getId() : null,
+                c.getResponsavel().getId(),
+                c.getDataHoraConferencia(), c.getConformidade(),
+                c.getItensNaoConformes(), c.getObservacoes(),
+                toIdSet(c.getEvidencias()));
     }
 
     private Set<EvidenciaArquivo> loadEvidencias(Set<Long> ids) {

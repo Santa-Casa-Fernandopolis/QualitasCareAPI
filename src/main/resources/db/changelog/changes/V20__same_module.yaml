@@ -1,0 +1,615 @@
+databaseChangeLog:
+
+  # ============================================================
+  # V20-1  same_patient_master
+  # ============================================================
+  - changeSet:
+      id: V20-1
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: same_patient_master
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: full_name
+                  type: VARCHAR(180)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: mother_name
+                  type: VARCHAR(180)
+              - column:
+                  name: birth_date
+                  type: DATE
+              - column:
+                  name: cpf
+                  type: VARCHAR(14)
+              - column:
+                  name: cns
+                  type: VARCHAR(20)
+              - column:
+                  name: sex
+                  type: VARCHAR(20)
+              - column:
+                  name: status
+                  type: VARCHAR(30)
+                  defaultValue: ACTIVE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+        - addForeignKeyConstraint:
+            baseTableName: same_patient_master
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_same_patient_tenant
+        - createIndex:
+            tableName: same_patient_master
+            indexName: ix_same_patient_tenant_name
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: full_name
+        - createIndex:
+            tableName: same_patient_master
+            indexName: ix_same_patient_tenant_cpf
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: cpf
+        - createIndex:
+            tableName: same_patient_master
+            indexName: ix_same_patient_tenant_cns
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: cns
+        - createIndex:
+            tableName: same_patient_master
+            indexName: ix_same_patient_tenant_birth
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: birth_date
+
+  # ============================================================
+  # V20-2  same_patient_identifiers
+  # ============================================================
+  - changeSet:
+      id: V20-2
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: same_patient_identifiers
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: patient_master_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: source_system
+                  type: VARCHAR(30)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: medical_record_code
+                  type: VARCHAR(80)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: external_patient_id
+                  type: VARCHAR(80)
+              - column:
+                  name: is_primary
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: confidence_level
+                  type: VARCHAR(20)
+                  defaultValue: HIGH
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+        - addUniqueConstraint:
+            tableName: same_patient_identifiers
+            columnNames: tenant_id, source_system, medical_record_code
+            constraintName: uk_same_identifier_tenant_source_code
+        - addForeignKeyConstraint:
+            baseTableName: same_patient_identifiers
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_same_identifier_tenant
+        - addForeignKeyConstraint:
+            baseTableName: same_patient_identifiers
+            baseColumnNames: patient_master_id
+            referencedTableName: same_patient_master
+            referencedColumnNames: id
+            constraintName: fk_same_identifier_patient
+        - createIndex:
+            tableName: same_patient_identifiers
+            indexName: ix_same_identifier_patient
+            columns:
+              - column:
+                  name: patient_master_id
+        - createIndex:
+            tableName: same_patient_identifiers
+            indexName: ix_same_identifier_tenant_external
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: external_patient_id
+
+  # ============================================================
+  # V20-3  same_clinical_documents
+  # ============================================================
+  - changeSet:
+      id: V20-3
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: same_clinical_documents
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: patient_master_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: patient_identifier_id
+                  type: BIGINT
+              - column:
+                  name: document_type
+                  type: VARCHAR(40)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: source_system
+                  type: VARCHAR(30)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: original_medical_record_code
+                  type: VARCHAR(80)
+              - column:
+                  name: attendance_code
+                  type: VARCHAR(80)
+              - column:
+                  name: attendance_date
+                  type: DATE
+              - column:
+                  name: document_period_start
+                  type: DATE
+              - column:
+                  name: document_period_end
+                  type: DATE
+              - column:
+                  name: file_name
+                  type: VARCHAR(180)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: file_path
+                  type: VARCHAR(500)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: file_hash_sha256
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: mime_type
+                  type: VARCHAR(120)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: file_size
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: legal_value
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: legal_value_note
+                  type: VARCHAR(300)
+                  defaultValue: Cópia digitalizada para consulta administrativa e assistencial, sem valor legal definido.
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: VARCHAR(1000)
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  defaultValue: ACTIVE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_by_id
+                  type: BIGINT
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+        - addForeignKeyConstraint:
+            baseTableName: same_clinical_documents
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_same_document_tenant
+        - addForeignKeyConstraint:
+            baseTableName: same_clinical_documents
+            baseColumnNames: patient_master_id
+            referencedTableName: same_patient_master
+            referencedColumnNames: id
+            constraintName: fk_same_document_patient
+        - addForeignKeyConstraint:
+            baseTableName: same_clinical_documents
+            baseColumnNames: patient_identifier_id
+            referencedTableName: same_patient_identifiers
+            referencedColumnNames: id
+            constraintName: fk_same_document_identifier
+        - addForeignKeyConstraint:
+            baseTableName: same_clinical_documents
+            baseColumnNames: created_by_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_same_document_created_by
+        - createIndex:
+            tableName: same_clinical_documents
+            indexName: ix_same_document_tenant_patient
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: patient_master_id
+        - createIndex:
+            tableName: same_clinical_documents
+            indexName: ix_same_document_tenant_record
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: original_medical_record_code
+        - createIndex:
+            tableName: same_clinical_documents
+            indexName: ix_same_document_tenant_source
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: source_system
+        - createIndex:
+            tableName: same_clinical_documents
+            indexName: ix_same_document_tenant_status
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: status
+        - createIndex:
+            tableName: same_clinical_documents
+            indexName: ix_same_document_hash
+            columns:
+              - column:
+                  name: file_hash_sha256
+
+  # ============================================================
+  # V20-4  same_document_access_logs
+  # ============================================================
+  - changeSet:
+      id: V20-4
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: same_document_access_logs
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: clinical_document_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: patient_master_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: BIGINT
+              - column:
+                  name: user_name
+                  type: VARCHAR(160)
+              - column:
+                  name: action
+                  type: VARCHAR(30)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: ip_address
+                  type: VARCHAR(80)
+              - column:
+                  name: user_agent
+                  type: VARCHAR(500)
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: same_document_access_logs
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_same_access_log_tenant
+        - addForeignKeyConstraint:
+            baseTableName: same_document_access_logs
+            baseColumnNames: clinical_document_id
+            referencedTableName: same_clinical_documents
+            referencedColumnNames: id
+            constraintName: fk_same_access_log_document
+        - addForeignKeyConstraint:
+            baseTableName: same_document_access_logs
+            baseColumnNames: patient_master_id
+            referencedTableName: same_patient_master
+            referencedColumnNames: id
+            constraintName: fk_same_access_log_patient
+        - createIndex:
+            tableName: same_document_access_logs
+            indexName: ix_same_access_log_document_date
+            columns:
+              - column:
+                  name: clinical_document_id
+              - column:
+                  name: created_at
+        - createIndex:
+            tableName: same_document_access_logs
+            indexName: ix_same_access_log_patient_date
+            columns:
+              - column:
+                  name: patient_master_id
+              - column:
+                  name: created_at
+        - createIndex:
+            tableName: same_document_access_logs
+            indexName: ix_same_access_log_tenant_user_date
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: user_id
+              - column:
+                  name: created_at
+
+  # ============================================================
+  # V20-5  same_legacy_integration_sources
+  # ============================================================
+  - changeSet:
+      id: V20-5
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: same_legacy_integration_sources
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: name
+                  type: VARCHAR(120)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: source_system
+                  type: VARCHAR(30)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: jdbc_url
+                  type: VARCHAR(500)
+              - column:
+                  name: username
+                  type: VARCHAR(120)
+              - column:
+                  name: encrypted_password
+                  type: VARCHAR(500)
+              - column:
+                  name: active
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+        - addUniqueConstraint:
+            tableName: same_legacy_integration_sources
+            columnNames: tenant_id, source_system, name
+            constraintName: uk_same_legacy_source_tenant_system_name
+        - addForeignKeyConstraint:
+            baseTableName: same_legacy_integration_sources
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_same_legacy_source_tenant
+
+  # ============================================================
+  # V20-6  same_legacy_patient_snapshots
+  # ============================================================
+  - changeSet:
+      id: V20-6
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: same_legacy_patient_snapshots
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: source_system
+                  type: VARCHAR(30)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: external_patient_id
+                  type: VARCHAR(80)
+              - column:
+                  name: medical_record_code
+                  type: VARCHAR(80)
+              - column:
+                  name: full_name
+                  type: VARCHAR(180)
+              - column:
+                  name: mother_name
+                  type: VARCHAR(180)
+              - column:
+                  name: birth_date
+                  type: DATE
+              - column:
+                  name: cpf
+                  type: VARCHAR(14)
+              - column:
+                  name: cns
+                  type: VARCHAR(20)
+              - column:
+                  name: sex
+                  type: VARCHAR(20)
+              - column:
+                  name: raw_payload_json
+                  type: TEXT
+              - column:
+                  name: imported_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: same_legacy_patient_snapshots
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_same_legacy_snapshot_tenant
+        - createIndex:
+            tableName: same_legacy_patient_snapshots
+            indexName: ix_same_legacy_snapshot_tenant_record
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: source_system
+              - column:
+                  name: medical_record_code
+        - createIndex:
+            tableName: same_legacy_patient_snapshots
+            indexName: ix_same_legacy_snapshot_tenant_external
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: source_system
+              - column:
+                  name: external_patient_id
+        - createIndex:
+            tableName: same_legacy_patient_snapshots
+            indexName: ix_same_legacy_snapshot_tenant_cpf
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: cpf

@@ -1,0 +1,128 @@
+databaseChangeLog:
+
+  # ─── V16-1: Tabela notificacoes ───────────────────────────────────────────────
+  - changeSet:
+      id: V16-1-notificacoes-table
+      author: qualitascare
+      changes:
+        - createTable:
+            tableName: notificacoes
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: tipo
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: nivel
+                  type: VARCHAR(10)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: titulo
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: mensagem
+                  type: VARCHAR(500)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: referencia_id
+                  type: BIGINT
+              - column:
+                  name: referencia_tipo
+                  type: VARCHAR(30)
+              - column:
+                  name: lida
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: data_hora
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: lida_em
+                  type: TIMESTAMP
+
+        - createIndex:
+            indexName: ix_not_tenant_lida_data
+            tableName: notificacoes
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: lida
+              - column:
+                  name: data_hora
+
+        - createIndex:
+            indexName: ix_not_tenant_nivel
+            tableName: notificacoes
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: nivel
+
+        - createIndex:
+            indexName: ix_not_referencia
+            tableName: notificacoes
+            columns:
+              - column:
+                  name: referencia_tipo
+              - column:
+                  name: referencia_id
+
+  # ─── V16-2: Seeds — parâmetros de e-mail de notificação ──────────────────────
+  - changeSet:
+      id: V16-2-seed-email-params
+      author: qualitascare
+      changes:
+        - insert:
+            tableName: sys_configuracoes
+            columns:
+              - column: { name: tenant_id,   value: null }
+              - column: { name: modulo,       value: SISTEMA }
+              - column: { name: chave,        value: NOTIFICACAO_EMAIL_ATIVO }
+              - column: { name: valor,        value: "false" }
+              - column: { name: tipo_valor,   value: BOOLEAN }
+              - column: { name: descricao,    value: "Habilita envio de e-mail junto com notificações in-app (true/false)" }
+              - column: { name: editavel,     valueBoolean: true }
+
+        - insert:
+            tableName: sys_configuracoes
+            columns:
+              - column: { name: tenant_id,   value: null }
+              - column: { name: modulo,       value: SISTEMA }
+              - column: { name: chave,        value: NOTIFICACAO_EMAIL_FROM }
+              - column: { name: valor,        value: "noreply@qualitascare.com" }
+              - column: { name: tipo_valor,   value: STRING }
+              - column: { name: descricao,    value: "Endereço de e-mail remetente das notificações" }
+              - column: { name: editavel,     valueBoolean: true }
+
+        - insert:
+            tableName: sys_configuracoes
+            columns:
+              - column: { name: tenant_id,   value: null }
+              - column: { name: modulo,       value: SISTEMA }
+              - column: { name: chave,        value: NOTIFICACAO_EMAIL_DESTINATARIOS }
+              - column: { name: valor,        value: "" }
+              - column: { name: tipo_valor,   value: STRING }
+              - column: { name: descricao,    value: "Lista de e-mails destinatários separada por vírgula (ex: admin@hospital.com,ti@hospital.com)" }
+              - column: { name: editavel,     valueBoolean: true }
