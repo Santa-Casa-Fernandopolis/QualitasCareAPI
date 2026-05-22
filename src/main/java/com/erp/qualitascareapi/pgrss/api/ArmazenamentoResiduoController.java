@@ -25,13 +25,13 @@ public class ArmazenamentoResiduoController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @RequiresPermission(resource = ResourceType.PGRSS_PESAGEM, action = Action.CREATE)
+    @RequiresPermission(resource = ResourceType.PGRSS_ARMAZENAMENTO, action = Action.CREATE)
     public ArmazenamentoResiduoDto registrar(@Validated @RequestBody ArmazenamentoResiduoRequest req) {
         return service.registrar(req);
     }
 
     @GetMapping
-    @RequiresPermission(resource = ResourceType.PGRSS_PESAGEM, action = Action.READ)
+    @RequiresPermission(resource = ResourceType.PGRSS_ARMAZENAMENTO, action = Action.READ)
     public Page<ArmazenamentoResiduoDto> findAll(@RequestParam(required = false) Long grupoId,
                                                   @RequestParam(required = false) StatusArmazenamento status,
                                                   Pageable pageable) {
@@ -39,19 +39,19 @@ public class ArmazenamentoResiduoController {
     }
 
     @GetMapping("/{id}")
-    @RequiresPermission(resource = ResourceType.PGRSS_PESAGEM, action = Action.READ)
+    @RequiresPermission(resource = ResourceType.PGRSS_ARMAZENAMENTO, action = Action.READ)
     public ArmazenamentoResiduoDto findById(@PathVariable Long id) {
         return service.findById(id);
     }
 
     @PatchMapping("/{id}/remover")
-    @RequiresPermission(resource = ResourceType.PGRSS_PESAGEM, action = Action.UPDATE)
+    @RequiresPermission(resource = ResourceType.PGRSS_ARMAZENAMENTO, action = Action.UPDATE)
     public ArmazenamentoResiduoDto remover(@PathVariable Long id) {
         return service.remover(id);
     }
 
     @PatchMapping("/{id}/cancelar")
-    @RequiresPermission(resource = ResourceType.PGRSS_PESAGEM, action = Action.UPDATE)
+    @RequiresPermission(resource = ResourceType.PGRSS_ARMAZENAMENTO, action = Action.UPDATE)
     public ArmazenamentoResiduoDto cancelar(@PathVariable Long id) {
         return service.cancelar(id);
     }
