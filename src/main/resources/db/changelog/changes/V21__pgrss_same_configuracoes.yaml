@@ -1,0 +1,67 @@
+databaseChangeLog:
+
+  # ============================================================
+  # V21-1  Seed — parâmetros do módulo SAME
+  # ============================================================
+  - changeSet:
+      id: V21-1
+      author: qualitascare
+      changes:
+        - insert:
+            tableName: sys_configuracoes
+            columns:
+              - column: { name: modulo,     value: SAME }
+              - column: { name: chave,      value: SAME_MAX_FILE_SIZE_BYTES }
+              - column: { name: valor,      value: "52428800" }
+              - column: { name: tipo_valor, value: INTEGER }
+              - column: { name: descricao,  value: "Tamanho máximo em bytes permitido para upload de PDF de prontuário. Padrão: 52428800 (50 MB)" }
+              - column: { name: editavel,   valueBoolean: true }
+
+  # ============================================================
+  # V21-2  Seed — parâmetros de agendamento do módulo PGRSS
+  # ============================================================
+  - changeSet:
+      id: V21-2
+      author: qualitascare
+      changes:
+        # --- Job: verificação de planos de ação vencidos ---
+        - insert:
+            tableName: sys_configuracoes
+            columns:
+              - column: { name: modulo,     value: PGRSS }
+              - column: { name: chave,      value: PGRSS_PLANOS_VENCIDOS_ATIVO }
+              - column: { name: valor,      value: "true" }
+              - column: { name: tipo_valor, value: BOOLEAN }
+              - column: { name: descricao,  value: "Habilita o job diário que marca planos de ação PGRSS como VENCIDO e dispara notificações" }
+              - column: { name: editavel,   valueBoolean: true }
+
+        - insert:
+            tableName: sys_configuracoes
+            columns:
+              - column: { name: modulo,     value: PGRSS }
+              - column: { name: chave,      value: PGRSS_PLANOS_VENCIDOS_CRON }
+              - column: { name: valor,      value: "0 0 0 * * *" }
+              - column: { name: tipo_valor, value: STRING }
+              - column: { name: descricao,  value: "Cron expression do job de verificação de planos vencidos. Padrão: toda meia-noite (0 0 0 * * *)" }
+              - column: { name: editavel,   valueBoolean: true }
+
+        # --- Job: verificação de licenças de empresas coletoras ---
+        - insert:
+            tableName: sys_configuracoes
+            columns:
+              - column: { name: modulo,     value: PGRSS }
+              - column: { name: chave,      value: PGRSS_LICENCAS_ATIVO }
+              - column: { name: valor,      value: "true" }
+              - column: { name: tipo_valor, value: BOOLEAN }
+              - column: { name: descricao,  value: "Habilita o job diário que verifica licenças de empresas coletoras vencidas ou próximas do vencimento" }
+              - column: { name: editavel,   valueBoolean: true }
+
+        - insert:
+            tableName: sys_configuracoes
+            columns:
+              - column: { name: modulo,     value: PGRSS }
+              - column: { name: chave,      value: PGRSS_LICENCAS_CRON }
+              - column: { name: valor,      value: "0 0 7 * * *" }
+              - column: { name: tipo_valor, value: STRING }
+              - column: { name: descricao,  value: "Cron expression do job de verificação de licenças. Padrão: todos os dias às 07h (0 0 7 * * *)" }
+              - column: { name: editavel,   valueBoolean: true }

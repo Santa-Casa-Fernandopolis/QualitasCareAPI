@@ -22,5 +22,11 @@ public enum ModuloConfiguracao {
     GED,
 
     /** Parâmetros de IAM / segurança. */
-    IAM
+    IAM,
+
+    /** Parâmetros do módulo SAME (prontuários digitalizados e integrações legadas). */
+    SAME,
+
+    /** Parâmetros do módulo PGRSS (gerenciamento de resíduos de serviços de saúde). */
+    PGRSS
 }

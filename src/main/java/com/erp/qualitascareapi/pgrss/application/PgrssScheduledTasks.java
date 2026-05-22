@@ -10,7 +10,6 @@ import com.erp.qualitascareapi.pgrss.repo.EmpresaColetorRepository;
 import com.erp.qualitascareapi.pgrss.repo.PlanoAcaoResiduoRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,11 +43,10 @@ public class PgrssScheduledTasks {
     }
 
     /**
-     * Executa toda meia-noite. Marca planos de ação como VENCIDO quando o prazo
-     * já passou e o status ainda é ABERTO ou EM_ANDAMENTO. Dispara notificação
-     * por tenant para cada plano vencido encontrado.
+     * Executa diariamente (horário configurado em {@code PGRSS_PLANOS_VENCIDOS_CRON}).
+     * Marca planos de ação como VENCIDO quando o prazo já passou e o status ainda
+     * é ABERTO ou EM_ANDAMENTO. Dispara notificação por tenant para cada plano vencido.
      */
-    @Scheduled(cron = "0 0 0 * * *")
     @Transactional
     public void verificarPlanosVencidos() {
         LocalDate hoje = LocalDate.now();
@@ -78,11 +76,10 @@ public class PgrssScheduledTasks {
     }
 
     /**
-     * Executa todos os dias às 07h. Percorre todos os tenants que possuem
-     * empresas coletoras com licença vencida ou próxima do vencimento (30 dias)
-     * e dispara as notificações correspondentes.
+     * Executa diariamente (horário configurado em {@code PGRSS_LICENCAS_CRON}).
+     * Percorre todos os tenants com empresas coletoras com licença vencida ou
+     * próxima do vencimento (30 dias) e dispara as notificações correspondentes.
      */
-    @Scheduled(cron = "0 0 7 * * *")
     @Transactional(readOnly = true)
     public void verificarLicencasEmpresas() {
         LocalDate hoje = LocalDate.now();

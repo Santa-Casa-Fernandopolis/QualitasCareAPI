@@ -39,3 +39,5 @@
       file: db/changelog/changes/V19__pgrss.yaml
   - include:
       file: db/changelog/changes/V20__same_module.yaml
+  - include:
+      file: db/changelog/changes/V21__pgrss_same_configuracoes.yaml

@@ -17,11 +17,12 @@ import com.erp.qualitascareapi.same.repo.SamePatientIdentifierRepository;
 import com.erp.qualitascareapi.same.repo.SamePatientMasterRepository;
 import com.erp.qualitascareapi.same.storage.SameFileStorageService;
 import com.erp.qualitascareapi.same.storage.SameStoredFile;
+import com.erp.qualitascareapi.sistema.application.ConfiguracaoService;
+import com.erp.qualitascareapi.sistema.enums.ModuloConfiguracao;
 import com.erp.qualitascareapi.security.application.TenantScopeGuard;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -45,7 +46,9 @@ public class SameClinicalDocumentService {
     private final SameFileStorageService fileStorageService;
     private final SameDocumentAuditService auditService;
     private final TenantScopeGuard tenantScopeGuard;
-    private final long maxFileSizeBytes;
+    private final ConfiguracaoService configuracaoService;
+
+    static final long DEFAULT_MAX_FILE_SIZE_BYTES = 52_428_800L; // 50 MB
 
     public SameClinicalDocumentService(SameClinicalDocumentRepository documentRepository,
                                        SamePatientMasterRepository patientRepository,
@@ -54,7 +57,7 @@ public class SameClinicalDocumentService {
                                        SameFileStorageService fileStorageService,
                                        SameDocumentAuditService auditService,
                                        TenantScopeGuard tenantScopeGuard,
-                                       @Value("${same.storage.max-file-size-bytes:52428800}") long maxFileSizeBytes) {
+                                       ConfiguracaoService configuracaoService) {
         this.documentRepository = documentRepository;
         this.patientRepository = patientRepository;
         this.identifierRepository = identifierRepository;
@@ -62,7 +65,7 @@ public class SameClinicalDocumentService {
         this.fileStorageService = fileStorageService;
         this.auditService = auditService;
         this.tenantScopeGuard = tenantScopeGuard;
-        this.maxFileSizeBytes = maxFileSizeBytes;
+        this.configuracaoService = configuracaoService;
     }
 
     public SameClinicalDocumentDto upload(Long patientMasterId,
@@ -224,6 +227,9 @@ public class SameClinicalDocumentService {
             throw new ApplicationException(HttpStatus.BAD_REQUEST, "same.document.file-empty",
                     "Informe um arquivo PDF para anexar ao prontuário.");
         }
+        long maxFileSizeBytes = configuracaoService.getValorInt(ModuloConfiguracao.SAME, "SAME_MAX_FILE_SIZE_BYTES")
+                .map(Long::valueOf)
+                .orElse(DEFAULT_MAX_FILE_SIZE_BYTES);
         if (file.getSize() > maxFileSizeBytes) {
             throw new ApplicationException(HttpStatus.BAD_REQUEST, "same.document.file-too-large",
                     "O PDF informado excede o tamanho máximo permitido.");
