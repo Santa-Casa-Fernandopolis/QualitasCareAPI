@@ -12,5 +12,6 @@ public record DocumentoResiduoDto(
         String mimeType,
         Long tamanhoBytes,
         String uploadadoPorNome,
-        LocalDateTime uploadadoEm
+        LocalDateTime uploadadoEm,
+        boolean ativo
 ) {}

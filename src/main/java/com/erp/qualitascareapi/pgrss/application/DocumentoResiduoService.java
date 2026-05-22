@@ -98,7 +98,8 @@ public class DocumentoResiduoService {
                 e.getMimeType(),
                 e.getTamanhoBytes(),
                 e.getUploadadoPorNome(),
-                e.getUploadadoEm()
+                e.getUploadadoEm(),
+                e.isAtivo()
         );
     }
 }

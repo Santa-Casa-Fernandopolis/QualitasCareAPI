@@ -60,4 +60,10 @@ public class EmpresaColetorController {
     public List<EmpresaColetorDto> licencasVencendo(@RequestParam(defaultValue = "30") int dias) {
         return service.findLicencasProximasVencimento(dias);
     }
+
+    @GetMapping("/licencas/vencidas")
+    @RequiresPermission(resource = ResourceType.PGRSS_CADASTRO, action = Action.READ)
+    public List<EmpresaColetorDto> licencasVencidas() {
+        return service.findLicencasVencidas();
+    }
 }

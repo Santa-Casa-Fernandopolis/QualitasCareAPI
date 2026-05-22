@@ -99,13 +99,16 @@ public class PesagemResiduoService {
     @Transactional(readOnly = true)
     public Page<PesagemResiduoDto> search(PesagemFiltroRequest filtro, Pageable pageable) {
         Long tenantId = tenantScopeGuard.currentTenantId();
-        if (filtro != null && filtro.setorId() != null && filtro.dataInicio() != null && filtro.dataFim() != null) {
-            LocalDateTime ini = filtro.dataInicio().atStartOfDay();
-            LocalDateTime fim = filtro.dataFim().atTime(LocalTime.MAX);
-            return repository.findAllByTenant_IdAndSetor_IdAndDataHoraPesagemBetween(
-                    tenantId, filtro.setorId(), ini, fim, pageable).map(this::toDto);
-        }
-        return repository.findAllByTenant_Id(tenantId, pageable).map(this::toDto);
+        LocalDateTime dataInicio = filtro != null && filtro.dataInicio() != null
+                ? filtro.dataInicio().atStartOfDay() : null;
+        LocalDateTime dataFim = filtro != null && filtro.dataFim() != null
+                ? filtro.dataFim().atTime(LocalTime.MAX) : null;
+        Long setorId = filtro != null ? filtro.setorId() : null;
+        Long grupoId = filtro != null ? filtro.grupoId() : null;
+        var turno = filtro != null ? filtro.turno() : null;
+        var status = filtro != null ? filtro.status() : null;
+        return repository.search(tenantId, setorId, grupoId, turno, status, dataInicio, dataFim, pageable)
+                .map(this::toDto);
     }
 
     @Transactional(readOnly = true)

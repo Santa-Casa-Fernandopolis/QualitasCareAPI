@@ -11,6 +11,9 @@ import com.erp.qualitascareapi.pgrss.domain.TipoResiduo;
 import com.erp.qualitascareapi.pgrss.enums.SeveridadeNaoConformidade;
 import com.erp.qualitascareapi.pgrss.enums.StatusNaoConformidade;
 import com.erp.qualitascareapi.pgrss.repo.GrupoResiduoRepository;
+import com.erp.qualitascareapi.notificacao.application.NotificacaoService;
+import com.erp.qualitascareapi.notificacao.enums.NivelNotificacao;
+import com.erp.qualitascareapi.notificacao.enums.TipoNotificacao;
 import com.erp.qualitascareapi.pgrss.repo.NaoConformidadeResiduoRepository;
 import com.erp.qualitascareapi.pgrss.repo.SetorGeradorRepository;
 import com.erp.qualitascareapi.pgrss.repo.TipoResiduoRepository;
@@ -31,19 +34,22 @@ public class NaoConformidadeResiduoService {
     private final TipoResiduoRepository tipoRepository;
     private final TenantRepository tenantRepository;
     private final TenantScopeGuard tenantScopeGuard;
+    private final NotificacaoService notificacaoService;
 
     public NaoConformidadeResiduoService(NaoConformidadeResiduoRepository repository,
                                           SetorGeradorRepository setorRepository,
                                           GrupoResiduoRepository grupoRepository,
                                           TipoResiduoRepository tipoRepository,
                                           TenantRepository tenantRepository,
-                                          TenantScopeGuard tenantScopeGuard) {
+                                          TenantScopeGuard tenantScopeGuard,
+                                          NotificacaoService notificacaoService) {
         this.repository = repository;
         this.setorRepository = setorRepository;
         this.grupoRepository = grupoRepository;
         this.tipoRepository = tipoRepository;
         this.tenantRepository = tenantRepository;
         this.tenantScopeGuard = tenantScopeGuard;
+        this.notificacaoService = notificacaoService;
     }
 
     public NaoConformidadeResiduoDto registrar(NaoConformidadeResiduoRequest req) {
@@ -79,7 +85,20 @@ public class NaoConformidadeResiduoService {
         if (SeveridadeNaoConformidade.CRITICA.equals(req.severidade())) {
             e.setExigePlanoAcao(true);
         }
-        return toDto(repository.save(e));
+        NaoConformidadeResiduo saved = repository.save(e);
+        if (SeveridadeNaoConformidade.CRITICA.equals(req.severidade())) {
+            String setorLabel = saved.getSetor() != null ? saved.getSetor().getNome() : "setor não identificado";
+            notificacaoService.gerar(
+                    tenant.getId(),
+                    TipoNotificacao.PGRSS_NAO_CONFORMIDADE_CRITICA,
+                    NivelNotificacao.CRITICO,
+                    "Não conformidade crítica registrada",
+                    "Uma não conformidade CRÍTICA foi registrada no setor: " + setorLabel,
+                    saved.getId(),
+                    "NAO_CONFORMIDADE_RESIDUO"
+            );
+        }
+        return toDto(saved);
     }
 
     public NaoConformidadeResiduoDto atualizarStatus(Long id, StatusNaoConformidade novoStatus) {
@@ -115,6 +134,10 @@ public class NaoConformidadeResiduoService {
                 e.getTenant().getId(),
                 e.getSetor() != null ? e.getSetor().getId() : null,
                 e.getSetor() != null ? e.getSetor().getNome() : null,
+                e.getGrupo() != null ? e.getGrupo().getId() : null,
+                e.getGrupo() != null ? e.getGrupo().getCodigo() : null,
+                e.getTipo() != null ? e.getTipo().getId() : null,
+                e.getTipo() != null ? e.getTipo().getNome() : null,
                 e.getDataHoraOcorrencia(),
                 e.getTipoNaoConformidade(),
                 e.getSeveridade(),

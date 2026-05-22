@@ -18,6 +18,27 @@ public interface PesagemResiduoRepository extends JpaRepository<PesagemResiduo, 
     Page<PesagemResiduo> findAllByTenant_IdAndSetor_IdAndDataHoraPesagemBetween(
             Long tenantId, Long setorId, LocalDateTime inicio, LocalDateTime fim, Pageable pageable);
 
+    @Query("""
+            SELECT p FROM PesagemResiduo p
+            WHERE p.tenant.id = :tenantId
+              AND (:setorId IS NULL OR p.setor.id = :setorId)
+              AND (:grupoId IS NULL OR p.grupo.id = :grupoId)
+              AND (:turno IS NULL OR p.turno = :turno)
+              AND (:status IS NULL OR p.status = :status)
+              AND (:dataInicio IS NULL OR p.dataHoraPesagem >= :dataInicio)
+              AND (:dataFim IS NULL OR p.dataHoraPesagem <= :dataFim)
+            ORDER BY p.dataHoraPesagem DESC
+            """)
+    Page<PesagemResiduo> search(
+            @Param("tenantId") Long tenantId,
+            @Param("setorId") Long setorId,
+            @Param("grupoId") Long grupoId,
+            @Param("turno") com.erp.qualitascareapi.pgrss.enums.TurnoColeta turno,
+            @Param("status") com.erp.qualitascareapi.pgrss.enums.StatusPesagem status,
+            @Param("dataInicio") LocalDateTime dataInicio,
+            @Param("dataFim") LocalDateTime dataFim,
+            Pageable pageable);
+
     @Query("SELECT SUM(p.pesoKg) FROM PesagemResiduo p WHERE p.tenant.id = :tid AND p.dataHoraPesagem BETWEEN :ini AND :fim AND p.status <> 'CANCELADA'")
     BigDecimal sumPesoPeriodo(@Param("tid") Long tid, @Param("ini") LocalDateTime ini, @Param("fim") LocalDateTime fim);
 
