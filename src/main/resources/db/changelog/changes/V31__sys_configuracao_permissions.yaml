@@ -1,0 +1,49 @@
+databaseChangeLog:
+  - changeSet:
+      id: V31-01-sys-configuracao-permissions
+      author: codex
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO permissions (tenant_id, resource, action, feature, code)
+              SELECT t.id, 'SYS_CONFIGURACAO', permission_scope.action, permission_scope.feature,
+                     'SYS_CONFIGURACAO_' || permission_scope.action || '@' || permission_scope.feature
+              FROM tenants t
+              CROSS JOIN (
+                SELECT 'READ' AS action, 'LISTA' AS feature
+                UNION ALL SELECT 'CREATE', 'FORM'
+                UNION ALL SELECT 'UPDATE', 'FORM'
+                UNION ALL SELECT 'DELETE', 'FORM'
+              ) permission_scope
+              WHERE NOT EXISTS (
+                SELECT 1
+                FROM permissions p
+                WHERE p.tenant_id = t.id
+                  AND p.resource = 'SYS_CONFIGURACAO'
+                  AND p.action = permission_scope.action
+                  AND p.feature = permission_scope.feature
+              );
+
+  - changeSet:
+      id: V31-02-sys-configuracao-role-permissions
+      author: codex
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO role_permissions (tenant_id, role_id, permission_id)
+              SELECT r.tenant_id, r.id, p.id
+              FROM roles r
+              JOIN permissions p ON p.tenant_id = r.tenant_id
+              WHERE r.name IN ('SYSTEM_ADMIN', 'ADMIN_TI')
+                AND p.resource = 'SYS_CONFIGURACAO'
+                AND (
+                  (p.action = 'READ' AND p.feature = 'LISTA')
+                  OR (p.action IN ('CREATE', 'UPDATE', 'DELETE') AND p.feature = 'FORM')
+                )
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM role_permissions rp
+                  WHERE rp.tenant_id = r.tenant_id
+                    AND rp.role_id = r.id
+                    AND rp.permission_id = p.id
+                );

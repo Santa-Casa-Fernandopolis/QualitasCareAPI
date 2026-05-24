@@ -19,6 +19,8 @@ public interface LoteEtiquetaRepository extends JpaRepository<LoteEtiqueta, Long
 
     long countByTenant_IdAndStatusIn(Long tenantId, List<LoteStatus> statuses);
 
+    long countByKitVersao_IdAndTenant_Id(Long kitVersaoId, Long tenantId);
+
     long countByTenant_IdAndValidadeBetweenAndStatusIn(Long tenantId, LocalDate from, LocalDate to, List<LoteStatus> statuses);
 
     @Query("SELECT l.status, COUNT(l) FROM LoteEtiqueta l WHERE l.tenant.id = :tenantId GROUP BY l.status")

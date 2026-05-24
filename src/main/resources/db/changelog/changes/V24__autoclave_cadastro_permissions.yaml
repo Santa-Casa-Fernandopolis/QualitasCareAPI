@@ -1,0 +1,52 @@
+databaseChangeLog:
+  - changeSet:
+      id: V24-01-autoclave-cadastro-permissions
+      author: codex
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO permissions (tenant_id, resource, action, feature, code)
+              SELECT t.id, 'CME_AUTOCLAVE', 'CREATE', 'CADASTRO', 'CME_AUTOCLAVE_CREATE@CADASTRO'
+              FROM tenants t
+              WHERE NOT EXISTS (
+                SELECT 1
+                FROM permissions p
+                WHERE p.tenant_id = t.id
+                  AND p.resource = 'CME_AUTOCLAVE'
+                  AND p.action = 'CREATE'
+                  AND p.feature = 'CADASTRO'
+              );
+
+              INSERT INTO permissions (tenant_id, resource, action, feature, code)
+              SELECT t.id, 'CME_AUTOCLAVE', 'UPDATE', 'CADASTRO', 'CME_AUTOCLAVE_UPDATE@CADASTRO'
+              FROM tenants t
+              WHERE NOT EXISTS (
+                SELECT 1
+                FROM permissions p
+                WHERE p.tenant_id = t.id
+                  AND p.resource = 'CME_AUTOCLAVE'
+                  AND p.action = 'UPDATE'
+                  AND p.feature = 'CADASTRO'
+              );
+
+  - changeSet:
+      id: V24-02-autoclave-cadastro-role-permissions
+      author: codex
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO role_permissions (tenant_id, role_id, permission_id)
+              SELECT r.tenant_id, r.id, p.id
+              FROM roles r
+              JOIN permissions p ON p.tenant_id = r.tenant_id
+              WHERE r.name IN ('SYSTEM_ADMIN', 'ADMIN_TI', 'ADMIN_ASSISTENCIAL', 'GESTOR')
+                AND p.resource = 'CME_AUTOCLAVE'
+                AND p.action IN ('CREATE', 'UPDATE')
+                AND p.feature = 'CADASTRO'
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM role_permissions rp
+                  WHERE rp.tenant_id = r.tenant_id
+                    AND rp.role_id = r.id
+                    AND rp.permission_id = p.id
+                );

@@ -4,5 +4,6 @@ public record TenantLoginOptionDto(Long id,
                                    String code,
                                    String name,
                                    String cnpj,
-                                   String logo) {
+                                   String logo,
+                                   String userPhotoUrl) {
 }

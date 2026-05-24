@@ -1,0 +1,274 @@
+databaseChangeLog:
+  - changeSet:
+      id: V34-1-cme-fluxos-processo
+      author: qualitascare
+      preConditions:
+        onFail: MARK_RAN
+        not:
+          tableExists:
+            tableName: cme_fluxos_processo
+      changes:
+        - createTable:
+            tableName: cme_fluxos_processo
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_cme_fluxos_processo
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: nome
+                  type: VARCHAR(120)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: tipo_fluxo
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: numero_versao
+                  type: INT
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: ativo
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: data_vigencia_inicio
+                  type: DATE
+              - column:
+                  name: data_vigencia_fim
+                  type: DATE
+              - column:
+                  name: observacoes
+                  type: VARCHAR(255)
+              - column:
+                  name: criado_em
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: cme_fluxos_processo
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_cme_fluxo_tenant
+        - addUniqueConstraint:
+            tableName: cme_fluxos_processo
+            columnNames: tenant_id, tipo_fluxo, numero_versao
+            constraintName: uk_cme_fluxo_tenant_tipo_versao
+        - createIndex:
+            tableName: cme_fluxos_processo
+            indexName: ix_cme_fluxo_tenant_tipo_ativo
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: tipo_fluxo
+              - column:
+                  name: ativo
+
+  - changeSet:
+      id: V34-2-cme-fluxo-etapas
+      author: qualitascare
+      preConditions:
+        onFail: MARK_RAN
+        not:
+          tableExists:
+            tableName: cme_fluxo_etapas
+      changes:
+        - createTable:
+            tableName: cme_fluxo_etapas
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_cme_fluxo_etapas
+              - column:
+                  name: fluxo_processo_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: codigo
+                  type: VARCHAR(60)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: nome
+                  type: VARCHAR(120)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: tipo_etapa
+                  type: VARCHAR(30)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: ordem
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: obrigatoria
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: permite_pular
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: exige_evidencia
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: exige_aprovacao
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: rota_destino
+                  type: VARCHAR(120)
+              - column:
+                  name: observacoes
+                  type: VARCHAR(255)
+        - addForeignKeyConstraint:
+            baseTableName: cme_fluxo_etapas
+            baseColumnNames: fluxo_processo_id
+            referencedTableName: cme_fluxos_processo
+            referencedColumnNames: id
+            constraintName: fk_cme_fluxo_etapa_fluxo
+        - addUniqueConstraint:
+            tableName: cme_fluxo_etapas
+            columnNames: fluxo_processo_id, codigo
+            constraintName: uk_cme_fluxo_etapa_codigo
+        - createIndex:
+            tableName: cme_fluxo_etapas
+            indexName: ix_cme_fluxo_etapa_ordem
+            columns:
+              - column:
+                  name: fluxo_processo_id
+              - column:
+                  name: ordem
+
+  - changeSet:
+      id: V34-3-cme-etapas-execucao
+      author: qualitascare
+      preConditions:
+        onFail: MARK_RAN
+        not:
+          tableExists:
+            tableName: cme_etapas_execucao
+      changes:
+        - createTable:
+            tableName: cme_etapas_execucao
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_cme_etapas_execucao
+              - column:
+                  name: processo_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: etapa_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: data_hora_inicio
+                  type: TIMESTAMP
+              - column:
+                  name: data_hora_fim
+                  type: TIMESTAMP
+              - column:
+                  name: responsavel_id
+                  type: BIGINT
+              - column:
+                  name: justificativa
+                  type: VARCHAR(255)
+              - column:
+                  name: observacoes
+                  type: VARCHAR(255)
+        - addForeignKeyConstraint:
+            baseTableName: cme_etapas_execucao
+            baseColumnNames: processo_id
+            referencedTableName: cme_processos_reprocessamento
+            referencedColumnNames: id
+            constraintName: fk_cme_exec_processo
+        - addForeignKeyConstraint:
+            baseTableName: cme_etapas_execucao
+            baseColumnNames: etapa_id
+            referencedTableName: cme_fluxo_etapas
+            referencedColumnNames: id
+            constraintName: fk_cme_exec_etapa
+        - addForeignKeyConstraint:
+            baseTableName: cme_etapas_execucao
+            baseColumnNames: responsavel_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_cme_exec_responsavel
+        - addUniqueConstraint:
+            tableName: cme_etapas_execucao
+            columnNames: processo_id, etapa_id
+            constraintName: uk_cme_exec_processo_etapa
+
+  - changeSet:
+      id: V34-4-cme-processo-fluxo-link
+      author: qualitascare
+      preConditions:
+        onFail: MARK_RAN
+        tableExists:
+          tableName: cme_processos_reprocessamento
+      changes:
+        - addColumn:
+            tableName: cme_processos_reprocessamento
+            columns:
+              - column:
+                  name: fluxo_processo_id
+                  type: BIGINT
+        - addForeignKeyConstraint:
+            baseTableName: cme_processos_reprocessamento
+            baseColumnNames: fluxo_processo_id
+            referencedTableName: cme_fluxos_processo
+            referencedColumnNames: id
+            constraintName: fk_cme_processo_fluxo
+        - createIndex:
+            tableName: cme_processos_reprocessamento
+            indexName: ix_cme_processo_fluxo
+            columns:
+              - column:
+                  name: fluxo_processo_id

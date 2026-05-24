@@ -1,0 +1,252 @@
+databaseChangeLog:
+  - changeSet:
+      id: V29-1-create-setor-tipo-catalogo
+      author: codex
+      changes:
+        - createTable:
+            tableName: iam_setor_tipos
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: nome
+                  type: VARCHAR(120)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: descricao
+                  type: VARCHAR(255)
+              - column:
+                  name: active
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: iam_setor_tipos
+            columnNames: tenant_id,nome
+            constraintName: uq_setor_tipo_tenant_nome
+        - addForeignKeyConstraint:
+            baseTableName: iam_setor_tipos
+            baseColumnNames: tenant_id
+            constraintName: fk_setor_tipo_tenant
+            referencedTableName: tenants
+            referencedColumnNames: id
+        - createIndex:
+            tableName: iam_setor_tipos
+            indexName: ix_setor_tipo_tenant_active
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: active
+        - createTable:
+            tableName: iam_setor_tipos_aud
+            columns:
+              - column: { name: id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: rev, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: revtype, type: SMALLINT }
+              - column: { name: tenant_id, type: BIGINT }
+              - column: { name: nome, type: VARCHAR(120) }
+              - column: { name: descricao, type: VARCHAR(255) }
+              - column: { name: active, type: BOOLEAN }
+        - addPrimaryKey:
+            tableName: iam_setor_tipos_aud
+            columnNames: id,rev
+            constraintName: pk_iam_setor_tipos_aud
+
+  - changeSet:
+      id: V29-2-create-setor-especialidade-catalogo
+      author: codex
+      changes:
+        - createTable:
+            tableName: iam_setor_especialidades
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: tipo_setor_id
+                  type: BIGINT
+              - column:
+                  name: nome
+                  type: VARCHAR(120)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: descricao
+                  type: VARCHAR(255)
+              - column:
+                  name: active
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: iam_setor_especialidades
+            columnNames: tenant_id,nome
+            constraintName: uq_setor_especialidade_tenant_nome
+        - addForeignKeyConstraint:
+            baseTableName: iam_setor_especialidades
+            baseColumnNames: tenant_id
+            constraintName: fk_setor_especialidade_tenant
+            referencedTableName: tenants
+            referencedColumnNames: id
+        - addForeignKeyConstraint:
+            baseTableName: iam_setor_especialidades
+            baseColumnNames: tipo_setor_id
+            constraintName: fk_setor_especialidade_tipo
+            referencedTableName: iam_setor_tipos
+            referencedColumnNames: id
+        - createIndex:
+            tableName: iam_setor_especialidades
+            indexName: ix_setor_especialidade_tenant_active
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: active
+        - createIndex:
+            tableName: iam_setor_especialidades
+            indexName: ix_setor_especialidade_tipo
+            columns:
+              - column:
+                  name: tipo_setor_id
+        - createTable:
+            tableName: iam_setor_especialidades_aud
+            columns:
+              - column: { name: id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: rev, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: revtype, type: SMALLINT }
+              - column: { name: tenant_id, type: BIGINT }
+              - column: { name: tipo_setor_id, type: BIGINT }
+              - column: { name: nome, type: VARCHAR(120) }
+              - column: { name: descricao, type: VARCHAR(255) }
+              - column: { name: active, type: BOOLEAN }
+        - addPrimaryKey:
+            tableName: iam_setor_especialidades_aud
+            columnNames: id,rev
+            constraintName: pk_iam_setor_especialidades_aud
+
+  - changeSet:
+      id: V29-3-link-setor-catalogo
+      author: codex
+      changes:
+        - dropNotNullConstraint:
+            tableName: iam_setores
+            columnName: tipo
+            columnDataType: VARCHAR(30)
+        - addColumn:
+            tableName: iam_setores
+            columns:
+              - column:
+                  name: tipo_setor_id
+                  type: BIGINT
+              - column:
+                  name: especialidade_id
+                  type: BIGINT
+        - addColumn:
+            tableName: iam_setores_aud
+            columns:
+              - column:
+                  name: tipo_setor_id
+                  type: BIGINT
+              - column:
+                  name: especialidade_id
+                  type: BIGINT
+        - addForeignKeyConstraint:
+            baseTableName: iam_setores
+            baseColumnNames: tipo_setor_id
+            constraintName: fk_iam_setores_tipo_cadastro
+            referencedTableName: iam_setor_tipos
+            referencedColumnNames: id
+        - addForeignKeyConstraint:
+            baseTableName: iam_setores
+            baseColumnNames: especialidade_id
+            constraintName: fk_iam_setores_especialidade
+            referencedTableName: iam_setor_especialidades
+            referencedColumnNames: id
+        - createIndex:
+            tableName: iam_setores
+            indexName: ix_setor_tenant_tipo_cadastro
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: tipo_setor_id
+        - createIndex:
+            tableName: iam_setores
+            indexName: ix_setor_tenant_especialidade
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: especialidade_id
+
+  - changeSet:
+      id: V29-4-seed-setor-catalogo
+      author: codex
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO iam_setor_tipos (tenant_id, nome, descricao, active)
+              SELECT id, 'Assistencial', 'Setores ligados diretamente à assistência ao paciente.', TRUE FROM tenants;
+              INSERT INTO iam_setor_tipos (tenant_id, nome, descricao, active)
+              SELECT id, 'Administrativo', 'Setores administrativos e de gestão.', TRUE FROM tenants;
+              INSERT INTO iam_setor_tipos (tenant_id, nome, descricao, active)
+              SELECT id, 'Apoio', 'Setores de apoio operacional.', TRUE FROM tenants;
+              INSERT INTO iam_setor_tipos (tenant_id, nome, descricao, active)
+              SELECT id, 'Técnico operacional', 'Setores técnicos de operação hospitalar.', TRUE FROM tenants;
+              INSERT INTO iam_setor_tipos (tenant_id, nome, descricao, active)
+              SELECT id, 'Qualidade e compliance', 'Setores de qualidade, auditoria e conformidade.', TRUE FROM tenants;
+              INSERT INTO iam_setor_especialidades (tenant_id, tipo_setor_id, nome, descricao, active)
+              SELECT t.id, st.id, 'Central de Materiais Esterilizados', 'CME e processamento de materiais.', TRUE
+              FROM tenants t JOIN iam_setor_tipos st ON st.tenant_id = t.id AND st.nome = 'Técnico operacional';
+              INSERT INTO iam_setor_especialidades (tenant_id, tipo_setor_id, nome, descricao, active)
+              SELECT t.id, st.id, 'Centro Cirúrgico', 'Bloco e salas cirúrgicas.', TRUE
+              FROM tenants t JOIN iam_setor_tipos st ON st.tenant_id = t.id AND st.nome = 'Assistencial';
+              INSERT INTO iam_setor_especialidades (tenant_id, tipo_setor_id, nome, descricao, active)
+              SELECT t.id, st.id, 'Unidade de Terapia Intensiva', 'UTI adulto, pediátrica ou neonatal.', TRUE
+              FROM tenants t JOIN iam_setor_tipos st ON st.tenant_id = t.id AND st.nome = 'Assistencial';
+              INSERT INTO iam_setor_especialidades (tenant_id, tipo_setor_id, nome, descricao, active)
+              SELECT t.id, st.id, 'Enfermaria', 'Unidades de internação e cuidado assistencial.', TRUE
+              FROM tenants t JOIN iam_setor_tipos st ON st.tenant_id = t.id AND st.nome = 'Assistencial';
+              INSERT INTO iam_setor_especialidades (tenant_id, tipo_setor_id, nome, descricao, active)
+              SELECT t.id, st.id, 'Farmácia', 'Farmácia clínica, satélite ou central.', TRUE
+              FROM tenants t JOIN iam_setor_tipos st ON st.tenant_id = t.id AND st.nome = 'Técnico operacional';
+              INSERT INTO iam_setor_especialidades (tenant_id, tipo_setor_id, nome, descricao, active)
+              SELECT t.id, st.id, 'Hotelaria', 'Higienização, rouparia e hotelaria hospitalar.', TRUE
+              FROM tenants t JOIN iam_setor_tipos st ON st.tenant_id = t.id AND st.nome = 'Apoio';
+              INSERT INTO iam_setor_especialidades (tenant_id, tipo_setor_id, nome, descricao, active)
+              SELECT t.id, st.id, 'Manutenção', 'Manutenção predial e infraestrutura.', TRUE
+              FROM tenants t JOIN iam_setor_tipos st ON st.tenant_id = t.id AND st.nome = 'Apoio';
+              INSERT INTO iam_setor_especialidades (tenant_id, tipo_setor_id, nome, descricao, active)
+              SELECT t.id, st.id, 'Engenharia Clínica', 'Gestão técnica de equipamentos assistenciais.', TRUE
+              FROM tenants t JOIN iam_setor_tipos st ON st.tenant_id = t.id AND st.nome = 'Técnico operacional';
+              INSERT INTO iam_setor_especialidades (tenant_id, tipo_setor_id, nome, descricao, active)
+              SELECT t.id, st.id, 'Tecnologia da Informação', 'TI e sistemas corporativos.', TRUE
+              FROM tenants t JOIN iam_setor_tipos st ON st.tenant_id = t.id AND st.nome = 'Administrativo';
+              INSERT INTO iam_setor_especialidades (tenant_id, tipo_setor_id, nome, descricao, active)
+              SELECT t.id, st.id, 'Qualidade', 'Gestão da qualidade e segurança do paciente.', TRUE
+              FROM tenants t JOIN iam_setor_tipos st ON st.tenant_id = t.id AND st.nome = 'Qualidade e compliance';
+              INSERT INTO iam_setor_especialidades (tenant_id, tipo_setor_id, nome, descricao, active)
+              SELECT t.id, st.id, 'Educação Permanente', 'Treinamento e desenvolvimento assistencial.', TRUE
+              FROM tenants t JOIN iam_setor_tipos st ON st.tenant_id = t.id AND st.nome = 'Administrativo';
+

@@ -49,6 +49,20 @@ public class TesteBowieDick {
     @JoinColumn(name = "executado_por_id")
     private User executadoPor;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "validador_id")
+    private User validador;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private BowieDickStatus status = BowieDickStatus.PENDENTE_VALIDACAO;
+
+    @Column(name = "validado_em")
+    private LocalDateTime validadoEm;
+
+    @Column(name = "parecer_validacao", length = 800)
+    private String parecerValidacao;
+
     @Column(length = 800)
     private String observacoes;
 
@@ -68,6 +82,14 @@ public class TesteBowieDick {
     public void setResultado(ResultadoConformidade resultado) { this.resultado = resultado; }
     public User getExecutadoPor() { return executadoPor; }
     public void setExecutadoPor(User executadoPor) { this.executadoPor = executadoPor; }
+    public User getValidador() { return validador; }
+    public void setValidador(User validador) { this.validador = validador; }
+    public BowieDickStatus getStatus() { return status; }
+    public void setStatus(BowieDickStatus status) { this.status = status; }
+    public LocalDateTime getValidadoEm() { return validadoEm; }
+    public void setValidadoEm(LocalDateTime validadoEm) { this.validadoEm = validadoEm; }
+    public String getParecerValidacao() { return parecerValidacao; }
+    public void setParecerValidacao(String parecerValidacao) { this.parecerValidacao = parecerValidacao; }
     public String getObservacoes() { return observacoes; }
     public void setObservacoes(String observacoes) { this.observacoes = observacoes; }
     public Set<EvidenciaArquivo> getEvidencias() { return evidencias; }

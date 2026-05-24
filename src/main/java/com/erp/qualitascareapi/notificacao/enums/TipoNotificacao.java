@@ -17,5 +17,9 @@ public enum TipoNotificacao {
     /** Não conformidade crítica registrada no PGRSS. */
     PGRSS_NAO_CONFORMIDADE_CRITICA,
     /** Plano de ação do PGRSS com prazo vencido. */
-    PGRSS_PLANO_ACAO_VENCIDO
+    PGRSS_PLANO_ACAO_VENCIDO,
+    /** Supervisor do setor precisa validar teste Bowie-Dick. */
+    CME_BOWIE_DICK_VALIDACAO_SOLICITADA,
+    /** Qualidade precisa tratar Teste Bowie-Dick reprovado. */
+    CME_BOWIE_DICK_REPROVADO_QUALIDADE
 }

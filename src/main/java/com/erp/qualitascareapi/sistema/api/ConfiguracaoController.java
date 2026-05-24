@@ -39,7 +39,7 @@ public class ConfiguracaoController {
     }
 
     @GetMapping
-    @RequiresPermission(resource = ResourceType.SYS_CONFIGURACAO, action = Action.READ)
+    @RequiresPermission(resource = ResourceType.SYS_CONFIGURACAO, action = Action.READ, feature = "LISTA")
     public List<ConfiguracaoDto> listar(@RequestParam ModuloConfiguracao modulo,
                                         @RequestParam(required = false) Long tenantId) {
         return tenantId != null
@@ -48,20 +48,20 @@ public class ConfiguracaoController {
     }
 
     @GetMapping("/{id}")
-    @RequiresPermission(resource = ResourceType.SYS_CONFIGURACAO, action = Action.READ)
+    @RequiresPermission(resource = ResourceType.SYS_CONFIGURACAO, action = Action.READ, feature = "LISTA")
     public ConfiguracaoDto findById(@PathVariable Long id) {
         return configuracaoService.findById(id);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @RequiresPermission(resource = ResourceType.SYS_CONFIGURACAO, action = Action.CREATE)
+    @RequiresPermission(resource = ResourceType.SYS_CONFIGURACAO, action = Action.CREATE, feature = "FORM")
     public ConfiguracaoDto criar(@Validated @RequestBody ConfiguracaoRequest request) {
         return configuracaoService.criar(request);
     }
 
     @PutMapping("/{id}/valor")
-    @RequiresPermission(resource = ResourceType.SYS_CONFIGURACAO, action = Action.UPDATE)
+    @RequiresPermission(resource = ResourceType.SYS_CONFIGURACAO, action = Action.UPDATE, feature = "FORM")
     public ConfiguracaoDto atualizar(@PathVariable Long id,
                                      @Validated @RequestBody ConfiguracaoUpdateRequest request) {
         return configuracaoService.atualizar(id, request);
@@ -69,7 +69,7 @@ public class ConfiguracaoController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @RequiresPermission(resource = ResourceType.SYS_CONFIGURACAO, action = Action.DELETE)
+    @RequiresPermission(resource = ResourceType.SYS_CONFIGURACAO, action = Action.DELETE, feature = "FORM")
     public void deletar(@PathVariable Long id) {
         configuracaoService.deletar(id);
     }

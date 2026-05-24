@@ -2,21 +2,38 @@ package com.erp.qualitascareapi.cme.application;
 
 import com.erp.qualitascareapi.cme.api.dto.*;
 import com.erp.qualitascareapi.cme.domain.*;
+import com.erp.qualitascareapi.cme.enums.BowieDickStatus;
 import com.erp.qualitascareapi.cme.enums.CicloStatus;
 import com.erp.qualitascareapi.cme.repo.*;
+import com.erp.qualitascareapi.common.api.dto.EvidenciaArquivoDto;
+import com.erp.qualitascareapi.common.application.EvidenciaArquivoStorageService;
+import com.erp.qualitascareapi.common.exception.ApplicationException;
 import com.erp.qualitascareapi.common.domain.EvidenciaArquivo;
 import com.erp.qualitascareapi.common.repo.EvidenciaArquivoRepository;
+import com.erp.qualitascareapi.iam.domain.Setor;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.domain.User;
+import com.erp.qualitascareapi.iam.enums.OrgRoleType;
+import com.erp.qualitascareapi.iam.enums.TipoSetor;
+import com.erp.qualitascareapi.iam.repo.OrgRoleAssignmentRepository;
+import com.erp.qualitascareapi.iam.repo.SetorRepository;
 import com.erp.qualitascareapi.iam.repo.TenantRepository;
 import com.erp.qualitascareapi.iam.repo.UserRepository;
+import com.erp.qualitascareapi.notificacao.application.NotificacaoService;
+import com.erp.qualitascareapi.notificacao.enums.NivelNotificacao;
+import com.erp.qualitascareapi.notificacao.enums.TipoNotificacao;
 import com.erp.qualitascareapi.security.application.TenantScopeGuard;
+import com.erp.qualitascareapi.security.app.AuthContext;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -28,6 +45,8 @@ public class AutoclaveService {
 
     private final TenantRepository tenantRepository;
     private final UserRepository userRepository;
+    private final SetorRepository setorRepository;
+    private final OrgRoleAssignmentRepository orgRoleAssignmentRepository;
     private final AutoclaveRepository autoclaveRepository;
     private final PlanoPreventivoAutoclaveRepository planoPreventivoAutoclaveRepository;
     private final ManutencaoAutoclaveRepository manutencaoAutoclaveRepository;
@@ -40,10 +59,14 @@ public class AutoclaveService {
     private final LoteEtiquetaRepository loteEtiquetaRepository;
     private final ProcessoReprocessamentoRepository processoRepository;
     private final EvidenciaArquivoRepository evidenciaArquivoRepository;
+    private final EvidenciaArquivoStorageService evidenciaArquivoStorageService;
+    private final NotificacaoService notificacaoService;
     private final TenantScopeGuard tenantScopeGuard;
 
     public AutoclaveService(TenantRepository tenantRepository,
                             UserRepository userRepository,
+                            SetorRepository setorRepository,
+                            OrgRoleAssignmentRepository orgRoleAssignmentRepository,
                             AutoclaveRepository autoclaveRepository,
                             PlanoPreventivoAutoclaveRepository planoPreventivoAutoclaveRepository,
                             ManutencaoAutoclaveRepository manutencaoAutoclaveRepository,
@@ -56,9 +79,13 @@ public class AutoclaveService {
                             LoteEtiquetaRepository loteEtiquetaRepository,
                             ProcessoReprocessamentoRepository processoRepository,
                             EvidenciaArquivoRepository evidenciaArquivoRepository,
+                            EvidenciaArquivoStorageService evidenciaArquivoStorageService,
+                            NotificacaoService notificacaoService,
                             TenantScopeGuard tenantScopeGuard) {
         this.tenantRepository = tenantRepository;
         this.userRepository = userRepository;
+        this.setorRepository = setorRepository;
+        this.orgRoleAssignmentRepository = orgRoleAssignmentRepository;
         this.autoclaveRepository = autoclaveRepository;
         this.planoPreventivoAutoclaveRepository = planoPreventivoAutoclaveRepository;
         this.manutencaoAutoclaveRepository = manutencaoAutoclaveRepository;
@@ -71,6 +98,8 @@ public class AutoclaveService {
         this.loteEtiquetaRepository = loteEtiquetaRepository;
         this.processoRepository = processoRepository;
         this.evidenciaArquivoRepository = evidenciaArquivoRepository;
+        this.evidenciaArquivoStorageService = evidenciaArquivoStorageService;
+        this.notificacaoService = notificacaoService;
         this.tenantScopeGuard = tenantScopeGuard;
     }
 
@@ -292,31 +321,299 @@ public class AutoclaveService {
                         h.getObservacoes(), toIdSet(h.getEvidencias())));
     }
 
+    public EvidenciaArquivoDto uploadTesteBowieDickImagem(MultipartFile file) {
+        Long tenantId = tenantScopeGuard.currentTenantId();
+        Tenant tenant = tenantRepository.findById(tenantId)
+                .orElseThrow(() -> new EntityNotFoundException("Tenant não encontrado"));
+        User autor = currentUserOrNull();
+        EvidenciaArquivo evidencia = evidenciaArquivoStorageService.storeImage(tenant, file, autor, "cme/bowie-dick");
+        return toEvidenciaDto(evidencia);
+    }
+
+    @Transactional(readOnly = true)
+    public EvidenciaArquivo findTesteBowieDickImagem(Long evidenciaId) {
+        return evidenciaArquivoRepository.findByTenant_IdAndId(tenantScopeGuard.currentTenantId(), evidenciaId)
+                .orElseThrow(() -> new EntityNotFoundException("Imagem do Teste Bowie-Dick não encontrada"));
+    }
+
+    @Transactional(readOnly = true)
+    public Resource loadTesteBowieDickImagem(EvidenciaArquivo evidencia) {
+        return evidenciaArquivoStorageService.loadAsResource(evidencia);
+    }
+
     public TesteBowieDickDto registrarTesteBowieDick(TesteBowieDickRequest request) {
         Autoclave autoclave = autoclaveRepository.findById(request.autoclaveId())
                 .orElseThrow(() -> new EntityNotFoundException("Autoclave não encontrada"));
+        Long tenantId = tenantScopeGuard.currentTenantId();
+        if (!autoclave.getTenant().getId().equals(tenantId)) {
+            throw new ApplicationException(
+                    HttpStatus.FORBIDDEN,
+                    "bowie-dick.autoclave.invalid-tenant",
+                    "A autoclave informada não pertence ao tenant atual."
+            );
+        }
+        Setor setorCme = setorRepository.findFirstByTenantIdAndTipoOrderByNomeAsc(tenantId, TipoSetor.CME)
+                .orElseThrow(() -> new ApplicationException(
+                        HttpStatus.CONFLICT,
+                        "bowie-dick.setor-cme.not-found",
+                        "Cadastre um setor do tipo CME antes de registrar o Teste Bowie-Dick."
+                ));
+        User supervisor = setorCme.getSupervisor();
+        if (supervisor == null) {
+            throw new ApplicationException(
+                    HttpStatus.CONFLICT,
+                    "bowie-dick.supervisor.not-found",
+                    "Defina o supervisor do setor CME antes de registrar o Teste Bowie-Dick."
+            );
+        }
+        TesteBowieDick existente = testeBowieDickRepository
+                .findByAutoclave_IdAndDataExecucao(request.autoclaveId(), request.dataExecucao())
+                .orElse(null);
+        if (existente != null) {
+            return toTesteBowieDickDto(existente);
+        }
         TesteBowieDick teste = new TesteBowieDick();
         teste.setAutoclave(autoclave);
         teste.setDataExecucao(request.dataExecucao());
         teste.setResultado(request.resultado());
-        if (request.executadoPorId() != null) {
-            User operador = userRepository.findById(request.executadoPorId())
-                    .orElseThrow(() -> new EntityNotFoundException("Operador não encontrado"));
-            teste.setExecutadoPor(operador);
-        }
+        User operador = userRepository.findById(request.executadoPorId())
+                .filter(user -> user.getTenant() != null && user.getTenant().getId().equals(tenantId))
+                .orElseThrow(() -> new EntityNotFoundException("Operador não encontrado"));
+        teste.setExecutadoPor(operador);
+        teste.setValidador(supervisor);
+        teste.setStatus(BowieDickStatus.PENDENTE_VALIDACAO);
         teste.setObservacoes(request.observacoes());
         teste.setEvidencias(loadEvidencias(request.evidenciasIds()));
         TesteBowieDick saved = testeBowieDickRepository.save(teste);
-        return new TesteBowieDickDto(saved.getId(), autoclave.getId(), saved.getDataExecucao(), saved.getResultado(),
-                saved.getExecutadoPor() != null ? saved.getExecutadoPor().getId() : null,
-                saved.getObservacoes(), toIdSet(saved.getEvidencias()));
+        notificacaoService.gerar(
+                autoclave.getTenant().getId(),
+                TipoNotificacao.CME_BOWIE_DICK_VALIDACAO_SOLICITADA,
+                NivelNotificacao.ALERTA,
+                "Teste Bowie-Dick aguardando validação",
+                "Valide o teste Bowie-Dick da autoclave " + autoclave.getNome() + " em " + saved.getDataExecucao() + ".",
+                saved.getId(),
+                "BOWIE_DICK",
+                supervisor.getId()
+        );
+        return toTesteBowieDickDto(saved);
+    }
+
+    public TesteBowieDickDto atualizarTesteBowieDick(Long id, TesteBowieDickRequest request) {
+        TesteBowieDick teste = testeBowieDickRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Teste Bowie-Dick não encontrado"));
+        Long tenantId = tenantScopeGuard.currentTenantId();
+        if (!teste.getAutoclave().getTenant().getId().equals(tenantId)) {
+            throw new ApplicationException(
+                    HttpStatus.FORBIDDEN,
+                    "bowie-dick.invalid-tenant",
+                    "O Teste Bowie-Dick informado não pertence ao tenant atual."
+            );
+        }
+        if (teste.getStatus() != BowieDickStatus.PENDENTE_VALIDACAO) {
+            throw new ApplicationException(
+                    HttpStatus.CONFLICT,
+                    "bowie-dick.already-validated",
+                    "Não é possível alterar um Teste Bowie-Dick já validado."
+            );
+        }
+        AuthContext context = tenantScopeGuard.currentContext();
+        Long userId = context.userId();
+        if (teste.getExecutadoPor() == null || userId == null || !teste.getExecutadoPor().getId().equals(userId)) {
+            throw new ApplicationException(
+                    HttpStatus.FORBIDDEN,
+                    "bowie-dick.operator.invalid",
+                    "Somente o operador que lançou o teste pode alterar enquanto estiver pendente de validação."
+            );
+        }
+
+        Autoclave autoclave = autoclaveRepository.findById(request.autoclaveId())
+                .orElseThrow(() -> new EntityNotFoundException("Autoclave não encontrada"));
+        if (!autoclave.getTenant().getId().equals(tenantId)) {
+            throw new ApplicationException(
+                    HttpStatus.FORBIDDEN,
+                    "bowie-dick.autoclave.invalid-tenant",
+                    "A autoclave informada não pertence ao tenant atual."
+            );
+        }
+        TesteBowieDick existente = testeBowieDickRepository
+                .findByAutoclave_IdAndDataExecucao(request.autoclaveId(), request.dataExecucao())
+                .orElse(null);
+        if (existente != null && !existente.getId().equals(id)) {
+            throw new ApplicationException(
+                    HttpStatus.CONFLICT,
+                    "bowie-dick.duplicate",
+                    "Já existe um Teste Bowie-Dick para esta autoclave na data informada."
+            );
+        }
+
+        teste.setAutoclave(autoclave);
+        teste.setDataExecucao(request.dataExecucao());
+        teste.setResultado(request.resultado());
+        teste.setObservacoes(request.observacoes());
+        teste.setEvidencias(loadEvidencias(request.evidenciasIds()));
+        return toTesteBowieDickDto(testeBowieDickRepository.save(teste));
+    }
+
+    public void excluirTesteBowieDick(Long id) {
+        TesteBowieDick teste = testeBowieDickRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Teste Bowie-Dick não encontrado"));
+        Long tenantId = tenantScopeGuard.currentTenantId();
+        if (!teste.getAutoclave().getTenant().getId().equals(tenantId)) {
+            throw new ApplicationException(
+                    HttpStatus.FORBIDDEN,
+                    "bowie-dick.invalid-tenant",
+                    "O Teste Bowie-Dick informado não pertence ao tenant atual."
+            );
+        }
+        if (teste.getStatus() != BowieDickStatus.PENDENTE_VALIDACAO) {
+            throw new ApplicationException(
+                    HttpStatus.CONFLICT,
+                    "bowie-dick.already-validated",
+                    "Não é possível excluir um Teste Bowie-Dick já validado."
+            );
+        }
+        AuthContext context = tenantScopeGuard.currentContext();
+        Long userId = context.userId();
+        if (teste.getExecutadoPor() == null || userId == null || !teste.getExecutadoPor().getId().equals(userId)) {
+            throw new ApplicationException(
+                    HttpStatus.FORBIDDEN,
+                    "bowie-dick.operator.invalid",
+                    "Somente o operador que lançou o teste pode excluir enquanto estiver pendente de validação."
+            );
+        }
+        testeBowieDickRepository.delete(teste);
     }
 
     public Page<TesteBowieDickDto> listTestesBowieDick(Pageable pageable) {
-        return testeBowieDickRepository.findAllByAutoclave_TenantId(tenantScopeGuard.currentTenantId(), pageable)
-                .map(t -> new TesteBowieDickDto(t.getId(), t.getAutoclave().getId(), t.getDataExecucao(), t.getResultado(),
-                        t.getExecutadoPor() != null ? t.getExecutadoPor().getId() : null,
-                        t.getObservacoes(), toIdSet(t.getEvidencias())));
+        return testeBowieDickRepository.findAllByAutoclave_Tenant_Id(tenantScopeGuard.currentTenantId(), pageable)
+                .map(this::toTesteBowieDickDto);
+    }
+
+    public TesteBowieDickDto validarTesteBowieDick(Long id, boolean aprovado, BowieDickValidacaoRequest request) {
+        TesteBowieDick teste = testeBowieDickRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Teste Bowie-Dick não encontrado"));
+        AuthContext context = tenantScopeGuard.currentContext();
+        Long userId = context.userId();
+        if (teste.getValidador() == null || userId == null || !teste.getValidador().getId().equals(userId)) {
+            throw new ApplicationException(
+                    HttpStatus.FORBIDDEN,
+                    "bowie-dick.validator.invalid",
+                    "Somente o supervisor do setor pode validar este Teste Bowie-Dick."
+            );
+        }
+        teste.setStatus(aprovado ? BowieDickStatus.APROVADO : BowieDickStatus.REPROVADO);
+        teste.setValidadoEm(LocalDateTime.now());
+        teste.setParecerValidacao(request != null ? request.parecer() : null);
+        TesteBowieDick saved = testeBowieDickRepository.save(teste);
+        if (!aprovado) {
+            notificarQualidadeBowieDickReprovado(saved);
+        }
+        return toTesteBowieDickDto(saved);
+    }
+
+    private void notificarQualidadeBowieDickReprovado(TesteBowieDick teste) {
+        Long tenantId = teste.getAutoclave().getTenant().getId();
+        String titulo = "Teste Bowie-Dick reprovado";
+        String mensagem = "O teste Bowie-Dick da autoclave " + teste.getAutoclave().getNome()
+                + " em " + teste.getDataExecucao()
+                + " foi reprovado por " + displayName(teste.getValidador()) + "."
+                + parecerResumo(teste.getParecerValidacao());
+
+        Set<Long> destinatarios = new HashSet<>();
+        List.of(OrgRoleType.QUALIDADE_GERENTE, OrgRoleType.QUALIDADE_SUPERVISOR).forEach(roleType ->
+                orgRoleAssignmentRepository
+                        .findAtivosPorPapelESetorTipo(tenantId, roleType, TipoSetor.QUALIDADE)
+                        .stream()
+                        .map(assignment -> assignment.getUser())
+                        .filter(user -> user != null && user.getStatus() != null && user.getStatus().isActive())
+                        .map(User::getId)
+                        .forEach(destinatarios::add)
+        );
+        userRepository.findAllByTenantIdAndRoleName(tenantId, "ADMIN_QUALIDADE")
+                .stream()
+                .filter(user -> user != null && user.getStatus() != null && user.getStatus().isActive())
+                .map(User::getId)
+                .forEach(destinatarios::add);
+
+        if (destinatarios.isEmpty()) {
+            notificacaoService.gerar(
+                    tenantId,
+                    TipoNotificacao.CME_BOWIE_DICK_REPROVADO_QUALIDADE,
+                    NivelNotificacao.CRITICO,
+                    titulo,
+                    mensagem,
+                    teste.getId(),
+                    "BOWIE_DICK"
+            );
+            return;
+        }
+
+        destinatarios.forEach(usuarioId -> notificacaoService.gerar(
+                tenantId,
+                TipoNotificacao.CME_BOWIE_DICK_REPROVADO_QUALIDADE,
+                NivelNotificacao.CRITICO,
+                titulo,
+                mensagem,
+                teste.getId(),
+                "BOWIE_DICK",
+                usuarioId
+        ));
+    }
+
+    private String parecerResumo(String parecer) {
+        if (parecer == null || parecer.isBlank()) {
+            return "";
+        }
+        String trimmed = parecer.trim();
+        if (trimmed.length() > 180) {
+            trimmed = trimmed.substring(0, 177) + "...";
+        }
+        return " Parecer: " + trimmed;
+    }
+
+    private TesteBowieDickDto toTesteBowieDickDto(TesteBowieDick t) {
+        return new TesteBowieDickDto(
+                t.getId(),
+                t.getAutoclave().getId(),
+                t.getDataExecucao(),
+                t.getResultado(),
+                t.getExecutadoPor() != null ? t.getExecutadoPor().getId() : null,
+                displayName(t.getExecutadoPor()),
+                t.getValidador() != null ? t.getValidador().getId() : null,
+                displayName(t.getValidador()),
+                t.getStatus() != null ? t.getStatus() : BowieDickStatus.PENDENTE_VALIDACAO,
+                t.getValidadoEm(),
+                t.getParecerValidacao(),
+                t.getObservacoes(),
+                toIdSet(t.getEvidencias())
+        );
+    }
+
+    private String displayName(User user) {
+        if (user == null) {
+            return null;
+        }
+        if (user.getFullName() != null && !user.getFullName().isBlank()) {
+            return user.getFullName();
+        }
+        return user.getUsername();
+    }
+
+    private EvidenciaArquivoDto toEvidenciaDto(EvidenciaArquivo evidencia) {
+        return new EvidenciaArquivoDto(
+                evidencia.getId(),
+                evidencia.getNomeArquivo(),
+                evidencia.getContentType(),
+                evidencia.getTamanhoBytes()
+        );
+    }
+
+    private User currentUserOrNull() {
+        AuthContext context = tenantScopeGuard.currentContext();
+        if (context.userId() == null) {
+            return null;
+        }
+        return userRepository.findById(context.userId()).orElse(null);
     }
 
     public CicloEsterilizacaoDto registrarCiclo(CicloEsterilizacaoRequest request) {

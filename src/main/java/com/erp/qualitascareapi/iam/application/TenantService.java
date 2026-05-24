@@ -1,6 +1,9 @@
 package com.erp.qualitascareapi.iam.application;
 
+import com.erp.qualitascareapi.common.application.EvidenciaArquivoStorageService;
+import com.erp.qualitascareapi.common.domain.EvidenciaArquivo;
 import com.erp.qualitascareapi.common.exception.ResourceNotFoundException;
+import com.erp.qualitascareapi.common.repo.EvidenciaArquivoRepository;
 import com.erp.qualitascareapi.iam.api.dto.TenantDto;
 import com.erp.qualitascareapi.iam.api.dto.TenantLoginOptionDto;
 import com.erp.qualitascareapi.iam.api.dto.TenantRequest;
@@ -12,9 +15,11 @@ import com.erp.qualitascareapi.security.application.TenantScopeGuard;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -29,13 +34,19 @@ public class TenantService {
 
     private final TenantRepository tenantRepository;
     private final UserRepository userRepository;
+    private final EvidenciaArquivoRepository evidenciaArquivoRepository;
+    private final EvidenciaArquivoStorageService evidenciaArquivoStorageService;
     private final TenantScopeGuard tenantScopeGuard;
 
     public TenantService(TenantRepository tenantRepository,
                          UserRepository userRepository,
+                         EvidenciaArquivoRepository evidenciaArquivoRepository,
+                         EvidenciaArquivoStorageService evidenciaArquivoStorageService,
                          TenantScopeGuard tenantScopeGuard) {
         this.tenantRepository = tenantRepository;
         this.userRepository = userRepository;
+        this.evidenciaArquivoRepository = evidenciaArquivoRepository;
+        this.evidenciaArquivoStorageService = evidenciaArquivoStorageService;
         this.tenantScopeGuard = tenantScopeGuard;
     }
 
@@ -83,6 +94,27 @@ public class TenantService {
         tenantRepository.delete(tenant);
     }
 
+    @Transactional
+    public TenantDto uploadLogo(Long id, MultipartFile file) {
+        Tenant tenant = tenantRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Tenant", id));
+        tenantScopeGuard.checkTenantAccess(tenant.getId());
+
+        EvidenciaArquivo evidencia = evidenciaArquivoStorageService.storeImage(tenant, file, currentUser(), "logos");
+        tenant.setLogo("/api/tenants/logos/" + evidencia.getId());
+        return toDto(tenant);
+    }
+
+    @Transactional(readOnly = true)
+    public EvidenciaArquivo findLogo(Long evidenciaId) {
+        return evidenciaArquivoRepository.findById(evidenciaId)
+                .orElseThrow(() -> new ResourceNotFoundException("Logo", evidenciaId));
+    }
+
+    public Resource loadLogo(EvidenciaArquivo evidencia) {
+        return evidenciaArquivoStorageService.loadAsResource(evidencia);
+    }
+
     private void applyRequest(TenantRequest request, Tenant tenant) {
         tenant.setCode(request.code());
         tenant.setName(request.name());
@@ -111,30 +143,39 @@ public class TenantService {
 
         List<User> users = userRepository.findAllByUsernameIgnoreCase(normalized);
 
-        Map<Long, Tenant> tenantsById = users.stream()
-                .map(User::getTenant)
+        Map<Long, User> usersByTenantId = users.stream()
+                .filter(user -> user.getTenant() != null)
+                .filter(user -> user.getTenant().isActive())
                 .filter(Objects::nonNull)
-                .filter(Tenant::isActive)
                 .collect(Collectors.toMap(
-                        Tenant::getId,
+                        user -> user.getTenant().getId(),
                         Function.identity(),
                         (existing, replacement) -> existing,
                         LinkedHashMap::new));
 
-        return tenantsById.values().stream()
+        return usersByTenantId.values().stream()
                 .sorted(Comparator.comparing(
-                        Tenant::getName,
+                        user -> user.getTenant().getName(),
                         Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
-                .map(this::toLoginDto)
+                .map(user -> toLoginDto(user.getTenant(), user.getPhotoUrl()))
                 .collect(Collectors.toList());
     }
 
-    private TenantLoginOptionDto toLoginDto(Tenant tenant) {
+    private TenantLoginOptionDto toLoginDto(Tenant tenant, String userPhotoUrl) {
         return new TenantLoginOptionDto(
                 tenant.getId(),
                 tenant.getCode(),
                 tenant.getName(),
                 tenant.getCnpj(),
-                tenant.getLogo());
+                tenant.getLogo(),
+                userPhotoUrl);
+    }
+
+    private User currentUser() {
+        Long userId = tenantScopeGuard.currentContext().userId();
+        if (userId == null) {
+            return null;
+        }
+        return userRepository.findById(userId).orElse(null);
     }
 }

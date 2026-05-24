@@ -53,9 +53,26 @@ public class SaneanteService {
         lote.setDataValidade(request.dataValidade());
         lote.setDataAbertura(request.dataAbertura());
         lote.setVolumeInicialMl(request.volumeInicialMl());
+        lote.setPreparadoPor(resolvePreparadoPor(request.preparadoPorId(), request.tenantId()));
         lote.setObservacoes(request.observacoes());
         SaneantePeraceticoLote saved = saneanteRepository.save(lote);
         return toDto(saved);
+    }
+
+    public SaneanteLoteDto updateLote(Long id, SaneanteLoteRequest request) {
+        tenantScopeGuard.checkRequestedTenant(request.tenantId());
+        SaneantePeraceticoLote lote = saneanteRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Lote de saneante não encontrado"));
+        tenantScopeGuard.checkTenantAccess(lote.getTenant().getId());
+        lote.setNumeroLote(request.numeroLote());
+        lote.setFabricante(request.fabricante());
+        lote.setConcentracao(request.concentracao());
+        lote.setDataValidade(request.dataValidade());
+        lote.setDataAbertura(request.dataAbertura());
+        lote.setVolumeInicialMl(request.volumeInicialMl());
+        lote.setPreparadoPor(resolvePreparadoPor(request.preparadoPorId(), request.tenantId()));
+        lote.setObservacoes(request.observacoes());
+        return toDto(saneanteRepository.save(lote));
     }
 
     public SaneanteLoteDto findLoteById(Long id) {
@@ -69,9 +86,32 @@ public class SaneanteService {
     }
 
     private SaneanteLoteDto toDto(SaneantePeraceticoLote lote) {
+        Double volumeConsumidoMl = usoSaneanteRepository.sumVolumeUtilizadoByLoteId(lote.getId());
+        User preparadoPor = lote.getPreparadoPor();
         return new SaneanteLoteDto(lote.getId(), lote.getTenant().getId(), lote.getNumeroLote(),
                 lote.getFabricante(), lote.getConcentracao(), lote.getDataValidade(),
-                lote.getDataAbertura(), lote.getVolumeInicialMl(), lote.getObservacoes());
+                lote.getDataAbertura(), lote.getVolumeInicialMl(), volumeConsumidoMl,
+                preparadoPor != null ? preparadoPor.getId() : null,
+                preparadoPor != null ? displayName(preparadoPor) : null,
+                lote.getObservacoes());
+    }
+
+    private User resolvePreparadoPor(Long preparadoPorId, Long tenantId) {
+        if (preparadoPorId == null) {
+            return null;
+        }
+        User user = userRepository.findById(preparadoPorId)
+                .orElseThrow(() -> new EntityNotFoundException("Profissional preparador não encontrado"));
+        if (!user.getTenant().getId().equals(tenantId)) {
+            throw new EntityNotFoundException("Profissional preparador não encontrado");
+        }
+        return user;
+    }
+
+    private String displayName(User user) {
+        return user.getFullName() != null && !user.getFullName().isBlank()
+                ? user.getFullName()
+                : user.getUsername();
     }
 
     public UsoSaneanteDto registrarUso(UsoSaneanteRequest request) {

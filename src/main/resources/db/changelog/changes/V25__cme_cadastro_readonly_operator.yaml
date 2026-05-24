@@ -1,0 +1,82 @@
+databaseChangeLog:
+  - changeSet:
+      id: V25-01-cme-cadastro-permissions
+      author: codex
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO permissions (tenant_id, resource, action, feature, code)
+              SELECT t.id, resource_action.resource, resource_action.action, 'CADASTRO',
+                     resource_action.resource || '_' || resource_action.action || '@CADASTRO'
+              FROM tenants t
+              CROSS JOIN (
+                SELECT 'CME_SANEANTE' AS resource, 'CREATE' AS action
+                UNION ALL SELECT 'CME_SANEANTE', 'UPDATE'
+                UNION ALL SELECT 'CME_SANEANTE', 'DELETE'
+                UNION ALL SELECT 'CME_KIT', 'CREATE'
+                UNION ALL SELECT 'CME_KIT', 'UPDATE'
+                UNION ALL SELECT 'CME_KIT', 'DELETE'
+              ) resource_action
+              WHERE NOT EXISTS (
+                SELECT 1
+                FROM permissions p
+                WHERE p.tenant_id = t.id
+                  AND p.resource = resource_action.resource
+                  AND p.action = resource_action.action
+                  AND p.feature = 'CADASTRO'
+              );
+
+              INSERT INTO permissions (tenant_id, resource, action, feature, code)
+              SELECT t.id, resource_action.resource, 'READ', 'LISTA',
+                     resource_action.resource || '_READ@LISTA'
+              FROM tenants t
+              CROSS JOIN (
+                SELECT 'CME_SANEANTE' AS resource
+                UNION ALL SELECT 'CME_KIT'
+              ) resource_action
+              WHERE NOT EXISTS (
+                SELECT 1
+                FROM permissions p
+                WHERE p.tenant_id = t.id
+                  AND p.resource = resource_action.resource
+                  AND p.action = 'READ'
+                  AND p.feature = 'LISTA'
+              );
+
+  - changeSet:
+      id: V25-02-cme-cadastro-role-permissions
+      author: codex
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO role_permissions (tenant_id, role_id, permission_id)
+              SELECT r.tenant_id, r.id, p.id
+              FROM roles r
+              JOIN permissions p ON p.tenant_id = r.tenant_id
+              WHERE r.name IN ('SYSTEM_ADMIN', 'ADMIN_TI', 'ADMIN_ASSISTENCIAL', 'GESTOR')
+                AND p.resource IN ('CME_SANEANTE', 'CME_KIT')
+                AND p.action IN ('CREATE', 'UPDATE', 'DELETE')
+                AND p.feature = 'CADASTRO'
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM role_permissions rp
+                  WHERE rp.tenant_id = r.tenant_id
+                    AND rp.role_id = r.id
+                    AND rp.permission_id = p.id
+                );
+
+              INSERT INTO role_permissions (tenant_id, role_id, permission_id)
+              SELECT r.tenant_id, r.id, p.id
+              FROM roles r
+              JOIN permissions p ON p.tenant_id = r.tenant_id
+              WHERE r.name IN ('SYSTEM_ADMIN', 'ADMIN_TI', 'ADMIN_QUALIDADE', 'ADMIN_ASSISTENCIAL', 'GESTOR', 'OPERADOR', 'LEITOR')
+                AND p.resource IN ('CME_SANEANTE', 'CME_KIT')
+                AND p.action = 'READ'
+                AND p.feature = 'LISTA'
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM role_permissions rp
+                  WHERE rp.tenant_id = r.tenant_id
+                    AND rp.role_id = r.id
+                    AND rp.permission_id = p.id
+                );

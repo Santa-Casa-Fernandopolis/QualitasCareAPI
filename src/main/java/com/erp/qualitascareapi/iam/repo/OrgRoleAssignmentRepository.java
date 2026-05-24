@@ -2,6 +2,7 @@ package com.erp.qualitascareapi.iam.repo;
 
 import com.erp.qualitascareapi.iam.domain.OrgRoleAssignment;
 import com.erp.qualitascareapi.iam.enums.OrgRoleType;
+import com.erp.qualitascareapi.iam.enums.TipoSetor;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -36,4 +37,19 @@ public interface OrgRoleAssignmentRepository extends JpaRepository<OrgRoleAssign
     List<OrgRoleAssignment> findAtivosParaEtapa(@Param("tenantId") Long tenantId,
                                                  @Param("roleType") OrgRoleType roleType,
                                                  @Param("setorId") Long setorId);
+
+    @Query("""
+            SELECT DISTINCT a FROM OrgRoleAssignment a
+            JOIN FETCH a.user
+            LEFT JOIN FETCH a.setor
+            WHERE a.tenant.id = :tenantId
+              AND a.roleType = :roleType
+              AND a.active = true
+              AND (a.setor IS NULL OR a.setor.tipo = :tipoSetor)
+            """)
+    List<OrgRoleAssignment> findAtivosPorPapelESetorTipo(@Param("tenantId") Long tenantId,
+                                                          @Param("roleType") OrgRoleType roleType,
+                                                          @Param("tipoSetor") TipoSetor tipoSetor);
+
+    boolean existsByTenant_IdAndUser_IdAndRoleTypeAndActiveTrue(Long tenantId, Long userId, OrgRoleType roleType);
 }

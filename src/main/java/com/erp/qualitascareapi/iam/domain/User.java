@@ -38,6 +38,9 @@ public class User {
     @Column(length=200)
     private String email;
 
+    @Column(name = "photo_url", length = 255)
+    private String photoUrl;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="tenant_id", nullable=false)
     private Tenant tenant;
@@ -90,6 +93,8 @@ public class User {
     public void setDepartment(String department) { this.department = department; }
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
+    public String getPhotoUrl() { return photoUrl; }
+    public void setPhotoUrl(String photoUrl) { this.photoUrl = photoUrl; }
     public Tenant getTenant() { return tenant; }
     public void setTenant(Tenant tenant) { this.tenant = tenant; }
     public UserStatus getStatus() { return status; }
@@ -125,4 +130,3 @@ public class User {
         this.updatedAt = LocalDateTime.now();
     }
 }
-

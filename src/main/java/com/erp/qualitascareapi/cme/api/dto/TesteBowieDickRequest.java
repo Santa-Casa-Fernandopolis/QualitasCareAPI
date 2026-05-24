@@ -9,7 +9,7 @@ import java.util.Set;
 public record TesteBowieDickRequest(@NotNull Long autoclaveId,
                                     @NotNull LocalDate dataExecucao,
                                     @NotNull ResultadoConformidade resultado,
-                                    Long executadoPorId,
+                                    @NotNull Long executadoPorId,
                                     String observacoes,
                                     Set<Long> evidenciasIds) {
 }

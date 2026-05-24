@@ -136,6 +136,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/tenants/logos/**").permitAll()
+                        .requestMatchers("/api/users/photos/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .bearerTokenResolver(bearerTokenResolver)
@@ -153,7 +155,9 @@ public class SecurityConfig {
 
     private boolean shouldBypassTokenResolution(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return path != null && path.startsWith("/api/auth/");
+        return path != null && (path.startsWith("/api/auth/")
+                || path.startsWith("/api/tenants/logos/")
+                || path.startsWith("/api/users/photos/"));
     }
 
     private Collection<GrantedAuthority> augmentWithTenant(JwtGrantedAuthoritiesConverter converter, Jwt jwt) {

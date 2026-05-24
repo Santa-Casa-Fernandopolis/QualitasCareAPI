@@ -1,6 +1,7 @@
 package com.erp.qualitascareapi.cme.domain;
 
 import com.erp.qualitascareapi.iam.domain.Tenant;
+import com.erp.qualitascareapi.iam.domain.User;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -46,6 +47,10 @@ public class SaneantePeraceticoLote {
     @Column(name = "volume_inicial_ml")
     private Double volumeInicialMl;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "preparado_por_id")
+    private User preparadoPor;
+
     @Column(length = 800)
     private String observacoes;
 
@@ -65,6 +70,8 @@ public class SaneantePeraceticoLote {
     public void setDataAbertura(LocalDate dataAbertura) { this.dataAbertura = dataAbertura; }
     public Double getVolumeInicialMl() { return volumeInicialMl; }
     public void setVolumeInicialMl(Double volumeInicialMl) { this.volumeInicialMl = volumeInicialMl; }
+    public User getPreparadoPor() { return preparadoPor; }
+    public void setPreparadoPor(User preparadoPor) { this.preparadoPor = preparadoPor; }
     public String getObservacoes() { return observacoes; }
     public void setObservacoes(String observacoes) { this.observacoes = observacoes; }
 

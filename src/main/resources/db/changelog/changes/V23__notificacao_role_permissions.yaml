@@ -1,0 +1,91 @@
+databaseChangeLog:
+  - changeSet:
+      id: V23-01-notificacao-permissions
+      author: codex
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO permissions (tenant_id, resource, action, feature, code)
+              SELECT t.id, 'NOTIFICACAO', 'READ', NULL, 'NOTIFICACAO_READ'
+              FROM tenants t
+              WHERE NOT EXISTS (
+                SELECT 1
+                FROM permissions p
+                WHERE p.tenant_id = t.id
+                  AND p.resource = 'NOTIFICACAO'
+                  AND p.action = 'READ'
+                  AND p.feature IS NULL
+              );
+
+              INSERT INTO permissions (tenant_id, resource, action, feature, code)
+              SELECT t.id, 'NOTIFICACAO', 'UPDATE', NULL, 'NOTIFICACAO_UPDATE'
+              FROM tenants t
+              WHERE NOT EXISTS (
+                SELECT 1
+                FROM permissions p
+                WHERE p.tenant_id = t.id
+                  AND p.resource = 'NOTIFICACAO'
+                  AND p.action = 'UPDATE'
+                  AND p.feature IS NULL
+              );
+
+  - changeSet:
+      id: V23-02-notificacao-role-permissions
+      author: codex
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO role_permissions (tenant_id, role_id, permission_id)
+              SELECT r.tenant_id, r.id, p.id
+              FROM roles r
+              JOIN permissions p ON p.tenant_id = r.tenant_id
+              WHERE p.resource = 'NOTIFICACAO'
+                AND p.action IN ('READ', 'UPDATE')
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM role_permissions rp
+                  WHERE rp.tenant_id = r.tenant_id
+                    AND rp.role_id = r.id
+                    AND rp.permission_id = p.id
+                );
+
+  - changeSet:
+      id: V23-03-bowie-dick-pending-notifications
+      author: codex
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO notificacoes (
+                tenant_id,
+                tipo,
+                nivel,
+                titulo,
+                mensagem,
+                referencia_id,
+                referencia_tipo,
+                usuario_id,
+                lida,
+                data_hora
+              )
+              SELECT a.tenant_id,
+                     'CME_BOWIE_DICK_VALIDACAO_SOLICITADA',
+                     'ALERTA',
+                     'Teste Bowie-Dick aguardando validação',
+                     'Valide o teste Bowie-Dick da autoclave ' || a.nome || ' em ' || bd.data_execucao || '.',
+                     bd.id,
+                     'BOWIE_DICK',
+                     bd.validador_id,
+                     false,
+                     CURRENT_TIMESTAMP
+              FROM cme_bowie_dick bd
+              JOIN cme_autoclaves a ON a.id = bd.autoclave_id
+              WHERE bd.status = 'PENDENTE_VALIDACAO'
+                AND bd.validador_id IS NOT NULL
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM notificacoes n
+                  WHERE n.tipo = 'CME_BOWIE_DICK_VALIDACAO_SOLICITADA'
+                    AND n.referencia_tipo = 'BOWIE_DICK'
+                    AND n.referencia_id = bd.id
+                    AND n.usuario_id = bd.validador_id
+                );

@@ -1,0 +1,27 @@
+databaseChangeLog:
+  - changeSet:
+      id: V33-1-add-saneante-lote-preparador
+      author: qualitascare
+      preConditions:
+        onFail: MARK_RAN
+        tableExists:
+          tableName: cme_saneante_lotes
+      changes:
+        - addColumn:
+            tableName: cme_saneante_lotes
+            columns:
+              - column:
+                  name: preparado_por_id
+                  type: BIGINT
+        - addForeignKeyConstraint:
+            baseTableName: cme_saneante_lotes
+            baseColumnNames: preparado_por_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_cme_saneante_lote_preparador
+        - createIndex:
+            tableName: cme_saneante_lotes
+            indexName: ix_cme_saneante_lote_preparador
+            columns:
+              - column:
+                  name: preparado_por_id

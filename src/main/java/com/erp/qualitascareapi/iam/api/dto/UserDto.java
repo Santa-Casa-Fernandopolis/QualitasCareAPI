@@ -11,6 +11,7 @@ public record UserDto(
         String username,
         String fullName,
         String department,
+        String photoUrl,
         UserStatus status,
         IdentityOrigin origin,
         LocalDateTime createdAt,

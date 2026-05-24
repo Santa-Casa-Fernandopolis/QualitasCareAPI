@@ -109,9 +109,12 @@ public class NotificacaoService {
 
     @Transactional(readOnly = true)
     public Page<NotificacaoDto> listar(Long tenantId, Long usuarioId,
-                                       Boolean apenasNaoLidas, Pageable pageable) {
+                                       Boolean apenasNaoLidas, Boolean lida, Pageable pageable) {
         if (Boolean.TRUE.equals(apenasNaoLidas)) {
             return repository.findNaoLidasParaUsuario(tenantId, usuarioId, pageable).map(this::toDto);
+        }
+        if (lida != null) {
+            return repository.findPorStatusParaUsuario(tenantId, usuarioId, lida, pageable).map(this::toDto);
         }
         return repository.findVisiveisParaUsuario(tenantId, usuarioId, pageable).map(this::toDto);
     }

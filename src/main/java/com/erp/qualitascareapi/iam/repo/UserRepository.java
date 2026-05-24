@@ -30,6 +30,16 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     Page<User> findAllByTenant_Id(Long tenantId, Pageable pageable);
 
     @Query("""
+            select distinct u
+            from User u
+            join fetch u.roles r
+            where u.tenant.id = :tenantId
+              and upper(r.name) = upper(:roleName)
+            """)
+    List<User> findAllByTenantIdAndRoleName(@Param("tenantId") Long tenantId,
+                                             @Param("roleName") String roleName);
+
+    @Query("""
             select u.id as id,
                    u.tenant.id as tenantId,
                    u.department as department,

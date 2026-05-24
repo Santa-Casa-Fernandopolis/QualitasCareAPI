@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/cme")
@@ -56,6 +57,40 @@ public class ProcessoReprocessamentoController {
     @RequiresPermission(resource = ResourceType.CME_PROCESSO_REPROCESSAMENTO, action = Action.READ)
     public ProcessoTimelineDto getTimeline(@PathVariable Long id) {
         return service.getTimeline(id);
+    }
+
+    @GetMapping("/fluxos-processo")
+    @RequiresPermission(resource = ResourceType.CME_PROCESSO_REPROCESSAMENTO, action = Action.READ)
+    public List<CmeFluxoProcessoDto> listFluxosProcesso() {
+        return service.listFluxosProcesso();
+    }
+
+    @PostMapping("/fluxos-processo")
+    @RequiresPermission(resource = ResourceType.CME_PROCESSO_REPROCESSAMENTO, action = Action.CREATE)
+    public ResponseEntity<CmeFluxoProcessoDto> createFluxoProcesso(@Valid @RequestBody CmeFluxoProcessoRequest request) {
+        CmeFluxoProcessoDto dto = service.createFluxoProcesso(request);
+        return ResponseEntity.created(URI.create("/api/cme/fluxos-processo/" + dto.id())).body(dto);
+    }
+
+    @GetMapping("/fluxos-processo/{fluxoId}/etapas")
+    @RequiresPermission(resource = ResourceType.CME_PROCESSO_REPROCESSAMENTO, action = Action.READ)
+    public List<CmeEtapaProcessoDto> listEtapasFluxo(@PathVariable Long fluxoId) {
+        return service.listEtapasFluxo(fluxoId);
+    }
+
+    @PostMapping("/fluxos-processo/{fluxoId}/etapas")
+    @RequiresPermission(resource = ResourceType.CME_PROCESSO_REPROCESSAMENTO, action = Action.CREATE)
+    public ResponseEntity<CmeEtapaProcessoDto> createEtapaFluxo(
+            @PathVariable Long fluxoId,
+            @Valid @RequestBody CmeEtapaProcessoRequest request) {
+        CmeEtapaProcessoDto dto = service.createEtapaFluxo(fluxoId, request);
+        return ResponseEntity.created(URI.create("/api/cme/fluxos-processo/" + fluxoId + "/etapas/" + dto.id())).body(dto);
+    }
+
+    @GetMapping("/rastreabilidade")
+    @RequiresPermission(resource = ResourceType.CME_PROCESSO_REPROCESSAMENTO, action = Action.READ)
+    public List<CmeRastreabilidadeColunaDto> getRastreabilidade() {
+        return service.getRastreabilidade();
     }
 
     @PostMapping("/limpezas-manuais")

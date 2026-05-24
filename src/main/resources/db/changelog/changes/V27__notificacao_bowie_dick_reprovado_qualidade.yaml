@@ -1,0 +1,30 @@
+databaseChangeLog:
+  - changeSet:
+      id: V27-01-notificacao-bowie-dick-reprovado-qualidade-type
+      author: codex
+      changes:
+        - sql:
+            dbms: postgresql
+            sql: |
+              ALTER TABLE notificacoes DROP CONSTRAINT IF EXISTS notificacoes_tipo_check;
+              ALTER TABLE notificacoes
+                ADD CONSTRAINT notificacoes_tipo_check
+                CHECK (tipo IN (
+                  'TEMPERATURA_GELADEIRA_ALERTA',
+                  'TEMPERATURA_GELADEIRA_NAO_CONFORME',
+                  'MONITORAMENTO_AMBIENTAL_ALERTA',
+                  'MONITORAMENTO_AMBIENTAL_NAO_CONFORME',
+                  'DISPOSITIVO_IOT_OFFLINE',
+                  'GED_PARECER_SOLICITADO',
+                  'GED_ASSINATURA_SOLICITADA',
+                  'PGRSS_LICENCA_VENCIDA',
+                  'PGRSS_LICENCA_PROXIMA_VENCIMENTO',
+                  'PGRSS_NAO_CONFORMIDADE_CRITICA',
+                  'PGRSS_PLANO_ACAO_VENCIDO',
+                  'CME_BOWIE_DICK_VALIDACAO_SOLICITADA',
+                  'CME_BOWIE_DICK_REPROVADO_QUALIDADE'
+                ));
+        - sql:
+            dbms: h2
+            sql: |
+              ALTER TABLE notificacoes DROP CONSTRAINT IF EXISTS notificacoes_tipo_check;

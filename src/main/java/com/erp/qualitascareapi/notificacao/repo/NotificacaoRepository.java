@@ -1,6 +1,7 @@
 package com.erp.qualitascareapi.notificacao.repo;
 
 import com.erp.qualitascareapi.notificacao.domain.Notificacao;
+import com.erp.qualitascareapi.notificacao.enums.TipoNotificacao;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -11,6 +12,11 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDateTime;
 
 public interface NotificacaoRepository extends JpaRepository<Notificacao, Long> {
+
+    boolean existsByTipoAndReferenciaTipoAndReferenciaIdAndUsuarioId(TipoNotificacao tipo,
+                                                                     String referenciaTipo,
+                                                                     Long referenciaId,
+                                                                     Long usuarioId);
 
     /**
      * Lista todas as notificações visíveis para o usuário:
@@ -39,6 +45,18 @@ public interface NotificacaoRepository extends JpaRepository<Notificacao, Long> 
     Page<Notificacao> findNaoLidasParaUsuario(@Param("tenantId") Long tenantId,
                                                @Param("usuarioId") Long usuarioId,
                                                Pageable pageable);
+
+    @Query("""
+            SELECT n FROM Notificacao n
+            WHERE n.tenantId = :tenantId
+              AND n.lida = :lida
+              AND (n.usuarioId IS NULL OR n.usuarioId = :usuarioId)
+            ORDER BY n.dataHora DESC
+            """)
+    Page<Notificacao> findPorStatusParaUsuario(@Param("tenantId") Long tenantId,
+                                                @Param("usuarioId") Long usuarioId,
+                                                @Param("lida") Boolean lida,
+                                                Pageable pageable);
 
     /**
      * Contagem de não lidas — usada para badge do sininho.

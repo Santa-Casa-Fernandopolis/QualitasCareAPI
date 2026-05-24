@@ -2,6 +2,7 @@ package com.erp.qualitascareapi.iam.enums;
 
 public enum OrgRoleType {
     QUALIDADE_GERENTE,
+    QUALIDADE_SUPERVISOR,
     ENFERMAGEM_GERENTE,
     EDUCACAO_PERMANENTE_GERENTE,
     GERENCIA_SETOR,

@@ -7,4 +7,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface KitVersionRepository extends JpaRepository<KitVersion, Long> {
     Page<KitVersion> findAllByKit_TenantId(Long tenantId, Pageable pageable);
+    Page<KitVersion> findAllByKit_IdAndKit_TenantId(Long kitId, Long tenantId, Pageable pageable);
 }

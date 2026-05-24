@@ -1,0 +1,75 @@
+databaseChangeLog:
+  - changeSet:
+      id: V22-01-setor-supervisor
+      author: codex
+      changes:
+        - addColumn:
+            tableName: iam_setores
+            columns:
+              - column:
+                  name: supervisor_id
+                  type: BIGINT
+        - addForeignKeyConstraint:
+            baseTableName: iam_setores
+            baseColumnNames: supervisor_id
+            constraintName: fk_iam_setores_supervisor
+            referencedTableName: users
+            referencedColumnNames: id
+
+  - changeSet:
+      id: V22-02-bowie-dick-validation
+      author: codex
+      changes:
+        - addColumn:
+            tableName: cme_bowie_dick
+            columns:
+              - column:
+                  name: validador_id
+                  type: BIGINT
+              - column:
+                  name: status
+                  type: VARCHAR(30)
+                  defaultValue: PENDENTE_VALIDACAO
+                  constraints:
+                    nullable: false
+              - column:
+                  name: validado_em
+                  type: TIMESTAMP
+              - column:
+                  name: parecer_validacao
+                  type: VARCHAR(800)
+        - addForeignKeyConstraint:
+            baseTableName: cme_bowie_dick
+            baseColumnNames: validador_id
+            constraintName: fk_cme_bowie_dick_validador
+            referencedTableName: users
+            referencedColumnNames: id
+
+  - changeSet:
+      id: V22-03-notificacao-bowie-dick-type
+      author: codex
+      changes:
+        - sql:
+            dbms: postgresql
+            sql: |
+              ALTER TABLE notificacoes DROP CONSTRAINT IF EXISTS notificacoes_tipo_check;
+              ALTER TABLE notificacoes
+                ADD CONSTRAINT notificacoes_tipo_check
+                CHECK (tipo IN (
+                  'TEMPERATURA_GELADEIRA_ALERTA',
+                  'TEMPERATURA_GELADEIRA_NAO_CONFORME',
+                  'MONITORAMENTO_AMBIENTAL_ALERTA',
+                  'MONITORAMENTO_AMBIENTAL_NAO_CONFORME',
+                  'DISPOSITIVO_IOT_OFFLINE',
+                  'GED_PARECER_SOLICITADO',
+                  'GED_ASSINATURA_SOLICITADA',
+                  'PGRSS_LICENCA_VENCIDA',
+                  'PGRSS_LICENCA_PROXIMA_VENCIMENTO',
+                  'PGRSS_NAO_CONFORMIDADE_CRITICA',
+                  'PGRSS_PLANO_ACAO_VENCIDO',
+                  'CME_BOWIE_DICK_VALIDACAO_SOLICITADA'
+                ));
+        - sql:
+            dbms: h2
+            sql: |
+              ALTER TABLE notificacoes DROP CONSTRAINT IF EXISTS notificacoes_tipo_check;

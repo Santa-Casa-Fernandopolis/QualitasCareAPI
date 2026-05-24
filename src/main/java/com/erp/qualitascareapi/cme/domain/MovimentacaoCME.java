@@ -8,6 +8,7 @@ import com.erp.qualitascareapi.integracao.mv.domain.CirurgiaAgendada;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import org.hibernate.envers.Audited;
+import org.hibernate.envers.RelationTargetAuditMode;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
@@ -57,6 +58,7 @@ public class MovimentacaoCME {
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cirurgia_id")
+    @Audited(targetAuditMode = RelationTargetAuditMode.NOT_AUDITED)
     private CirurgiaAgendada cirurgia;
 
     @Column(length = 800)

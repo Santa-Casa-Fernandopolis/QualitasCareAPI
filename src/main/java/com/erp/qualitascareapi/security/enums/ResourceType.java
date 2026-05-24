@@ -32,6 +32,7 @@ public enum ResourceType {
     IAM_ORG_ROLE_ASSIGNMENT,
     IAM_PROFILE,
     HR_CARGO,
+    HR_TURNO,
     HR_COLABORADOR,
     SECURITY_ROLE,
     SECURITY_PERMISSION,

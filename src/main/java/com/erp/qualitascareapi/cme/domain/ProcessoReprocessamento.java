@@ -40,6 +40,10 @@ public class ProcessoReprocessamento {
     @Column(name = "tipo_fluxo", nullable = false, length = 20)
     private TipoFluxoCME tipoFluxo;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "fluxo_processo_id")
+    private CmeFluxoProcesso fluxoProcesso;
+
     @NotNull
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
@@ -66,6 +70,8 @@ public class ProcessoReprocessamento {
     public void setNumeroProcesso(String numeroProcesso) { this.numeroProcesso = numeroProcesso; }
     public TipoFluxoCME getTipoFluxo() { return tipoFluxo; }
     public void setTipoFluxo(TipoFluxoCME tipoFluxo) { this.tipoFluxo = tipoFluxo; }
+    public CmeFluxoProcesso getFluxoProcesso() { return fluxoProcesso; }
+    public void setFluxoProcesso(CmeFluxoProcesso fluxoProcesso) { this.fluxoProcesso = fluxoProcesso; }
     public ProcessoStatus getStatus() { return status; }
     public void setStatus(ProcessoStatus status) { this.status = status; }
     public LocalDateTime getDataAbertura() { return dataAbertura; }

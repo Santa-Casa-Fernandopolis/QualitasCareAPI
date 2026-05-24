@@ -1,0 +1,17 @@
+databaseChangeLog:
+  - changeSet:
+      id: V28-1-add-user-photo-url
+      author: codex
+      changes:
+        - addColumn:
+            tableName: users
+            columns:
+              - column:
+                  name: photo_url
+                  type: VARCHAR(255)
+        - addColumn:
+            tableName: users_aud
+            columns:
+              - column:
+                  name: photo_url
+                  type: VARCHAR(255)

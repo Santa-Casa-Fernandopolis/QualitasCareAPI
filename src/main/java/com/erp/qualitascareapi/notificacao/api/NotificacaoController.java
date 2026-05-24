@@ -44,9 +44,10 @@ public class NotificacaoController {
     @RequiresPermission(resource = ResourceType.NOTIFICACAO, action = Action.READ)
     public Page<NotificacaoDto> listar(
             @RequestParam(required = false) Boolean apenasNaoLidas,
+            @RequestParam(required = false) Boolean lida,
             Pageable pageable) {
         AuthContext ctx = tenantScopeGuard.currentContext();
-        return notificacaoService.listar(ctx.tenantId(), ctx.userId(), apenasNaoLidas, pageable);
+        return notificacaoService.listar(ctx.tenantId(), ctx.userId(), apenasNaoLidas, lida, pageable);
     }
 
     @GetMapping("/contagem")

@@ -4,5 +4,6 @@ import java.time.LocalDate;
 
 public record SaneanteLoteDto(Long id, Long tenantId, String numeroLote, String fabricante,
                               String concentracao, LocalDate dataValidade, LocalDate dataAbertura,
-                              Double volumeInicialMl, String observacoes) {
+                              Double volumeInicialMl, Double volumeConsumidoMl, Long preparadoPorId,
+                              String preparadoPorNome, String observacoes) {
 }

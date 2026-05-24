@@ -1,0 +1,164 @@
+databaseChangeLog:
+  - changeSet:
+      id: V30-01-create-hr-turnos-trabalho
+      author: codex
+      changes:
+        - createTable:
+            tableName: hr_turnos_trabalho
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: codigo
+                  type: VARCHAR(60)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: nome
+                  type: VARCHAR(120)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: hora_inicio
+                  type: TIME
+                  constraints:
+                    nullable: false
+              - column:
+                  name: hora_fim
+                  type: TIME
+                  constraints:
+                    nullable: false
+              - column:
+                  name: cruza_meia_noite
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: intervalo_minutos
+                  type: INTEGER
+                  defaultValueNumeric: 0
+              - column:
+                  name: active
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: descricao
+                  type: TEXT
+        - addUniqueConstraint:
+            tableName: hr_turnos_trabalho
+            columnNames: tenant_id,codigo
+            constraintName: uq_hr_turno_codigo_tenant
+        - addForeignKeyConstraint:
+            baseTableName: hr_turnos_trabalho
+            baseColumnNames: tenant_id
+            constraintName: fk_hr_turno_tenant
+            referencedTableName: tenants
+            referencedColumnNames: id
+        - createIndex:
+            tableName: hr_turnos_trabalho
+            indexName: ix_hr_turno_tenant_active
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: active
+        - createTable:
+            tableName: hr_turnos_trabalho_aud
+            columns:
+              - column: { name: id, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: rev, type: BIGINT, constraints: { nullable: false } }
+              - column: { name: revtype, type: SMALLINT }
+              - column: { name: tenant_id, type: BIGINT }
+              - column: { name: codigo, type: VARCHAR(60) }
+              - column: { name: nome, type: VARCHAR(120) }
+              - column: { name: hora_inicio, type: TIME }
+              - column: { name: hora_fim, type: TIME }
+              - column: { name: cruza_meia_noite, type: BOOLEAN }
+              - column: { name: intervalo_minutos, type: INTEGER }
+              - column: { name: active, type: BOOLEAN }
+              - column: { name: descricao, type: TEXT }
+        - addPrimaryKey:
+            tableName: hr_turnos_trabalho_aud
+            columnNames: id,rev
+            constraintName: pk_hr_turnos_trabalho_aud
+
+  - changeSet:
+      id: V30-02-hr-turno-permissions
+      author: codex
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO permissions (tenant_id, resource, action, feature, code)
+              SELECT t.id, 'HR_TURNO', permission_scope.action, permission_scope.feature,
+                     'HR_TURNO_' || permission_scope.action || '@' || permission_scope.feature
+              FROM tenants t
+              CROSS JOIN (
+                SELECT 'READ' AS action, 'LISTA' AS feature
+                UNION ALL SELECT 'CREATE', 'FORM'
+                UNION ALL SELECT 'UPDATE', 'FORM'
+                UNION ALL SELECT 'DELETE', 'FORM'
+              ) permission_scope
+              WHERE NOT EXISTS (
+                SELECT 1
+                FROM permissions p
+                WHERE p.tenant_id = t.id
+                  AND p.resource = 'HR_TURNO'
+                  AND p.action = permission_scope.action
+                  AND p.feature = permission_scope.feature
+              );
+
+  - changeSet:
+      id: V30-03-hr-turno-read-role-permissions
+      author: codex
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO role_permissions (tenant_id, role_id, permission_id)
+              SELECT r.tenant_id, r.id, p.id
+              FROM roles r
+              JOIN permissions p ON p.tenant_id = r.tenant_id
+              WHERE r.name IN ('SYSTEM_ADMIN', 'ADMIN_TI', 'ADMIN_QUALIDADE', 'ADMIN_ASSISTENCIAL', 'GESTOR', 'OPERADOR', 'LEITOR')
+                AND p.resource = 'HR_TURNO'
+                AND p.action = 'READ'
+                AND p.feature = 'LISTA'
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM role_permissions rp
+                  WHERE rp.tenant_id = r.tenant_id
+                    AND rp.role_id = r.id
+                    AND rp.permission_id = p.id
+                );
+
+  - changeSet:
+      id: V30-04-hr-turno-maintenance-role-permissions
+      author: codex
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO role_permissions (tenant_id, role_id, permission_id)
+              SELECT r.tenant_id, r.id, p.id
+              FROM roles r
+              JOIN permissions p ON p.tenant_id = r.tenant_id
+              WHERE r.name IN ('SYSTEM_ADMIN', 'ADMIN_TI', 'ADMIN_ASSISTENCIAL', 'GESTOR')
+                AND p.resource = 'HR_TURNO'
+                AND p.action IN ('CREATE', 'UPDATE', 'DELETE')
+                AND p.feature = 'FORM'
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM role_permissions rp
+                  WHERE rp.tenant_id = r.tenant_id
+                    AND rp.role_id = r.id
+                    AND rp.permission_id = p.id
+                );

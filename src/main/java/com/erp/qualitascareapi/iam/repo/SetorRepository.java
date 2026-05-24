@@ -1,6 +1,7 @@
 package com.erp.qualitascareapi.iam.repo;
 
 import com.erp.qualitascareapi.iam.domain.Setor;
+import com.erp.qualitascareapi.iam.enums.TipoSetor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,4 +13,6 @@ public interface SetorRepository extends JpaRepository<Setor, Long> {
     Page<Setor> findAllByTenantId(Long tenantId, Pageable pageable);
 
     Optional<Setor> findByTenantIdAndNomeIgnoreCase(Long tenantId, String nome);
+
+    Optional<Setor> findFirstByTenantIdAndTipoOrderByNomeAsc(Long tenantId, TipoSetor tipo);
 }

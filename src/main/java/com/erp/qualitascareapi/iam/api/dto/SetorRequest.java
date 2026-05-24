@@ -10,8 +10,11 @@ public record SetorRequest(
         @NotBlank(message = "Informe o nome do setor")
         @Size(max = 120, message = "O nome do setor deve ter no máximo 120 caracteres")
         String nome,
-        @NotNull(message = "Informe o tipo do setor") TipoSetor tipo,
+        TipoSetor tipo,
+        Long tipoSetorId,
+        Long especialidadeId,
         @Size(max = 255, message = "A descrição do setor deve ter no máximo 255 caracteres")
-        String descricao
+        String descricao,
+        Long supervisorId
 ) {
 }

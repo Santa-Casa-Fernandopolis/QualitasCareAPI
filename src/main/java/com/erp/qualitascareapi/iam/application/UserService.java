@@ -2,6 +2,9 @@ package com.erp.qualitascareapi.iam.application;
 
 import com.erp.qualitascareapi.common.exception.BadRequestException;
 import com.erp.qualitascareapi.common.exception.ResourceNotFoundException;
+import com.erp.qualitascareapi.common.application.EvidenciaArquivoStorageService;
+import com.erp.qualitascareapi.common.domain.EvidenciaArquivo;
+import com.erp.qualitascareapi.common.repo.EvidenciaArquivoRepository;
 import com.erp.qualitascareapi.iam.api.dto.RoleSummaryDto;
 import com.erp.qualitascareapi.iam.api.dto.UserCreateRequest;
 import com.erp.qualitascareapi.iam.api.dto.UserDto;
@@ -16,12 +19,14 @@ import com.erp.qualitascareapi.security.domain.Role;
 import com.erp.qualitascareapi.security.enums.IdentityOrigin;
 import com.erp.qualitascareapi.security.enums.UserStatus;
 import com.erp.qualitascareapi.security.repo.RoleRepository;
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -34,17 +39,23 @@ public class UserService {
     private final UserRepository userRepository;
     private final TenantRepository tenantRepository;
     private final RoleRepository roleRepository;
+    private final EvidenciaArquivoRepository evidenciaArquivoRepository;
+    private final EvidenciaArquivoStorageService evidenciaArquivoStorageService;
     private final PasswordEncoder passwordEncoder;
     private final TenantScopeGuard tenantScopeGuard;
 
     public UserService(UserRepository userRepository,
                        TenantRepository tenantRepository,
                        RoleRepository roleRepository,
+                       EvidenciaArquivoRepository evidenciaArquivoRepository,
+                       EvidenciaArquivoStorageService evidenciaArquivoStorageService,
                        PasswordEncoder passwordEncoder,
                        TenantScopeGuard tenantScopeGuard) {
         this.userRepository = userRepository;
         this.tenantRepository = tenantRepository;
         this.roleRepository = roleRepository;
+        this.evidenciaArquivoRepository = evidenciaArquivoRepository;
+        this.evidenciaArquivoStorageService = evidenciaArquivoStorageService;
         this.passwordEncoder = passwordEncoder;
         this.tenantScopeGuard = tenantScopeGuard;
     }
@@ -154,6 +165,27 @@ public class UserService {
     }
 
     @Transactional
+    public UserDto uploadPhoto(Long id, MultipartFile file) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User", id));
+        tenantScopeGuard.checkTenantAccess(user.getTenant() != null ? user.getTenant().getId() : null);
+
+        EvidenciaArquivo evidencia = evidenciaArquivoStorageService.storeImage(user.getTenant(), file, currentUser(), "usuarios");
+        user.setPhotoUrl("/api/users/photos/" + evidencia.getId());
+        return toDto(user);
+    }
+
+    @Transactional(readOnly = true)
+    public EvidenciaArquivo findPhoto(Long evidenciaId) {
+        return evidenciaArquivoRepository.findById(evidenciaId)
+                .orElseThrow(() -> new ResourceNotFoundException("Foto do usuário", evidenciaId));
+    }
+
+    public Resource loadPhoto(EvidenciaArquivo evidencia) {
+        return evidenciaArquivoStorageService.loadAsResource(evidencia);
+    }
+
+    @Transactional
     public void delete(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User", id));
@@ -186,6 +218,7 @@ public class UserService {
                 user.getUsername(),
                 user.getFullName(),
                 user.getDepartment(),
+                user.getPhotoUrl(),
                 user.getStatus(),
                 user.getOrigin(),
                 user.getCreatedAt(),
@@ -196,6 +229,14 @@ public class UserService {
                 tenant != null ? tenant.getCode() : null,
                 roles
         );
+    }
+
+    private User currentUser() {
+        Long userId = tenantScopeGuard.currentContext().userId();
+        if (userId == null) {
+            return null;
+        }
+        return userRepository.findById(userId).orElse(null);
     }
 
     private String emptyToNull(String value) {

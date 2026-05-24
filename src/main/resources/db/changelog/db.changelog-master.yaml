@@ -41,3 +41,29 @@
       file: db/changelog/changes/V20__same_module.yaml
   - include:
       file: db/changelog/changes/V21__pgrss_same_configuracoes.yaml
+  - include:
+      file: db/changelog/changes/V22__setor_supervisor_bowie_dick_validation.yaml
+  - include:
+      file: db/changelog/changes/V23__notificacao_role_permissions.yaml
+  - include:
+      file: db/changelog/changes/V24__autoclave_cadastro_permissions.yaml
+  - include:
+      file: db/changelog/changes/V25__cme_cadastro_readonly_operator.yaml
+  - include:
+      file: db/changelog/changes/V26__kit_version_item_permissions.yaml
+  - include:
+      file: db/changelog/changes/V27__notificacao_bowie_dick_reprovado_qualidade.yaml
+  - include:
+      file: db/changelog/changes/V28__user_photo_url.yaml
+  - include:
+      file: db/changelog/changes/V29__setor_catalogo_dinamico.yaml
+  - include:
+      file: db/changelog/changes/V30__hr_turnos_trabalho.yaml
+  - include:
+      file: db/changelog/changes/V31__sys_configuracao_permissions.yaml
+  - include:
+      file: db/changelog/changes/V32__seed_sys_configuracoes_defaults.yaml
+  - include:
+      file: db/changelog/changes/V33__saneante_lote_preparador.yaml
+  - include:
+      file: db/changelog/changes/V34__cme_fluxo_dinamico_rastreabilidade.yaml

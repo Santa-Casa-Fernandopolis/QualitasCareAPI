@@ -1,6 +1,8 @@
 package com.erp.qualitascareapi.cme.application;
 
 import com.erp.qualitascareapi.cme.api.dto.*;
+import com.erp.qualitascareapi.cme.repo.LoteEtiquetaRepository;
+import com.erp.qualitascareapi.common.exception.ApplicationException;
 import com.erp.qualitascareapi.core.domain.Instrumento;
 import com.erp.qualitascareapi.core.domain.KitItem;
 import com.erp.qualitascareapi.core.domain.KitProcedimento;
@@ -15,6 +17,7 @@ import com.erp.qualitascareapi.security.application.TenantScopeGuard;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +30,7 @@ public class KitService {
     private final KitProcedimentoRepository kitProcedimentoRepository;
     private final KitVersionRepository kitVersionRepository;
     private final KitItemRepository kitItemRepository;
+    private final LoteEtiquetaRepository loteEtiquetaRepository;
     private final TenantScopeGuard tenantScopeGuard;
 
     public KitService(TenantRepository tenantRepository,
@@ -34,12 +38,14 @@ public class KitService {
                       KitProcedimentoRepository kitProcedimentoRepository,
                       KitVersionRepository kitVersionRepository,
                       KitItemRepository kitItemRepository,
+                      LoteEtiquetaRepository loteEtiquetaRepository,
                       TenantScopeGuard tenantScopeGuard) {
         this.tenantRepository = tenantRepository;
         this.instrumentoRepository = instrumentoRepository;
         this.kitProcedimentoRepository = kitProcedimentoRepository;
         this.kitVersionRepository = kitVersionRepository;
         this.kitItemRepository = kitItemRepository;
+        this.loteEtiquetaRepository = loteEtiquetaRepository;
         this.tenantScopeGuard = tenantScopeGuard;
     }
 
@@ -136,10 +142,41 @@ public class KitService {
                 saved.getValidadeDias(), saved.getAtivo(), saved.getObservacoes());
     }
 
-    public Page<KitVersionDto> listKitVersions(Pageable pageable) {
-        return kitVersionRepository.findAllByKit_TenantId(tenantScopeGuard.currentTenantId(), pageable)
+    public Page<KitVersionDto> listKitVersions(Long kitId, Pageable pageable) {
+        Long tenantId = tenantScopeGuard.currentTenantId();
+        Page<KitVersion> versions = kitId == null
+                ? kitVersionRepository.findAllByKit_TenantId(tenantId, pageable)
+                : kitVersionRepository.findAllByKit_IdAndKit_TenantId(kitId, tenantId, pageable);
+        return versions
                 .map(v -> new KitVersionDto(v.getId(), v.getKit().getId(), v.getNumeroVersao(),
                         v.getVigenciaInicio(), v.getValidadeDias(), v.getAtivo(), v.getObservacoes()));
+    }
+
+    public void deleteKitVersion(Long id) {
+        KitVersion version = kitVersionRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Versão de kit não encontrada"));
+        Long tenantId = tenantScopeGuard.currentTenantId();
+        tenantScopeGuard.checkTenantAccess(version.getKit().getTenant().getId());
+
+        long itemCount = kitItemRepository.countByVersao_IdAndVersao_Kit_TenantId(id, tenantId);
+        if (itemCount > 0) {
+            throw new ApplicationException(
+                    HttpStatus.CONFLICT,
+                    "kit-version.has-items",
+                    "A versão possui instrumentos vinculados e não pode ser excluída."
+            );
+        }
+
+        long loteCount = loteEtiquetaRepository.countByKitVersao_IdAndTenant_Id(id, tenantId);
+        if (loteCount > 0) {
+            throw new ApplicationException(
+                    HttpStatus.CONFLICT,
+                    "kit-version.in-use",
+                    "A versão está vinculada a lote/etiqueta e não pode ser excluída."
+            );
+        }
+
+        kitVersionRepository.delete(version);
     }
 
     public KitItemDto createKitItem(KitItemRequest request) {
@@ -157,8 +194,12 @@ public class KitService {
                 saved.getObservacoes());
     }
 
-    public Page<KitItemDto> listKitItems(Pageable pageable) {
-        return kitItemRepository.findAllByVersao_Kit_TenantId(tenantScopeGuard.currentTenantId(), pageable)
+    public Page<KitItemDto> listKitItems(Long versaoId, Pageable pageable) {
+        Long tenantId = tenantScopeGuard.currentTenantId();
+        Page<KitItem> items = versaoId == null
+                ? kitItemRepository.findAllByVersao_Kit_TenantId(tenantId, pageable)
+                : kitItemRepository.findAllByVersao_IdAndVersao_Kit_TenantId(versaoId, tenantId, pageable);
+        return items
                 .map(item -> new KitItemDto(item.getId(), item.getVersao().getId(),
                         item.getInstrumento().getId(), item.getQuantidade(), item.getObservacoes()));
     }

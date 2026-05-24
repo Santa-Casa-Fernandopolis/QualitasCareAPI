@@ -1,6 +1,9 @@
 package com.erp.qualitascareapi.config;
 
 import com.erp.qualitascareapi.common.vo.PeriodoVigencia;
+import com.erp.qualitascareapi.cme.domain.TesteBowieDick;
+import com.erp.qualitascareapi.cme.enums.BowieDickStatus;
+import com.erp.qualitascareapi.cme.repo.TesteBowieDickRepository;
 import com.erp.qualitascareapi.iam.domain.OrgRoleAssignment;
 import com.erp.qualitascareapi.iam.domain.Setor;
 import com.erp.qualitascareapi.iam.domain.Tenant;
@@ -11,6 +14,10 @@ import com.erp.qualitascareapi.iam.repo.OrgRoleAssignmentRepository;
 import com.erp.qualitascareapi.iam.repo.SetorRepository;
 import com.erp.qualitascareapi.iam.repo.TenantRepository;
 import com.erp.qualitascareapi.iam.repo.UserRepository;
+import com.erp.qualitascareapi.notificacao.domain.Notificacao;
+import com.erp.qualitascareapi.notificacao.enums.NivelNotificacao;
+import com.erp.qualitascareapi.notificacao.enums.TipoNotificacao;
+import com.erp.qualitascareapi.notificacao.repo.NotificacaoRepository;
 import com.erp.qualitascareapi.security.domain.*;
 import com.erp.qualitascareapi.security.enums.Action;
 import com.erp.qualitascareapi.security.enums.Effect;
@@ -23,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -49,6 +57,9 @@ public class DevTestDataInitializer implements ApplicationRunner {
     private final UserPermissionOverrideRepository userPermissionOverrideRepository;
     private final SetorRepository setorRepository;
     private final OrgRoleAssignmentRepository orgRoleAssignmentRepository;
+    private final TesteBowieDickRepository testeBowieDickRepository;
+    private final NotificacaoRepository notificacaoRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     public DevTestDataInitializer(TenantRepository tenantRepository,
                                   UserRepository userRepository,
@@ -59,6 +70,9 @@ public class DevTestDataInitializer implements ApplicationRunner {
                                   UserPermissionOverrideRepository  userPermissionOverrideRepository,
                                   SetorRepository setorRepository,
                                   OrgRoleAssignmentRepository orgRoleAssignmentRepository,
+                                  TesteBowieDickRepository testeBowieDickRepository,
+                                  NotificacaoRepository notificacaoRepository,
+                                  JdbcTemplate jdbcTemplate,
                                   PasswordEncoder passwordEncoder) {
         this.tenantRepository = tenantRepository;
         this.userRepository = userRepository;
@@ -69,12 +83,20 @@ public class DevTestDataInitializer implements ApplicationRunner {
         this.userPermissionOverrideRepository = userPermissionOverrideRepository;
         this.setorRepository = setorRepository;
         this.orgRoleAssignmentRepository = orgRoleAssignmentRepository;
+        this.testeBowieDickRepository = testeBowieDickRepository;
+        this.notificacaoRepository = notificacaoRepository;
+        this.jdbcTemplate = jdbcTemplate;
         this.passwordEncoder = passwordEncoder;
     }
 
     @Override
     public void run(ApplicationArguments args) {
         if (isDatabaseAlreadyInitialized()) {
+            ensureNotificacaoTipoConstraint();
+            ensureNotificationPermissionsForExistingData();
+            ensureAutoclaveCadastroPermissionsForExistingData();
+            ensureCmeCadastroPermissionsForExistingData();
+            ensurePendingBowieDickNotifications();
             log.info("Skipping dev/test data initialization because the database already has tenant data.");
             return;
         }
@@ -577,19 +599,11 @@ public class DevTestDataInitializer implements ApplicationRunner {
         Policy scfCmeAutoclaveOperadorPolicy = buildPolicy(
                 scf, Set.of(scfOperador), ResourceType.CME_AUTOCLAVE, Action.READ, "LISTA", Effect.ALLOW,
                 20, "Operador pode listar autoclaves da CME");
-
-        scfCmeAutoclaveOperadorPolicy.getConditions()
-                .add(new PolicyCondition(null, scfCmeAutoclaveOperadorPolicy,
-                        "TARGET_DEPARTMENT", "EQ", "CME"));
         policyRepository.save(scfCmeAutoclaveOperadorPolicy);
         //SCJ
         Policy scjCmeAutoclaveOperadorPolicy = buildPolicy(
                 scj, Set.of(scjOperador), ResourceType.CME_AUTOCLAVE, Action.READ, "LISTA", Effect.ALLOW,
                 20, "Operador pode listar autoclaves da CME");
-
-        scjCmeAutoclaveOperadorPolicy.getConditions()
-                .add(new PolicyCondition(null, scjCmeAutoclaveOperadorPolicy,
-                        "TARGET_DEPARTMENT", "EQ", "CME"));
         policyRepository.save(scjCmeAutoclaveOperadorPolicy);
 
         // Pode replicar para CREATE / UPDATE se você estiver avaliando por request:
@@ -598,19 +612,11 @@ public class DevTestDataInitializer implements ApplicationRunner {
                 scf, Set.of(scfOperador), ResourceType.CME_AUTOCLAVE, Action.UPDATE, "FORM",
                 Effect.ALLOW, 20, "Operador pode atualizar autoclaves da CME"
         );
-        scfCmeAutoclaveOperadorWritePolicy.getConditions().add(
-                new PolicyCondition(null, scfCmeAutoclaveOperadorWritePolicy,
-                        "TARGET_DEPARTMENT", "EQ", "CME")
-        );
         policyRepository.save(scfCmeAutoclaveOperadorWritePolicy);
         //SCJ
         Policy scjCmeAutoclaveOperadorWritePolicy = buildPolicy(
                 scj, Set.of(scjOperador), ResourceType.CME_AUTOCLAVE, Action.UPDATE, "FORM",
                 Effect.ALLOW, 20, "Operador pode atualizar autoclaves da CME"
-        );
-        scjCmeAutoclaveOperadorWritePolicy.getConditions().add(
-                new PolicyCondition(null, scjCmeAutoclaveOperadorWritePolicy,
-                        "TARGET_DEPARTMENT", "EQ", "CME")
         );
         policyRepository.save(scjCmeAutoclaveOperadorWritePolicy);
 
@@ -1188,6 +1194,249 @@ public class DevTestDataInitializer implements ApplicationRunner {
             orgRoleAssignmentRepository.save(ora);
         });
 
+        ensureNotificationPermissionsForExistingData();
+        ensureAutoclaveCadastroPermissionsForExistingData();
+        ensureCmeCadastroPermissionsForExistingData();
+        ensureNotificacaoTipoConstraint();
+        ensurePendingBowieDickNotifications();
+    }
+
+    private void ensureNotificacaoTipoConstraint() {
+        StringBuilder tipos = new StringBuilder();
+        for (TipoNotificacao tipo : TipoNotificacao.values()) {
+            if (!tipos.isEmpty()) {
+                tipos.append(", ");
+            }
+            tipos.append('\'').append(tipo.name().replace("'", "''")).append('\'');
+        }
+
+        try {
+            jdbcTemplate.execute("ALTER TABLE notificacoes DROP CONSTRAINT IF EXISTS notificacoes_tipo_check");
+            jdbcTemplate.execute("""
+                    ALTER TABLE notificacoes
+                    ADD CONSTRAINT notificacoes_tipo_check
+                    CHECK (tipo IN (%s))
+                    """.formatted(tipos));
+        } catch (Exception ex) {
+            log.warn("Could not refresh notificacoes_tipo_check for dev/test data.", ex);
+        }
+    }
+
+    private void ensureAutoclaveCadastroPermissionsForExistingData() {
+        for (Tenant tenant : tenantRepository.findAll()) {
+            Permission create = findOrCreatePermission(
+                    tenant,
+                    ResourceType.CME_AUTOCLAVE,
+                    Action.CREATE,
+                    "CADASTRO",
+                    "CME_AUTOCLAVE_CREATE@CADASTRO");
+            Permission update = findOrCreatePermission(
+                    tenant,
+                    ResourceType.CME_AUTOCLAVE,
+                    Action.UPDATE,
+                    "CADASTRO",
+                    "CME_AUTOCLAVE_UPDATE@CADASTRO");
+
+            for (String roleName : List.of(
+                    "SYSTEM_ADMIN",
+                    "ADMIN_TI",
+                    "ADMIN_ASSISTENCIAL",
+                    "GESTOR")) {
+                roleRepository.findByNameIgnoreCaseAndTenant_Id(roleName, tenant.getId()).ifPresent(role -> {
+                    ensureRolePermission(role, create, tenant);
+                    ensureRolePermission(role, update, tenant);
+                });
+            }
+        }
+    }
+
+    private void ensureCmeCadastroPermissionsForExistingData() {
+        for (Tenant tenant : tenantRepository.findAll()) {
+            Permission saneanteRead = findOrCreatePermission(
+                    tenant,
+                    ResourceType.CME_SANEANTE,
+                    Action.READ,
+                    "LISTA",
+                    "CME_SANEANTE_READ@LISTA");
+            Permission saneanteCreate = findOrCreatePermission(
+                    tenant,
+                    ResourceType.CME_SANEANTE,
+                    Action.CREATE,
+                    "CADASTRO",
+                    "CME_SANEANTE_CREATE@CADASTRO");
+            Permission saneanteUpdate = findOrCreatePermission(
+                    tenant,
+                    ResourceType.CME_SANEANTE,
+                    Action.UPDATE,
+                    "CADASTRO",
+                    "CME_SANEANTE_UPDATE@CADASTRO");
+            Permission saneanteDelete = findOrCreatePermission(
+                    tenant,
+                    ResourceType.CME_SANEANTE,
+                    Action.DELETE,
+                    "CADASTRO",
+                    "CME_SANEANTE_DELETE@CADASTRO");
+            Permission kitRead = findOrCreatePermission(
+                    tenant,
+                    ResourceType.CME_KIT,
+                    Action.READ,
+                    "LISTA",
+                    "CME_KIT_READ@LISTA");
+            Permission kitCreate = findOrCreatePermission(
+                    tenant,
+                    ResourceType.CME_KIT,
+                    Action.CREATE,
+                    "CADASTRO",
+                    "CME_KIT_CREATE@CADASTRO");
+            Permission kitUpdate = findOrCreatePermission(
+                    tenant,
+                    ResourceType.CME_KIT,
+                    Action.UPDATE,
+                    "CADASTRO",
+                    "CME_KIT_UPDATE@CADASTRO");
+            Permission kitDelete = findOrCreatePermission(
+                    tenant,
+                    ResourceType.CME_KIT,
+                    Action.DELETE,
+                    "CADASTRO",
+                    "CME_KIT_DELETE@CADASTRO");
+            Permission kitVersionRead = findOrCreatePermission(
+                    tenant,
+                    ResourceType.CME_KIT,
+                    Action.READ,
+                    "VERSAO",
+                    "CME_KIT_READ@VERSAO");
+            Permission kitVersionCreate = findOrCreatePermission(
+                    tenant,
+                    ResourceType.CME_KIT,
+                    Action.CREATE,
+                    "VERSAO",
+                    "CME_KIT_CREATE@VERSAO");
+            Permission kitVersionDelete = findOrCreatePermission(
+                    tenant,
+                    ResourceType.CME_KIT,
+                    Action.DELETE,
+                    "VERSAO",
+                    "CME_KIT_DELETE@VERSAO");
+            Permission kitItemRead = findOrCreatePermission(
+                    tenant,
+                    ResourceType.CME_KIT,
+                    Action.READ,
+                    "ITEM",
+                    "CME_KIT_READ@ITEM");
+            Permission kitItemCreate = findOrCreatePermission(
+                    tenant,
+                    ResourceType.CME_KIT,
+                    Action.CREATE,
+                    "ITEM",
+                    "CME_KIT_CREATE@ITEM");
+
+            for (String roleName : List.of(
+                    "SYSTEM_ADMIN",
+                    "ADMIN_TI",
+                    "ADMIN_QUALIDADE",
+                    "ADMIN_ASSISTENCIAL",
+                    "GESTOR",
+                    "OPERADOR",
+                    "LEITOR")) {
+                roleRepository.findByNameIgnoreCaseAndTenant_Id(roleName, tenant.getId()).ifPresent(role -> {
+                    ensureRolePermission(role, saneanteRead, tenant);
+                    ensureRolePermission(role, kitRead, tenant);
+                    ensureRolePermission(role, kitVersionRead, tenant);
+                    ensureRolePermission(role, kitItemRead, tenant);
+                });
+            }
+
+            for (String roleName : List.of(
+                    "SYSTEM_ADMIN",
+                    "ADMIN_TI",
+                    "ADMIN_ASSISTENCIAL",
+                    "GESTOR")) {
+                roleRepository.findByNameIgnoreCaseAndTenant_Id(roleName, tenant.getId()).ifPresent(role -> {
+                    ensureRolePermission(role, saneanteCreate, tenant);
+                    ensureRolePermission(role, saneanteUpdate, tenant);
+                    ensureRolePermission(role, saneanteDelete, tenant);
+                    ensureRolePermission(role, kitCreate, tenant);
+                    ensureRolePermission(role, kitUpdate, tenant);
+                    ensureRolePermission(role, kitDelete, tenant);
+                    ensureRolePermission(role, kitVersionCreate, tenant);
+                    ensureRolePermission(role, kitVersionDelete, tenant);
+                    ensureRolePermission(role, kitItemCreate, tenant);
+                });
+            }
+        }
+    }
+
+    private void ensureNotificationPermissionsForExistingData() {
+        for (Tenant tenant : tenantRepository.findAll()) {
+            Permission read = findOrCreatePermission(
+                    tenant,
+                    ResourceType.NOTIFICACAO,
+                    Action.READ,
+                    null,
+                    "NOTIFICACAO_READ");
+            Permission update = findOrCreatePermission(
+                    tenant,
+                    ResourceType.NOTIFICACAO,
+                    Action.UPDATE,
+                    null,
+                    "NOTIFICACAO_UPDATE");
+
+            for (String roleName : List.of(
+                    "SYSTEM_ADMIN",
+                    "ADMIN_TI",
+                    "ADMIN_QUALIDADE",
+                    "ADMIN_ASSISTENCIAL",
+                    "GESTOR",
+                    "OPERADOR",
+                    "LEITOR",
+                    "SAME_MANAGER",
+                    "SAME_OPERATOR",
+                    "CLINICAL_VIEWER",
+                    "AUDITOR")) {
+                roleRepository.findByNameIgnoreCaseAndTenant_Id(roleName, tenant.getId()).ifPresent(role -> {
+                    ensureRolePermission(role, read, tenant);
+                    ensureRolePermission(role, update, tenant);
+                });
+            }
+        }
+    }
+
+    private void ensurePendingBowieDickNotifications() {
+        List<TesteBowieDick> pendentes = testeBowieDickRepository
+                .findAllByStatusWithAutoclaveAndValidador(BowieDickStatus.PENDENTE_VALIDACAO);
+
+        for (TesteBowieDick teste : pendentes) {
+            if (teste.getValidador() == null || teste.getAutoclave() == null || teste.getAutoclave().getTenant() == null) {
+                continue;
+            }
+
+            Long validadorId = teste.getValidador().getId();
+            boolean exists = notificacaoRepository.existsByTipoAndReferenciaTipoAndReferenciaIdAndUsuarioId(
+                    TipoNotificacao.CME_BOWIE_DICK_VALIDACAO_SOLICITADA,
+                    "BOWIE_DICK",
+                    teste.getId(),
+                    validadorId);
+            if (exists) {
+                continue;
+            }
+
+            Notificacao notificacao = new Notificacao();
+            notificacao.setTenantId(teste.getAutoclave().getTenant().getId());
+            notificacao.setTipo(TipoNotificacao.CME_BOWIE_DICK_VALIDACAO_SOLICITADA);
+            notificacao.setNivel(NivelNotificacao.ALERTA);
+            notificacao.setTitulo("Teste Bowie-Dick aguardando validação");
+            notificacao.setMensagem("Valide o teste Bowie-Dick da autoclave "
+                    + teste.getAutoclave().getNome()
+                    + " em "
+                    + teste.getDataExecucao()
+                    + ".");
+            notificacao.setReferenciaId(teste.getId());
+            notificacao.setReferenciaTipo("BOWIE_DICK");
+            notificacao.setUsuarioId(validadorId);
+            notificacao.setDataHora(LocalDateTime.now());
+            notificacaoRepository.save(notificacao);
+        }
     }
 
     private Policy buildPolicy(Tenant tenant,

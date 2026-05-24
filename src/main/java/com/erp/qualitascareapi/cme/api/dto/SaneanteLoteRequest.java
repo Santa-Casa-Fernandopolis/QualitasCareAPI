@@ -12,5 +12,6 @@ public record SaneanteLoteRequest(@NotNull Long tenantId,
                                   LocalDate dataValidade,
                                   LocalDate dataAbertura,
                                   Double volumeInicialMl,
+                                  Long preparadoPorId,
                                   String observacoes) {
 }

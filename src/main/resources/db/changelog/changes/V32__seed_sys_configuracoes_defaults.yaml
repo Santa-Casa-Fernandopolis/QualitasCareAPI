@@ -1,0 +1,44 @@
+databaseChangeLog:
+  - changeSet:
+      id: V32-1-seed-sys-configuracoes-defaults
+      author: qualitascare
+      changes:
+        - sql:
+            splitStatements: true
+            stripComments: true
+            sql: |
+              INSERT INTO sys_configuracoes (tenant_id, modulo, chave, valor, tipo_valor, descricao, editavel)
+              SELECT v.tenant_id, v.modulo, v.chave, v.valor, v.tipo_valor, v.descricao, v.editavel
+              FROM (
+                VALUES
+                  (CAST(NULL AS BIGINT), 'SISTEMA', 'SISTEMA_NOME', 'QualitasCare', 'STRING', 'Nome do sistema exibido na interface', TRUE),
+                  (CAST(NULL AS BIGINT), 'SISTEMA', 'SISTEMA_VERSAO', '1.0.0', 'STRING', 'Versao atual do sistema', FALSE),
+                  (CAST(NULL AS BIGINT), 'SISTEMA', 'NOTIFICACAO_EMAIL_ATIVO', 'false', 'BOOLEAN', 'Habilita envio de e-mail junto com notificacoes in-app', TRUE),
+                  (CAST(NULL AS BIGINT), 'SISTEMA', 'NOTIFICACAO_EMAIL_FROM', 'noreply@qualitascare.com', 'STRING', 'Endereco de e-mail remetente das notificacoes', TRUE),
+                  (CAST(NULL AS BIGINT), 'SISTEMA', 'NOTIFICACAO_EMAIL_DESTINATARIOS', '', 'STRING', 'Lista de e-mails destinatarios separada por virgula', TRUE),
+                  (CAST(NULL AS BIGINT), 'MV', 'MV_INTEGRACAO_ATIVA', 'false', 'BOOLEAN', 'Habilita a sincronizacao automatica de cirurgias do Soul MV', TRUE),
+                  (CAST(NULL AS BIGINT), 'MV', 'MV_INTEGRACAO_TIPO', 'API', 'STRING', 'Tipo de integracao com Soul MV: API ou BANCO_DADOS', TRUE),
+                  (CAST(NULL AS BIGINT), 'MV', 'MV_TENANT_ID', '', 'INTEGER', 'ID do tenant que recebera as cirurgias importadas do Soul MV', TRUE),
+                  (CAST(NULL AS BIGINT), 'MV', 'MV_API_URL', '', 'STRING', 'URL base da API REST do Soul MV', TRUE),
+                  (CAST(NULL AS BIGINT), 'MV', 'MV_API_CLIENT_ID', '', 'STRING', 'Client ID OAuth2 para autenticacao na API do Soul MV', TRUE),
+                  (CAST(NULL AS BIGINT), 'MV', 'MV_API_CLIENT_SECRET', '', 'SECRET', 'Client Secret OAuth2 para autenticacao na API do Soul MV', TRUE),
+                  (CAST(NULL AS BIGINT), 'MV', 'MV_API_TOKEN_URL', '', 'STRING', 'URL do endpoint OAuth2 de token do Soul MV', TRUE),
+                  (CAST(NULL AS BIGINT), 'MV', 'MV_DB_URL', '', 'STRING', 'JDBC URL do banco de dados do Soul MV', TRUE),
+                  (CAST(NULL AS BIGINT), 'MV', 'MV_DB_USERNAME', '', 'STRING', 'Usuario de leitura do banco de dados do Soul MV', TRUE),
+                  (CAST(NULL AS BIGINT), 'MV', 'MV_DB_PASSWORD', '', 'SECRET', 'Senha do banco de dados do Soul MV', TRUE),
+                  (CAST(NULL AS BIGINT), 'MV', 'MV_DB_QUERY_CIRURGIAS', '', 'STRING', 'SQL customizado para buscar cirurgias no banco MV; se vazio, usa a query padrao', TRUE),
+                  (CAST(NULL AS BIGINT), 'MV', 'MV_SYNC_INTERVALO_MIN', '15', 'INTEGER', 'Intervalo em minutos entre sincronizacoes de cirurgias agendadas do MV', TRUE),
+                  (CAST(NULL AS BIGINT), 'MV', 'MV_SYNC_DIAS_ANTECEDENCIA', '7', 'INTEGER', 'Quantos dias a frente buscar cirurgias agendadas do MV', TRUE),
+                  (CAST(NULL AS BIGINT), 'SAME', 'SAME_MAX_FILE_SIZE_BYTES', '52428800', 'INTEGER', 'Tamanho maximo em bytes permitido para upload de PDF de prontuario', TRUE),
+                  (CAST(NULL AS BIGINT), 'PGRSS', 'PGRSS_PLANOS_VENCIDOS_ATIVO', 'true', 'BOOLEAN', 'Habilita o job diario que marca planos de acao PGRSS como vencido', TRUE),
+                  (CAST(NULL AS BIGINT), 'PGRSS', 'PGRSS_PLANOS_VENCIDOS_CRON', '0 0 0 * * *', 'STRING', 'Cron expression do job de verificacao de planos vencidos', TRUE),
+                  (CAST(NULL AS BIGINT), 'PGRSS', 'PGRSS_LICENCAS_ATIVO', 'true', 'BOOLEAN', 'Habilita o job diario que verifica licencas de empresas coletoras', TRUE),
+                  (CAST(NULL AS BIGINT), 'PGRSS', 'PGRSS_LICENCAS_CRON', '0 0 7 * * *', 'STRING', 'Cron expression do job de verificacao de licencas', TRUE)
+              ) AS v(tenant_id, modulo, chave, valor, tipo_valor, descricao, editavel)
+              WHERE NOT EXISTS (
+                SELECT 1
+                FROM sys_configuracoes c
+                WHERE c.tenant_id IS NULL
+                  AND c.modulo = v.modulo
+                  AND c.chave = v.chave
+              );

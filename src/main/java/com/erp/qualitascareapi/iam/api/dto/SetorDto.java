@@ -8,6 +8,12 @@ public record SetorDto(
         String tenantNome,
         String nome,
         TipoSetor tipo,
-        String descricao
+        Long tipoSetorId,
+        String tipoSetorNome,
+        Long especialidadeId,
+        String especialidadeNome,
+        String descricao,
+        Long supervisorId,
+        String supervisorNome
 ) {
 }

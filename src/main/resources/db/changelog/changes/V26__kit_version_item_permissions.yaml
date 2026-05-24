@@ -1,0 +1,72 @@
+databaseChangeLog:
+  - changeSet:
+      id: V26-01-kit-version-item-permissions
+      author: codex
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO permissions (tenant_id, resource, action, feature, code)
+              SELECT t.id, 'CME_KIT', permission_scope.action, permission_scope.feature,
+                     'CME_KIT_' || permission_scope.action || '@' || permission_scope.feature
+              FROM tenants t
+              CROSS JOIN (
+                SELECT 'READ' AS action, 'VERSAO' AS feature
+                UNION ALL SELECT 'CREATE', 'VERSAO'
+                UNION ALL SELECT 'DELETE', 'VERSAO'
+                UNION ALL SELECT 'READ', 'ITEM'
+                UNION ALL SELECT 'CREATE', 'ITEM'
+              ) permission_scope
+              WHERE NOT EXISTS (
+                SELECT 1
+                FROM permissions p
+                WHERE p.tenant_id = t.id
+                  AND p.resource = 'CME_KIT'
+                  AND p.action = permission_scope.action
+                  AND p.feature = permission_scope.feature
+              );
+
+  - changeSet:
+      id: V26-02-kit-version-item-read-role-permissions
+      author: codex
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO role_permissions (tenant_id, role_id, permission_id)
+              SELECT r.tenant_id, r.id, p.id
+              FROM roles r
+              JOIN permissions p ON p.tenant_id = r.tenant_id
+              WHERE r.name IN ('SYSTEM_ADMIN', 'ADMIN_TI', 'ADMIN_QUALIDADE', 'ADMIN_ASSISTENCIAL', 'GESTOR', 'OPERADOR', 'LEITOR')
+                AND p.resource = 'CME_KIT'
+                AND p.action = 'READ'
+                AND p.feature IN ('VERSAO', 'ITEM')
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM role_permissions rp
+                  WHERE rp.tenant_id = r.tenant_id
+                    AND rp.role_id = r.id
+                    AND rp.permission_id = p.id
+                );
+
+  - changeSet:
+      id: V26-03-kit-version-item-maintenance-role-permissions
+      author: codex
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO role_permissions (tenant_id, role_id, permission_id)
+              SELECT r.tenant_id, r.id, p.id
+              FROM roles r
+              JOIN permissions p ON p.tenant_id = r.tenant_id
+              WHERE r.name IN ('SYSTEM_ADMIN', 'ADMIN_TI', 'ADMIN_ASSISTENCIAL', 'GESTOR')
+                AND p.resource = 'CME_KIT'
+                AND (
+                  (p.action IN ('CREATE', 'DELETE') AND p.feature = 'VERSAO')
+                  OR (p.action = 'CREATE' AND p.feature = 'ITEM')
+                )
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM role_permissions rp
+                  WHERE rp.tenant_id = r.tenant_id
+                    AND rp.role_id = r.id
+                    AND rp.permission_id = p.id
+                );
