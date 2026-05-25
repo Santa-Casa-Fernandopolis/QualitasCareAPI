@@ -48,10 +48,27 @@ public class LoteController {
         return loteService.createLote(request);
     }
 
+    @PostMapping("/lotes/entrada-kit")
+    @ResponseStatus(HttpStatus.CREATED)
+    @RequiresPermission(resource = ResourceType.CME_LOTE, action = Action.CREATE, feature = "ENTRADA")
+    public LoteEtiquetaDto registrarEntradaKit(@Validated @RequestBody EntradaKitCmeRequest request) {
+        return loteService.registrarEntradaKit(request);
+    }
+
     @GetMapping("/lotes")
-    @RequiresPermission(resource = ResourceType.CME_LOTE, action = Action.READ)
-    public Page<LoteEtiquetaDto> listLotes(Pageable pageable) {
-        return loteService.listLotes(pageable);
+    @RequiresPermission(resource = ResourceType.CME_LOTE, action = Action.READ, feature = "LISTA")
+    public Page<LoteEtiquetaDto> listLotes(Pageable pageable,
+                                           @RequestParam(required = false) Long kitFisicoId,
+                                           @RequestParam(required = false) Long tenantId) {
+        return loteService.listLotes(pageable, kitFisicoId, tenantId);
+    }
+
+    @GetMapping("/kits-fisicos/{identificador}/lotes")
+    @RequiresPermission(resource = ResourceType.CME_LOTE, action = Action.READ, feature = "LISTA")
+    public Page<LoteEtiquetaDto> listLotesPorKitFisico(@PathVariable String identificador,
+                                                       Pageable pageable,
+                                                       @RequestParam(required = false) Long tenantId) {
+        return loteService.listLotesPorKitFisicoIdentificador(pageable, identificador, tenantId);
     }
 
     @GetMapping("/lotes/{id}")

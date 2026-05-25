@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotNull;
 
 public record KitFisicoRequest(
         @NotNull Long tenantId,
-        @NotNull Long kitId,
+        Long kitId,
         Long kitVersaoAtualId,
         @NotBlank String identificadorUnico,
         IdentificacaoFisicaStatus status,

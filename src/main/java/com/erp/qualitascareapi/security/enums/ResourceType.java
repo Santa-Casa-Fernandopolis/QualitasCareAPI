@@ -25,6 +25,7 @@ public enum ResourceType {
     CME_QUALIDADE,
     CME_SANEANTE,
     CME_KIT,
+    CME_KIT_FISICO,
     CME_LOTE,
     IAM_TENANT,
     IAM_USER,

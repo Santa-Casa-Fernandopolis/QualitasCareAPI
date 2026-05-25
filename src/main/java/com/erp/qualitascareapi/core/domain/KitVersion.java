@@ -3,6 +3,7 @@ package com.erp.qualitascareapi.core.domain;
 import com.erp.qualitascareapi.cme.enums.StatusAprovacaoCme;
 import com.erp.qualitascareapi.iam.domain.User;
 import jakarta.persistence.*;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.envers.Audited;
 
 import java.time.LocalDate;
@@ -35,6 +36,7 @@ public class KitVersion {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status_aprovacao", nullable = false, length = 20)
+    @ColumnDefault("'PENDENTE'")
     private StatusAprovacaoCme statusAprovacao = StatusAprovacaoCme.PENDENTE;
 
     @ManyToOne(fetch = FetchType.LAZY)

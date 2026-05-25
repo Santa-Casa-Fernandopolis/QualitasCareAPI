@@ -17,6 +17,10 @@ public interface NotificacaoRepository extends JpaRepository<Notificacao, Long> 
                                                                      String referenciaTipo,
                                                                      Long referenciaId,
                                                                      Long usuarioId);
+    boolean existsByTipoAndReferenciaTipoAndReferenciaIdAndUsuarioIdAndLidaFalse(TipoNotificacao tipo,
+                                                                                 String referenciaTipo,
+                                                                                 Long referenciaId,
+                                                                                 Long usuarioId);
 
     /**
      * Lista todas as notificações visíveis para o usuário:

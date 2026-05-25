@@ -38,8 +38,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Component
 @Profile({"dev", "test"})
@@ -92,10 +94,12 @@ public class DevTestDataInitializer implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         if (isDatabaseAlreadyInitialized()) {
+            ensurePermissionResourceConstraintSupportsCurrentEnum();
             ensureNotificacaoTipoConstraint();
             ensureNotificationPermissionsForExistingData();
             ensureAutoclaveCadastroPermissionsForExistingData();
             ensureCmeCadastroPermissionsForExistingData();
+            ensurePendingKitVersionApprovalNotifications();
             ensurePendingBowieDickNotifications();
             log.info("Skipping dev/test data initialization because the database already has tenant data.");
             return;
@@ -714,29 +718,35 @@ public class DevTestDataInitializer implements ApplicationRunner {
         //=========================== CME_LOTE ============================================================
         Permission scfLoteRead   = findOrCreatePermission(scf, ResourceType.CME_LOTE, Action.READ,   "LISTA", "CME_LOTE_READ@LISTA");
         Permission scfLoteCreate = findOrCreatePermission(scf, ResourceType.CME_LOTE, Action.CREATE, "FORM",  "CME_LOTE_CREATE@FORM");
+        Permission scfLoteEntrada = findOrCreatePermission(scf, ResourceType.CME_LOTE, Action.CREATE, "ENTRADA",  "CME_LOTE_CREATE@ENTRADA");
         Permission scfLoteUpdate = findOrCreatePermission(scf, ResourceType.CME_LOTE, Action.UPDATE, "FORM",  "CME_LOTE_UPDATE@FORM");
         Permission scfLoteDelete = findOrCreatePermission(scf, ResourceType.CME_LOTE, Action.DELETE, "FORM",  "CME_LOTE_DELETE@FORM");
 
         Permission scjLoteRead   = findOrCreatePermission(scj, ResourceType.CME_LOTE, Action.READ,   "LISTA", "CME_LOTE_READ@LISTA");
         Permission scjLoteCreate = findOrCreatePermission(scj, ResourceType.CME_LOTE, Action.CREATE, "FORM",  "CME_LOTE_CREATE@FORM");
+        Permission scjLoteEntrada = findOrCreatePermission(scj, ResourceType.CME_LOTE, Action.CREATE, "ENTRADA",  "CME_LOTE_CREATE@ENTRADA");
         Permission scjLoteUpdate = findOrCreatePermission(scj, ResourceType.CME_LOTE, Action.UPDATE, "FORM",  "CME_LOTE_UPDATE@FORM");
         Permission scjLoteDelete = findOrCreatePermission(scj, ResourceType.CME_LOTE, Action.DELETE, "FORM",  "CME_LOTE_DELETE@FORM");
 
         ensureRolePermission(scfSystemAdmin, scfLoteRead,   scf); ensureRolePermission(scfSystemAdmin, scfLoteCreate, scf);
+        ensureRolePermission(scfSystemAdmin, scfLoteEntrada, scf);
         ensureRolePermission(scfSystemAdmin, scfLoteUpdate, scf); ensureRolePermission(scfSystemAdmin, scfLoteDelete, scf);
         ensureRolePermission(scjSystemAdmin, scjLoteRead,   scj); ensureRolePermission(scjSystemAdmin, scjLoteCreate, scj);
+        ensureRolePermission(scjSystemAdmin, scjLoteEntrada, scj);
         ensureRolePermission(scjSystemAdmin, scjLoteUpdate, scj); ensureRolePermission(scjSystemAdmin, scjLoteDelete, scj);
 
         ensureRolePermission(scfAdminTI, scfLoteRead,   scf); ensureRolePermission(scfAdminTI, scfLoteCreate, scf);
+        ensureRolePermission(scfAdminTI, scfLoteEntrada, scf);
         ensureRolePermission(scfAdminTI, scfLoteUpdate, scf); ensureRolePermission(scfAdminTI, scfLoteDelete, scf);
         ensureRolePermission(scjAdminTI, scjLoteRead,   scj); ensureRolePermission(scjAdminTI, scjLoteCreate, scj);
+        ensureRolePermission(scjAdminTI, scjLoteEntrada, scj);
         ensureRolePermission(scjAdminTI, scjLoteUpdate, scj); ensureRolePermission(scjAdminTI, scjLoteDelete, scj);
 
         for (Role r : List.of(scfAdminAssistencial, scfGestor, scfOperador)) {
-            ensureRolePermission(r, scfLoteRead, scf); ensureRolePermission(r, scfLoteCreate, scf); ensureRolePermission(r, scfLoteUpdate, scf);
+            ensureRolePermission(r, scfLoteRead, scf); ensureRolePermission(r, scfLoteCreate, scf); ensureRolePermission(r, scfLoteEntrada, scf); ensureRolePermission(r, scfLoteUpdate, scf);
         }
         for (Role r : List.of(scjAdminAssistencial, scjGestor, scjOperador)) {
-            ensureRolePermission(r, scjLoteRead, scj); ensureRolePermission(r, scjLoteCreate, scj); ensureRolePermission(r, scjLoteUpdate, scj);
+            ensureRolePermission(r, scjLoteRead, scj); ensureRolePermission(r, scjLoteCreate, scj); ensureRolePermission(r, scjLoteEntrada, scj); ensureRolePermission(r, scjLoteUpdate, scj);
         }
         ensureRolePermission(scfAdminQualidade, scfLoteRead, scf); ensureRolePermission(scfLeitor, scfLoteRead, scf);
         ensureRolePermission(scjAdminQualidade, scjLoteRead, scj); ensureRolePermission(scjLeitor, scjLoteRead, scj);
@@ -1196,9 +1206,43 @@ public class DevTestDataInitializer implements ApplicationRunner {
 
         ensureNotificationPermissionsForExistingData();
         ensureAutoclaveCadastroPermissionsForExistingData();
+        ensurePermissionResourceConstraintSupportsCurrentEnum();
         ensureCmeCadastroPermissionsForExistingData();
         ensureNotificacaoTipoConstraint();
+        ensurePendingKitVersionApprovalNotifications();
         ensurePendingBowieDickNotifications();
+    }
+
+    private void ensurePermissionResourceConstraintSupportsCurrentEnum() {
+        String allowedResources = Arrays.stream(ResourceType.values())
+                .map(Enum::name)
+                .map(value -> "'" + value.replace("'", "''") + "'")
+                .collect(Collectors.joining(", "));
+
+        refreshResourceConstraint("permissions", "permissions_resource_check", allowedResources);
+        refreshResourceConstraint("permissions_aud", "permissions_aud_resource_check", allowedResources);
+    }
+
+    private void refreshResourceConstraint(String tableName, String constraintName, String allowedResources) {
+        try {
+            Boolean tableExists = jdbcTemplate.queryForObject("""
+                    SELECT EXISTS (
+                        SELECT 1
+                        FROM information_schema.tables
+                        WHERE table_schema = current_schema()
+                          AND table_name = ?
+                    )
+                    """, Boolean.class, tableName);
+            if (!Boolean.TRUE.equals(tableExists)) {
+                return;
+            }
+
+            jdbcTemplate.execute("ALTER TABLE " + tableName + " DROP CONSTRAINT IF EXISTS " + constraintName);
+            jdbcTemplate.execute("ALTER TABLE " + tableName + " ADD CONSTRAINT " + constraintName +
+                    " CHECK (resource IN (" + allowedResources + "))");
+        } catch (Exception ex) {
+            log.warn("Could not refresh permission resource constraint for table {}.", tableName, ex);
+        }
     }
 
     private void ensureNotificacaoTipoConstraint() {
@@ -1348,6 +1392,18 @@ public class DevTestDataInitializer implements ApplicationRunner {
                     Action.DELETE,
                     "ITEM",
                     "CME_KIT_DELETE@ITEM");
+            Permission kitFisicoAprovacao = findOrCreatePermission(
+                    tenant,
+                    ResourceType.CME_KIT_FISICO,
+                    Action.UPDATE,
+                    "APROVACAO",
+                    "CME_KIT_FISICO_UPDATE@APROVACAO");
+            Permission loteEntrada = findOrCreatePermission(
+                    tenant,
+                    ResourceType.CME_LOTE,
+                    Action.CREATE,
+                    "ENTRADA",
+                    "CME_LOTE_CREATE@ENTRADA");
 
             for (String roleName : List.of(
                     "SYSTEM_ADMIN",
@@ -1383,8 +1439,13 @@ public class DevTestDataInitializer implements ApplicationRunner {
                     ensureRolePermission(role, kitItemCreate, tenant);
                     ensureRolePermission(role, kitItemUpdate, tenant);
                     ensureRolePermission(role, kitItemDelete, tenant);
+                    ensureRolePermission(role, kitFisicoAprovacao, tenant);
+                    ensureRolePermission(role, loteEntrada, tenant);
                 });
             }
+
+            roleRepository.findByNameIgnoreCaseAndTenant_Id("OPERADOR", tenant.getId())
+                    .ifPresent(role -> ensureRolePermission(role, loteEntrada, tenant));
         }
     }
 
@@ -1420,6 +1481,54 @@ public class DevTestDataInitializer implements ApplicationRunner {
                     ensureRolePermission(role, update, tenant);
                 });
             }
+        }
+    }
+
+    private void ensurePendingKitVersionApprovalNotifications() {
+        try {
+            jdbcTemplate.update("""
+                    INSERT INTO notificacoes (
+                        tenant_id,
+                        tipo,
+                        nivel,
+                        titulo,
+                        mensagem,
+                        referencia_id,
+                        referencia_tipo,
+                        usuario_id,
+                        lida,
+                        data_hora
+                    )
+                    SELECT k.tenant_id,
+                           'CME_KIT_VERSAO_APROVACAO_SOLICITADA',
+                           'INFO',
+                           'Versão de kit pendente de aprovação',
+                           'A versão v' || v.numero_versao || ' do kit ' || k.nome || ' foi cadastrada e precisa ser aprovada pela supervisora da CME.',
+                           v.id,
+                           'CME_KIT_VERSION',
+                           u.id,
+                           false,
+                           CURRENT_TIMESTAMP
+                    FROM cme_kits_versao v
+                    JOIN cme_kits_procedimento k ON k.id = v.kit_id
+                    JOIN users u ON u.tenant_id = k.tenant_id
+                    WHERE COALESCE(v.status_aprovacao, 'PENDENTE') = 'PENDENTE'
+                      AND UPPER(COALESCE(u.department, '')) LIKE '%CME%'
+                      AND (
+                            LOWER(u.username) LIKE 'sup.cme.%'
+                         OR LOWER(COALESCE(u.full_name, '')) LIKE '%supervis%'
+                      )
+                      AND NOT EXISTS (
+                          SELECT 1
+                          FROM notificacoes n
+                          WHERE n.tipo = 'CME_KIT_VERSAO_APROVACAO_SOLICITADA'
+                            AND n.referencia_tipo = 'CME_KIT_VERSION'
+                            AND n.referencia_id = v.id
+                            AND n.usuario_id = u.id
+                      )
+                    """);
+        } catch (Exception ex) {
+            log.warn("Could not create pending kit version approval notifications for dev/test data.", ex);
         }
     }
 

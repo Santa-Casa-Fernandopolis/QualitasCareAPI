@@ -84,6 +84,12 @@ public class KitController {
         return kitService.listKitVersions(kitId, pageable);
     }
 
+    @PutMapping("/kits/versoes/{id}")
+    @RequiresPermission(resource = ResourceType.CME_KIT, action = Action.UPDATE, feature = "VERSAO")
+    public KitVersionDto updateKitVersion(@PathVariable Long id, @Validated @RequestBody KitVersionRequest request) {
+        return kitService.updateKitVersion(id, request);
+    }
+
     @DeleteMapping("/kits/versoes/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @RequiresPermission(resource = ResourceType.CME_KIT, action = Action.DELETE, feature = "VERSAO")
@@ -163,8 +169,18 @@ public class KitController {
 
     @GetMapping("/kits-fisicos")
     @RequiresPermission(resource = ResourceType.CME_KIT, action = Action.READ, feature = "LISTA")
-    public Page<KitFisicoDto> listKitsFisicos(Pageable pageable) {
-        return kitService.listKitsFisicos(pageable);
+    public Page<KitFisicoDto> listKitsFisicos(Pageable pageable,
+                                              @RequestParam(required = false) String identificador,
+                                              @RequestParam(required = false) Long tenantId) {
+        return kitService.listKitsFisicos(pageable, identificador, tenantId);
+    }
+
+    @GetMapping("/kits-fisicos/disponiveis-entrada")
+    @RequiresPermission(resource = ResourceType.CME_KIT, action = Action.READ, feature = "LISTA")
+    public Page<KitFisicoDto> listKitsFisicosDisponiveisEntrada(Pageable pageable,
+                                                                @RequestParam(required = false) String identificador,
+                                                                @RequestParam(required = false) Long tenantId) {
+        return kitService.listKitsFisicosDisponiveisEntrada(pageable, identificador, tenantId);
     }
 
     @GetMapping("/kits-fisicos/{id}")
@@ -177,6 +193,12 @@ public class KitController {
     @RequiresPermission(resource = ResourceType.CME_KIT, action = Action.UPDATE, feature = "CADASTRO")
     public KitFisicoDto updateKitFisico(@PathVariable Long id, @Validated @RequestBody KitFisicoRequest request) {
         return kitService.updateKitFisico(id, request);
+    }
+
+    @PatchMapping("/kits-fisicos/{id}/aprovacao")
+    @RequiresPermission(resource = ResourceType.CME_KIT_FISICO, action = Action.UPDATE, feature = "APROVACAO")
+    public KitFisicoDto aprovarKitFisico(@PathVariable Long id, @Validated @RequestBody KitVersionApprovalRequest request) {
+        return kitService.registrarAprovacaoKitFisico(id, request);
     }
 
     @PostMapping("/kits-fisicos/instrumentos")

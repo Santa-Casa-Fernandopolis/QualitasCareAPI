@@ -43,6 +43,19 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
                                              @Param("roleName") String roleName);
 
     @Query("""
+            select distinct u
+            from User u
+            where u.tenant.id = :tenantId
+              and u.status = com.erp.qualitascareapi.security.enums.UserStatus.ACTIVE
+              and lower(coalesce(u.department, '')) like '%cme%'
+              and (
+                    lower(u.username) like 'sup.cme.%'
+                 or lower(coalesce(u.fullName, '')) like '%supervis%'
+              )
+            """)
+    List<User> findCmeSupervisorsForKitApproval(@Param("tenantId") Long tenantId);
+
+    @Query("""
             select u.id as id,
                    u.tenant.id as tenantId,
                    u.department as department,

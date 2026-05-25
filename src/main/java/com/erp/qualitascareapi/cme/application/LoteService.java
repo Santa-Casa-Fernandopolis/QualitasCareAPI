@@ -3,6 +3,7 @@ package com.erp.qualitascareapi.cme.application;
 import com.erp.qualitascareapi.cme.api.dto.*;
 import com.erp.qualitascareapi.cme.domain.IndicadorQuimico;
 import com.erp.qualitascareapi.cme.domain.IndicadorBiologico;
+import com.erp.qualitascareapi.cme.domain.CmeKitFisicoLoteView;
 import com.erp.qualitascareapi.cme.domain.InstrumentoFisico;
 import com.erp.qualitascareapi.cme.domain.KitFisico;
 import com.erp.qualitascareapi.cme.domain.KitFisicoInstrumento;
@@ -12,8 +13,11 @@ import com.erp.qualitascareapi.cme.domain.ProcessoReprocessamento;
 import com.erp.qualitascareapi.cme.domain.TesteBowieDick;
 import com.erp.qualitascareapi.cme.enums.LoteStatus;
 import com.erp.qualitascareapi.cme.enums.MovimentacaoTipo;
+import com.erp.qualitascareapi.cme.enums.StatusAprovacaoCme;
+import com.erp.qualitascareapi.cme.enums.TipoFluxoCME;
 import com.erp.qualitascareapi.cme.repo.IndicadorQuimicoRepository;
 import com.erp.qualitascareapi.cme.repo.IndicadorBiologicoRepository;
+import com.erp.qualitascareapi.cme.repo.CmeKitFisicoLoteViewRepository;
 import com.erp.qualitascareapi.cme.repo.KitFisicoInstrumentoRepository;
 import com.erp.qualitascareapi.cme.repo.KitFisicoRepository;
 import com.erp.qualitascareapi.cme.repo.LoteEtiquetaRepository;
@@ -21,6 +25,7 @@ import com.erp.qualitascareapi.cme.repo.MovimentacaoCMERepository;
 import com.erp.qualitascareapi.cme.repo.ProcessoReprocessamentoRepository;
 import com.erp.qualitascareapi.cme.repo.TesteBowieDickRepository;
 import com.erp.qualitascareapi.common.exception.ApplicationException;
+import com.erp.qualitascareapi.core.domain.KitProcedimento;
 import com.erp.qualitascareapi.core.domain.KitVersion;
 import com.erp.qualitascareapi.iam.domain.Setor;
 import com.erp.qualitascareapi.core.repo.KitVersionRepository;
@@ -39,7 +44,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -52,6 +59,7 @@ public class LoteService {
     private final UserRepository userRepository;
     private final SetorRepository setorRepository;
     private final LoteEtiquetaRepository loteEtiquetaRepository;
+    private final CmeKitFisicoLoteViewRepository kitFisicoLoteViewRepository;
     private final KitVersionRepository kitVersionRepository;
     private final MovimentacaoCMERepository movimentacaoRepository;
     private final IndicadorQuimicoRepository indicadorQuimicoRepository;
@@ -68,6 +76,7 @@ public class LoteService {
                        UserRepository userRepository,
                        SetorRepository setorRepository,
                        LoteEtiquetaRepository loteEtiquetaRepository,
+                       CmeKitFisicoLoteViewRepository kitFisicoLoteViewRepository,
                        KitVersionRepository kitVersionRepository,
                        MovimentacaoCMERepository movimentacaoRepository,
                        IndicadorQuimicoRepository indicadorQuimicoRepository,
@@ -83,6 +92,7 @@ public class LoteService {
         this.userRepository = userRepository;
         this.setorRepository = setorRepository;
         this.loteEtiquetaRepository = loteEtiquetaRepository;
+        this.kitFisicoLoteViewRepository = kitFisicoLoteViewRepository;
         this.kitVersionRepository = kitVersionRepository;
         this.movimentacaoRepository = movimentacaoRepository;
         this.indicadorQuimicoRepository = indicadorQuimicoRepository;
@@ -127,6 +137,7 @@ public class LoteService {
         LoteEtiqueta lote = new LoteEtiqueta();
         lote.setTenant(tenant);
         lote.setCodigo(request.codigo());
+        lote.setTipoFluxo(TipoFluxoCME.CIRURGICO);
         if (request.processoId() != null) {
             ProcessoReprocessamento processo = processoRepository.findById(request.processoId())
                     .orElseThrow(() -> new EntityNotFoundException("Processo não encontrado"));
@@ -146,10 +157,11 @@ public class LoteService {
                 lote.setKitVersao(kitFisico.getKitVersaoAtual());
             }
         }
-        lote.setDataEmpacotamento(request.dataEmpacotamento());
-        lote.setValidade(request.validade());
+        LocalDate dataEmpacotamento = request.dataEmpacotamento() != null ? request.dataEmpacotamento() : LocalDate.now();
+        lote.setDataEmpacotamento(dataEmpacotamento);
+        lote.setValidade(calcularValidadeLote(lote.getKitVersao(), dataEmpacotamento));
         lote.setStatus(request.status() != null ? request.status() : LoteStatus.MONTADO);
-        lote.setQrCode(request.qrCode());
+        lote.setQrCode(hasText(request.qrCode()) ? request.qrCode().trim() : gerarQrCode(lote.getCodigo()));
         if (request.montadoPorId() != null) {
             User usuario = userRepository.findById(request.montadoPorId())
                     .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado"));
@@ -159,6 +171,99 @@ public class LoteService {
         lote.setDataHoraFimMontagem(request.dataHoraFimMontagem());
         lote.setObservacoes(request.observacoes());
         return toLoteDto(loteEtiquetaRepository.save(lote));
+    }
+
+    public LoteEtiquetaDto registrarEntradaKit(EntradaKitCmeRequest request) {
+        tenantScopeGuard.checkRequestedTenant(request.tenantId());
+        Tenant tenant = tenantRepository.findById(request.tenantId())
+                .orElseThrow(() -> new EntityNotFoundException("Tenant não encontrado"));
+        KitFisico kitFisico = kitFisicoRepository.findById(request.kitFisicoId())
+                .orElseThrow(() -> new EntityNotFoundException("Kit físico não encontrado"));
+        tenantScopeGuard.checkTenantAccess(kitFisico.getTenant().getId());
+
+        if (!Boolean.TRUE.equals(kitFisico.getAtivo())) {
+            throw new ApplicationException(HttpStatus.BAD_REQUEST, "kit-fisico.inativo",
+                    "O kit físico selecionado está inativo.");
+        }
+        if (kitFisico.getKitVersaoAtual() == null || kitFisico.getKit() == null) {
+            throw new ApplicationException(HttpStatus.BAD_REQUEST, "kit-fisico.sem-versao",
+                    "Associe uma versão válida ao kit físico antes de registrar a entrada na CME.");
+        }
+        if (kitFisico.getStatusAprovacao() != StatusAprovacaoCme.APROVADO) {
+            throw new ApplicationException(HttpStatus.BAD_REQUEST, "kit-fisico.nao-aprovado",
+                    "A composição do kit físico precisa estar aprovada antes de registrar a entrada na CME.");
+        }
+        long lotesAbertos = loteEtiquetaRepository.countByKitFisico_IdAndTenant_IdAndStatusIn(
+                kitFisico.getId(),
+                tenant.getId(),
+                List.of(LoteStatus.MONTADO, LoteStatus.EM_PROCESSO, LoteStatus.LIBERADO,
+                        LoteStatus.DISPONIVEL_ESTOQUE, LoteStatus.BLOQUEADO)
+        );
+        if (lotesAbertos > 0) {
+            throw new ApplicationException(HttpStatus.CONFLICT, "kit-fisico.lote-aberto",
+                    "Este kit físico já possui um lote em aberto.");
+        }
+
+        LocalDateTime entradaEm = request.entradaEm() != null ? request.entradaEm() : LocalDateTime.now();
+        LocalDate dataBase = entradaEm.toLocalDate();
+        String codigo = gerarCodigoLote(tenant.getId(), dataBase);
+
+        LoteEtiqueta lote = new LoteEtiqueta();
+        lote.setTenant(tenant);
+        lote.setCodigo(codigo);
+        lote.setTipoFluxo(TipoFluxoCME.CIRURGICO);
+        lote.setKitFisico(kitFisico);
+        lote.setKitVersao(kitFisico.getKitVersaoAtual());
+        lote.setDataEmpacotamento(dataBase);
+        lote.setValidade(calcularValidadeLote(lote.getKitVersao(), dataBase));
+        lote.setStatus(LoteStatus.EM_PROCESSO);
+        lote.setQrCode(gerarQrCode(codigo));
+        lote.setDataHoraInicioMontagem(entradaEm);
+        if (request.responsavelId() != null) {
+            User responsavel = userRepository.findById(request.responsavelId())
+                    .orElseThrow(() -> new EntityNotFoundException("Responsável não encontrado"));
+            lote.setMontadoPor(responsavel);
+        }
+        lote.setObservacoes(request.observacoes());
+        LoteEtiqueta saved = loteEtiquetaRepository.save(lote);
+
+        MovimentacaoCME movimentacao = new MovimentacaoCME();
+        movimentacao.setTenant(tenant);
+        movimentacao.setLote(saved);
+        movimentacao.setTipo(MovimentacaoTipo.ENTRADA_CONTAMINADO);
+        movimentacao.setDataHora(entradaEm);
+        movimentacao.setResponsavel(saved.getMontadoPor());
+        movimentacao.setObservacoes(hasText(request.observacoes()) ? request.observacoes().trim() : "Entrada do kit na CME.");
+        movimentacaoRepository.save(movimentacao);
+
+        return toLoteDto(saved);
+    }
+
+    private LocalDate calcularValidadeLote(KitVersion kitVersao, LocalDate dataBase) {
+        if (kitVersao != null && kitVersao.getValidadeDias() != null && kitVersao.getValidadeDias() > 0) {
+            return dataBase.plusDays(kitVersao.getValidadeDias());
+        }
+        return dataBase;
+    }
+
+    private String gerarCodigoLote(Long tenantId, LocalDate dataBase) {
+        String prefixo = "CME-" + dataBase.format(DateTimeFormatter.BASIC_ISO_DATE) + "-";
+        for (int sequencial = 1; sequencial <= 9999; sequencial++) {
+            String codigo = prefixo + String.format("%04d", sequencial);
+            if (!loteEtiquetaRepository.existsByTenant_IdAndCodigoIgnoreCase(tenantId, codigo)) {
+                return codigo;
+            }
+        }
+        throw new ApplicationException(HttpStatus.CONFLICT, "lote.codigo-esgotado",
+                "Não foi possível gerar um número de lote para a data informada.");
+    }
+
+    private String gerarQrCode(String codigo) {
+        return "CME_LOTE:" + codigo;
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 
     public LoteEtiquetaDto findLoteById(Long id) {
@@ -293,11 +398,15 @@ public class LoteService {
 
     private KitFisicoDto toKitFisicoDto(KitFisico fisico) {
         KitVersion versao = fisico.getKitVersaoAtual();
-        return new KitFisicoDto(fisico.getId(), fisico.getTenant().getId(), fisico.getKit().getId(),
-                fisico.getKit().getNome(), versao != null ? versao.getId() : null,
+        KitProcedimento kit = fisico.getKit();
+        return new KitFisicoDto(fisico.getId(), fisico.getTenant().getId(), kit != null ? kit.getId() : null,
+                kit != null ? kit.getNome() : null, versao != null ? versao.getId() : null,
                 versao != null ? versao.getNumeroVersao() : null,
                 fisico.getIdentificadorUnico(), fisico.getStatus(), fisico.getLocalizacao(),
-                fisico.getObservacoes(), fisico.getAtivo());
+                fisico.getObservacoes(), fisico.getAtivo(), fisico.getStatusAprovacao(),
+                fisico.getAprovadoPor() != null ? fisico.getAprovadoPor().getId() : null,
+                fisico.getAprovadoPor() != null ? fisico.getAprovadoPor().getFullName() : null,
+                fisico.getAprovadoEm(), null, java.util.List.of());
     }
 
     private KitFisicoInstrumentoDto toKitFisicoInstrumentoDto(KitFisicoInstrumento vinculo) {
@@ -314,8 +423,48 @@ public class LoteService {
         return evidencias.stream().map(com.erp.qualitascareapi.common.domain.EvidenciaArquivo::getId).collect(java.util.stream.Collectors.toSet());
     }
 
-    public Page<LoteEtiquetaDto> listLotes(Pageable pageable) {
-        return loteEtiquetaRepository.findAllByTenantId(tenantScopeGuard.currentTenantId(), pageable).map(this::toLoteDto);
+    public Page<LoteEtiquetaDto> listLotes(Pageable pageable, Long kitFisicoId, Long requestedTenantId) {
+        Long tenantId = effectiveTenantId(requestedTenantId);
+        if (kitFisicoId != null) {
+            KitFisico kitFisico = kitFisicoRepository.findById(kitFisicoId)
+                    .orElseThrow(() -> new EntityNotFoundException("Kit físico não encontrado"));
+            tenantScopeGuard.checkTenantAccess(kitFisico.getTenant().getId());
+            if (tenantId == null) {
+                tenantId = kitFisico.getTenant().getId();
+            }
+            return kitFisicoLoteViewRepository.findAllByTenantIdAndKitFisicoId(tenantId, kitFisicoId, pageable)
+                    .map(this::toLoteDto);
+        }
+        return loteEtiquetaRepository.findAllByTenant_Id(tenantId, pageable).map(this::toLoteDto);
+    }
+
+    public Page<LoteEtiquetaDto> listLotesPorKitFisicoIdentificador(Pageable pageable, String identificador, Long requestedTenantId) {
+        Long tenantId = effectiveTenantId(requestedTenantId);
+        if (!hasText(identificador)) {
+            return Page.empty(pageable);
+        }
+        return kitFisicoLoteViewRepository
+                .findAllByTenantIdAndKitFisicoIdentificadorIgnoreCase(tenantId, identificador.trim(), pageable)
+                .map(this::toLoteDto);
+    }
+
+    private Long effectiveTenantId(Long requestedTenantId) {
+        Long currentTenantId = tenantScopeGuard.currentTenantId();
+        if (currentTenantId != null) {
+            if (requestedTenantId != null) {
+                tenantScopeGuard.checkRequestedTenant(requestedTenantId);
+            }
+            return currentTenantId;
+        }
+        tenantScopeGuard.checkRequestedTenant(requestedTenantId);
+        return requestedTenantId;
+    }
+
+    private LoteEtiquetaDto toLoteDto(CmeKitFisicoLoteView l) {
+        return new LoteEtiquetaDto(l.getId(), l.getTenantId(), l.getProcessoId(), l.getCodigo(), l.getKitVersaoId(),
+                l.getKitFisicoId(), l.getKitFisicoIdentificador(), l.getDataEmpacotamento(), l.getValidade(),
+                l.getStatus(), l.getQrCode(), l.getMontadoPorId(), l.getDataHoraInicioMontagem(),
+                l.getDataHoraFimMontagem(), l.getObservacoes(), l.getCriadoEm());
     }
 
     public MovimentacaoDto registrarMovimentacao(MovimentacaoRequest request) {

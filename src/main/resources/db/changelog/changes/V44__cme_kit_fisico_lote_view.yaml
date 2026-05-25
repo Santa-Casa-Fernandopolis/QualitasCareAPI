@@ -1,0 +1,28 @@
+databaseChangeLog:
+  - changeSet:
+      id: v44-cme-kit-fisico-lote-view
+      author: codex
+      changes:
+        - sql:
+            splitStatements: false
+            sql: |
+              CREATE OR REPLACE VIEW vw_cme_kit_fisico_lotes AS
+              SELECT
+                l.id AS lote_id,
+                l.tenant_id,
+                l.kit_fisico_id,
+                kf.identificador_unico AS kit_fisico_identificador,
+                l.processo_id,
+                l.codigo,
+                l.kit_versao_id,
+                l.data_empacotamento,
+                l.validade,
+                l.status,
+                l.qr_code,
+                l.montado_por_id,
+                l.data_hora_inicio_montagem,
+                l.data_hora_fim_montagem,
+                l.observacoes,
+                l.criado_em
+              FROM cme_lotes l
+              JOIN cme_kits_fisicos kf ON kf.id = l.kit_fisico_id;

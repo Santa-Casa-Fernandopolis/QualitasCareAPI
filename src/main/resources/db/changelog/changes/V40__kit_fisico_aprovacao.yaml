@@ -1,0 +1,52 @@
+databaseChangeLog:
+  - changeSet:
+      id: v40-001-kit-fisico-aprovacao
+      author: codex
+      changes:
+        - addColumn:
+            tableName: cme_kits_fisicos
+            columns:
+              - column:
+                  name: status_aprovacao
+                  type: VARCHAR(20)
+                  defaultValue: PENDENTE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: aprovado_por_id
+                  type: BIGINT
+              - column:
+                  name: aprovado_em
+                  type: TIMESTAMP
+        - addForeignKeyConstraint:
+            baseTableName: cme_kits_fisicos
+            baseColumnNames: aprovado_por_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_cme_kits_fisicos_aprovado_por
+        - createIndex:
+            tableName: cme_kits_fisicos
+            indexName: ix_cme_kits_fisicos_status_aprovacao
+            columns:
+              - column:
+                  name: status_aprovacao
+
+  - changeSet:
+      id: v40-002-kit-fisico-aprovacao-notificacao
+      author: codex
+      changes:
+        - sql:
+            splitStatements: false
+            sql: |
+              INSERT INTO notificacao_subscricoes (tenant_id, usuario_id, tipo, canal_email, criado_em)
+              SELECT t.id, u.id, 'CME_KIT_FISICO_APROVACAO_SOLICITADA', TRUE, CURRENT_TIMESTAMP
+              FROM tenants t
+              JOIN users u ON u.tenant_id = t.id
+              WHERE u.email IS NOT NULL
+                AND (UPPER(COALESCE(u.department, '')) LIKE '%CME%' OR UPPER(COALESCE(u.full_name, '')) LIKE '%SUPERV%')
+                AND NOT EXISTS (
+                  SELECT 1 FROM notificacao_subscricoes ns
+                  WHERE ns.tenant_id = t.id
+                    AND ns.tipo = 'CME_KIT_FISICO_APROVACAO_SOLICITADA'
+                    AND ns.usuario_id = u.id
+                );

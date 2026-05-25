@@ -1,0 +1,28 @@
+databaseChangeLog:
+  - changeSet:
+      id: v43-lote-entrada-permission
+      author: codex
+      changes:
+        - sql:
+            splitStatements: false
+            sql: |
+              INSERT INTO permissions (tenant_id, resource, action, feature, code)
+              SELECT t.id, 'CME_LOTE', 'CREATE', 'ENTRADA', 'CME_LOTE_CREATE@ENTRADA'
+              FROM tenants t
+              WHERE NOT EXISTS (
+                SELECT 1 FROM permissions p
+                WHERE p.tenant_id = t.id
+                  AND p.code = 'CME_LOTE_CREATE@ENTRADA'
+              );
+
+              INSERT INTO role_permissions (tenant_id, role_id, permission_id)
+              SELECT r.tenant_id, r.id, p.id
+              FROM roles r
+              JOIN permissions p ON p.tenant_id = r.tenant_id AND p.code = 'CME_LOTE_CREATE@ENTRADA'
+              WHERE upper(r.name) IN ('SYSTEM_ADMIN', 'ADMIN_TI', 'ADMIN_ASSISTENCIAL', 'GESTOR', 'OPERADOR')
+                AND NOT EXISTS (
+                  SELECT 1 FROM role_permissions rp
+                  WHERE rp.tenant_id = r.tenant_id
+                    AND rp.role_id = r.id
+                    AND rp.permission_id = p.id
+                );

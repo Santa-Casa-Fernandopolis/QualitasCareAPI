@@ -1,0 +1,44 @@
+databaseChangeLog:
+  - changeSet:
+      id: v42-001-kit-fisico-aprovacao-permission
+      author: codex
+      changes:
+        - sql:
+            splitStatements: false
+            sql: |
+              ALTER TABLE permissions DROP CONSTRAINT IF EXISTS permissions_resource_check;
+              ALTER TABLE permissions ADD CONSTRAINT permissions_resource_check
+                CHECK (resource IN ('INDICADOR', 'AUDITORIA', 'NAO_CONFORMIDADE', 'PROTOCOLO', 'CAPACITACAO', 'PGRSS', 'PGRSS_CADASTRO', 'PGRSS_PESAGEM', 'PGRSS_ARMAZENAMENTO', 'PGRSS_COLETA_EXTERNA', 'PGRSS_NAO_CONFORMIDADE', 'PGRSS_INDICADOR', 'USUARIO', 'DASHBOARD', 'DOCUMENTO', 'DOCUMENTO_VERSAO', 'DOCUMENTO_ACK', 'DOCUMENTO_ALTERACAO', 'CME_AUTOCLAVE', 'CME_PROCESSAMENTO', 'CME_PROCESSO_REPROCESSAMENTO', 'CME_QUALIDADE', 'CME_SANEANTE', 'CME_KIT', 'CME_KIT_FISICO', 'CME_LOTE', 'IAM_TENANT', 'IAM_USER', 'IAM_SETOR', 'IAM_ORG_ROLE_ASSIGNMENT', 'IAM_PROFILE', 'HR_CARGO', 'HR_TURNO', 'HR_COLABORADOR', 'SECURITY_ROLE', 'SECURITY_PERMISSION', 'SECURITY_ROLE_PERMISSION', 'SECURITY_POLICY', 'SECURITY_USER_PERMISSION_OVERRIDE', 'ENV_AMBIENTE', 'ENV_MONITORAMENTO', 'ENV_GELADEIRA', 'ENV_IOT_DEVICE', 'SAME_PATIENT', 'SAME_IDENTIFIER', 'SAME_DOCUMENT', 'SAME_AUDIT', 'SAME_LEGACY_SOURCE', 'OBSERVABILITY_AUDIT', 'OBSERVABILITY_LOG', 'OBSERVABILITY_SECURITY_LOG', 'SYS_CONFIGURACAO', 'CME_CIRURGIA_AGENDADA', 'NOTIFICACAO'));
+
+              ALTER TABLE IF EXISTS permissions_aud DROP CONSTRAINT IF EXISTS permissions_aud_resource_check;
+              ALTER TABLE IF EXISTS permissions_aud ADD CONSTRAINT permissions_aud_resource_check
+                CHECK (resource IN ('INDICADOR', 'AUDITORIA', 'NAO_CONFORMIDADE', 'PROTOCOLO', 'CAPACITACAO', 'PGRSS', 'PGRSS_CADASTRO', 'PGRSS_PESAGEM', 'PGRSS_ARMAZENAMENTO', 'PGRSS_COLETA_EXTERNA', 'PGRSS_NAO_CONFORMIDADE', 'PGRSS_INDICADOR', 'USUARIO', 'DASHBOARD', 'DOCUMENTO', 'DOCUMENTO_VERSAO', 'DOCUMENTO_ACK', 'DOCUMENTO_ALTERACAO', 'CME_AUTOCLAVE', 'CME_PROCESSAMENTO', 'CME_PROCESSO_REPROCESSAMENTO', 'CME_QUALIDADE', 'CME_SANEANTE', 'CME_KIT', 'CME_KIT_FISICO', 'CME_LOTE', 'IAM_TENANT', 'IAM_USER', 'IAM_SETOR', 'IAM_ORG_ROLE_ASSIGNMENT', 'IAM_PROFILE', 'HR_CARGO', 'HR_TURNO', 'HR_COLABORADOR', 'SECURITY_ROLE', 'SECURITY_PERMISSION', 'SECURITY_ROLE_PERMISSION', 'SECURITY_POLICY', 'SECURITY_USER_PERMISSION_OVERRIDE', 'ENV_AMBIENTE', 'ENV_MONITORAMENTO', 'ENV_GELADEIRA', 'ENV_IOT_DEVICE', 'SAME_PATIENT', 'SAME_IDENTIFIER', 'SAME_DOCUMENT', 'SAME_AUDIT', 'SAME_LEGACY_SOURCE', 'OBSERVABILITY_AUDIT', 'OBSERVABILITY_LOG', 'OBSERVABILITY_SECURITY_LOG', 'SYS_CONFIGURACAO', 'CME_CIRURGIA_AGENDADA', 'NOTIFICACAO'));
+
+              INSERT INTO permissions (tenant_id, resource, action, feature, code)
+              SELECT t.id, 'CME_KIT_FISICO', 'UPDATE', 'APROVACAO', 'CME_KIT_FISICO_UPDATE@APROVACAO'
+              FROM tenants t
+              WHERE NOT EXISTS (
+                SELECT 1
+                FROM permissions p
+                WHERE p.tenant_id = t.id
+                  AND p.resource = 'CME_KIT_FISICO'
+                  AND p.action = 'UPDATE'
+                  AND p.feature = 'APROVACAO'
+              );
+
+              INSERT INTO role_permissions (tenant_id, role_id, permission_id)
+              SELECT r.tenant_id, r.id, p.id
+              FROM roles r
+              JOIN permissions p
+                ON p.tenant_id = r.tenant_id
+               AND p.resource = 'CME_KIT_FISICO'
+               AND p.action = 'UPDATE'
+               AND p.feature = 'APROVACAO'
+              WHERE UPPER(r.name) IN ('SYSTEM_ADMIN', 'ADMIN_TI', 'ADMIN_ASSISTENCIAL', 'GESTOR')
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM role_permissions rp
+                  WHERE rp.tenant_id = r.tenant_id
+                    AND rp.role_id = r.id
+                    AND rp.permission_id = p.id
+                );

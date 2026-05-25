@@ -11,5 +11,9 @@ public record InstrumentoFisicoDto(
         IdentificacaoFisicaStatus status,
         String localizacao,
         String observacoes,
-        Boolean ativo
+        Boolean ativo,
+        Long kitFisicoAtualId,
+        String kitFisicoAtualIdentificador,
+        String kitFisicoAtualModelo,
+        Integer kitFisicoAtualVersaoNumero
 ) {}

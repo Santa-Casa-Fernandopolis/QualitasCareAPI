@@ -16,11 +16,14 @@ public interface LoteEtiquetaRepository extends JpaRepository<LoteEtiqueta, Long
     List<LoteEtiqueta> findByProcessoId(Long processoId);
     Optional<LoteEtiqueta> findFirstByProcessoId(Long processoId);
     Optional<LoteEtiqueta> findByTenant_IdAndCodigoIgnoreCase(Long tenantId, String codigo);
-    Page<LoteEtiqueta> findAllByTenantId(Long tenantId, Pageable pageable);
+    boolean existsByTenant_IdAndCodigoIgnoreCase(Long tenantId, String codigo);
+    Page<LoteEtiqueta> findAllByTenant_Id(Long tenantId, Pageable pageable);
+    Page<LoteEtiqueta> findAllByTenant_IdAndKitFisico_Id(Long tenantId, Long kitFisicoId, Pageable pageable);
 
     long countByTenant_IdAndStatusIn(Long tenantId, List<LoteStatus> statuses);
 
     long countByKitVersao_IdAndTenant_Id(Long kitVersaoId, Long tenantId);
+    long countByKitFisico_IdAndTenant_IdAndStatusIn(Long kitFisicoId, Long tenantId, List<LoteStatus> statuses);
 
     long countByTenant_IdAndValidadeBetweenAndStatusIn(Long tenantId, LocalDate from, LocalDate to, List<LoteStatus> statuses);
 

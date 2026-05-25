@@ -77,3 +77,13 @@
       file: db/changelog/changes/V38__kit_version_aprovacao.yaml
   - include:
       file: db/changelog/changes/V39__kit_item_update_delete_permissions.yaml
+  - include:
+      file: db/changelog/changes/V40__kit_fisico_aprovacao.yaml
+  - include:
+      file: db/changelog/changes/V41__kit_fisico_modelo_opcional.yaml
+  - include:
+      file: db/changelog/changes/V42__kit_fisico_aprovacao_permission.yaml
+  - include:
+      file: db/changelog/changes/V43__lote_entrada_permission.yaml
+  - include:
+      file: db/changelog/changes/V44__cme_kit_fisico_lote_view.yaml

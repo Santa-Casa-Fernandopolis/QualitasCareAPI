@@ -1,10 +1,14 @@
 package com.erp.qualitascareapi.cme.domain;
 
 import com.erp.qualitascareapi.cme.enums.IdentificacaoFisicaStatus;
+import com.erp.qualitascareapi.cme.enums.StatusAprovacaoCme;
 import com.erp.qualitascareapi.core.domain.KitProcedimento;
 import com.erp.qualitascareapi.core.domain.KitVersion;
 import com.erp.qualitascareapi.iam.domain.Tenant;
+import com.erp.qualitascareapi.iam.domain.User;
 import jakarta.persistence.*;
+
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "cme_kits_fisicos",
@@ -24,8 +28,8 @@ public class KitFisico {
     @JoinColumn(name = "tenant_id", nullable = false)
     private Tenant tenant;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "kit_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "kit_id")
     private KitProcedimento kit;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -45,6 +49,17 @@ public class KitFisico {
     @Column(length = 800)
     private String observacoes;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status_aprovacao", nullable = false, length = 20)
+    private StatusAprovacaoCme statusAprovacao = StatusAprovacaoCme.PENDENTE;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "aprovado_por_id")
+    private User aprovadoPor;
+
+    @Column(name = "aprovado_em")
+    private LocalDateTime aprovadoEm;
+
     @Column(nullable = false)
     private Boolean ativo = Boolean.TRUE;
 
@@ -63,6 +78,12 @@ public class KitFisico {
     public void setLocalizacao(String localizacao) { this.localizacao = localizacao; }
     public String getObservacoes() { return observacoes; }
     public void setObservacoes(String observacoes) { this.observacoes = observacoes; }
+    public StatusAprovacaoCme getStatusAprovacao() { return statusAprovacao; }
+    public void setStatusAprovacao(StatusAprovacaoCme statusAprovacao) { this.statusAprovacao = statusAprovacao; }
+    public User getAprovadoPor() { return aprovadoPor; }
+    public void setAprovadoPor(User aprovadoPor) { this.aprovadoPor = aprovadoPor; }
+    public LocalDateTime getAprovadoEm() { return aprovadoEm; }
+    public void setAprovadoEm(LocalDateTime aprovadoEm) { this.aprovadoEm = aprovadoEm; }
     public Boolean getAtivo() { return ativo; }
     public void setAtivo(Boolean ativo) { this.ativo = ativo; }
 }

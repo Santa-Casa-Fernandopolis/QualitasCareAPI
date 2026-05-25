@@ -1,0 +1,9 @@
+databaseChangeLog:
+  - changeSet:
+      id: v41-kit-fisico-modelo-opcional
+      author: codex
+      changes:
+        - dropNotNullConstraint:
+            tableName: cme_kits_fisicos
+            columnName: kit_id
+            columnDataType: BIGINT
