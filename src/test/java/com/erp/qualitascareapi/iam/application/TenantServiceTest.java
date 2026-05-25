@@ -1,5 +1,7 @@
 package com.erp.qualitascareapi.iam.application;
 
+import com.erp.qualitascareapi.common.application.EvidenciaArquivoStorageService;
+import com.erp.qualitascareapi.common.repo.EvidenciaArquivoRepository;
 import com.erp.qualitascareapi.iam.api.dto.TenantLoginOptionDto;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.domain.User;
@@ -29,13 +31,24 @@ class TenantServiceTest {
     private UserRepository userRepository;
 
     @Mock
+    private EvidenciaArquivoRepository evidenciaArquivoRepository;
+
+    @Mock
+    private EvidenciaArquivoStorageService evidenciaArquivoStorageService;
+
+    @Mock
     private TenantScopeGuard tenantScopeGuard;
 
     private TenantService tenantService;
 
     @BeforeEach
     void setUp() {
-        this.tenantService = new TenantService(tenantRepository, userRepository, tenantScopeGuard);
+        this.tenantService = new TenantService(
+                tenantRepository,
+                userRepository,
+                evidenciaArquivoRepository,
+                evidenciaArquivoStorageService,
+                tenantScopeGuard);
     }
 
     @Test

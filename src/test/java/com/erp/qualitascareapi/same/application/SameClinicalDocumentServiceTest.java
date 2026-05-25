@@ -15,6 +15,8 @@ import com.erp.qualitascareapi.same.storage.SameFileStorageService;
 import com.erp.qualitascareapi.same.storage.SameStoredFile;
 import com.erp.qualitascareapi.security.app.AuthContext;
 import com.erp.qualitascareapi.security.application.TenantScopeGuard;
+import com.erp.qualitascareapi.sistema.application.ConfiguracaoService;
+import com.erp.qualitascareapi.sistema.enums.ModuloConfiguracao;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -55,6 +57,9 @@ class SameClinicalDocumentServiceTest {
     @Mock
     private TenantScopeGuard tenantScopeGuard;
 
+    @Mock
+    private ConfiguracaoService configuracaoService;
+
     private SameClinicalDocumentService service;
 
     @BeforeEach
@@ -67,7 +72,9 @@ class SameClinicalDocumentServiceTest {
                 fileStorageService,
                 auditService,
                 tenantScopeGuard,
-                1024 * 1024);
+                configuracaoService);
+        when(configuracaoService.getValorInt(ModuloConfiguracao.SAME, "SAME_MAX_FILE_SIZE_BYTES"))
+                .thenReturn(Optional.empty());
     }
 
     @Test

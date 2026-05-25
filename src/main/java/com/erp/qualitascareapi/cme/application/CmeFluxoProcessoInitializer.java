@@ -1,10 +1,12 @@
 package com.erp.qualitascareapi.cme.application;
 
 import com.erp.qualitascareapi.cme.domain.CmeEtapaProcesso;
+import com.erp.qualitascareapi.cme.domain.CmeEtapaCatalogo;
 import com.erp.qualitascareapi.cme.domain.CmeFluxoProcesso;
 import com.erp.qualitascareapi.cme.enums.CmeEtapaTipo;
 import com.erp.qualitascareapi.cme.enums.TipoFluxoCME;
 import com.erp.qualitascareapi.cme.repo.CmeEtapaProcessoRepository;
+import com.erp.qualitascareapi.cme.repo.CmeEtapaCatalogoRepository;
 import com.erp.qualitascareapi.cme.repo.CmeFluxoProcessoRepository;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.repo.TenantRepository;
@@ -22,21 +24,45 @@ public class CmeFluxoProcessoInitializer implements ApplicationRunner {
     private final TenantRepository tenantRepository;
     private final CmeFluxoProcessoRepository fluxoRepository;
     private final CmeEtapaProcessoRepository etapaRepository;
+    private final CmeEtapaCatalogoRepository etapaCatalogoRepository;
 
     public CmeFluxoProcessoInitializer(TenantRepository tenantRepository,
                                        CmeFluxoProcessoRepository fluxoRepository,
-                                       CmeEtapaProcessoRepository etapaRepository) {
+                                       CmeEtapaProcessoRepository etapaRepository,
+                                       CmeEtapaCatalogoRepository etapaCatalogoRepository) {
         this.tenantRepository = tenantRepository;
         this.fluxoRepository = fluxoRepository;
         this.etapaRepository = etapaRepository;
+        this.etapaCatalogoRepository = etapaCatalogoRepository;
     }
 
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
         for (Tenant tenant : tenantRepository.findAll()) {
+            seedCatalogo(tenant, etapasCatalogo());
             seedFluxo(tenant, TipoFluxoCME.CIRURGICO, "Fluxo cirúrgico padrão", etapasCirurgicas());
             seedFluxo(tenant, TipoFluxoCME.INHALATORIO, "Fluxo inalatório padrão", etapasInalatorias());
+        }
+    }
+
+    private void seedCatalogo(Tenant tenant, List<EtapaSeed> etapas) {
+        for (EtapaSeed seed : etapas) {
+            if (etapaCatalogoRepository.existsByTenantIdAndCodigoIgnoreCase(tenant.getId(), seed.codigo())) {
+                continue;
+            }
+            CmeEtapaCatalogo etapa = new CmeEtapaCatalogo();
+            etapa.setTenant(tenant);
+            etapa.setCodigo(seed.codigo());
+            etapa.setNome(seed.nome());
+            etapa.setTipoEtapa(seed.tipo());
+            etapa.setObrigatoria(seed.obrigatoria());
+            etapa.setPermitePular(seed.permitePular());
+            etapa.setExigeEvidencia(seed.exigeEvidencia());
+            etapa.setExigeAprovacao(seed.exigeAprovacao());
+            etapa.setRotaDestino(seed.rotaDestino());
+            etapa.setAtivo(true);
+            etapaCatalogoRepository.save(etapa);
         }
     }
 
@@ -80,6 +106,21 @@ public class CmeFluxoProcessoInitializer implements ApplicationRunner {
                 etapa("esterilizacao", "Esterilização por autoclave", CmeEtapaTipo.ESTERILIZACAO, 70, true, false, true, true, "/cme/ciclos"),
                 etapa("liberacao", "Liberação", CmeEtapaTipo.LIBERACAO, 80, true, false, false, true, "/cme/aprovacoes-cme"),
                 etapa("estoque", "Estoque estéril", CmeEtapaTipo.ESTOQUE, 90, true, false, false, false, "/cme/lotes")
+        );
+    }
+
+    private List<EtapaSeed> etapasCatalogo() {
+        return List.of(
+                etapa("RECEBIMENTO", "Recebimento", CmeEtapaTipo.RECEBIMENTO, 10, true, false, false, false, "/cme/recebimentos"),
+                etapa("LIMPEZA_MANUAL", "Limpeza manual", CmeEtapaTipo.LIMPEZA_MANUAL, 20, true, false, false, false, "/cme/processos"),
+                etapa("ULTRASSONICA", "Higienização ultrassônica", CmeEtapaTipo.ULTRASSONICA, 30, false, true, false, false, "/cme/ultrassonica"),
+                etapa("BANHO_QUIMICO", "Desinfecção química", CmeEtapaTipo.BANHO_QUIMICO, 30, true, false, true, false, "/cme/usos-saneante"),
+                etapa("SECAGEM", "Secagem", CmeEtapaTipo.SECAGEM, 40, true, false, false, false, "/cme/secagens"),
+                etapa("CONFERENCIA", "Conferência", CmeEtapaTipo.CONFERENCIA, 50, true, false, false, false, "/cme/secagens"),
+                etapa("MONTAGEM", "Montagem e embalagem", CmeEtapaTipo.MONTAGEM, 60, true, false, false, false, "/cme/lotes"),
+                etapa("ESTERILIZACAO", "Esterilização por autoclave", CmeEtapaTipo.ESTERILIZACAO, 70, true, false, true, true, "/cme/ciclos"),
+                etapa("LIBERACAO", "Liberação", CmeEtapaTipo.LIBERACAO, 80, true, false, false, true, "/cme/aprovacoes-cme"),
+                etapa("ESTOQUE", "Estoque", CmeEtapaTipo.ESTOQUE, 90, true, false, false, false, "/cme/lotes")
         );
     }
 

@@ -60,10 +60,22 @@ public class LoteController {
         return loteService.findLoteById(id);
     }
 
+    @GetMapping("/lotes/{id}/detalhe")
+    @RequiresPermission(resource = ResourceType.CME_LOTE, action = Action.READ)
+    public LoteDetalheDto getLoteDetalhe(@PathVariable Long id) {
+        return loteService.findLoteDetalhe(id);
+    }
+
     @PatchMapping("/lotes/{id}/status")
     @RequiresPermission(resource = ResourceType.CME_LOTE, action = Action.UPDATE)
     public LoteEtiquetaDto updateLoteStatus(@PathVariable Long id, @RequestParam LoteStatus status) {
         return loteService.updateLoteStatus(id, status);
+    }
+
+    @PostMapping("/lotes/baixa-uso")
+    @RequiresPermission(resource = ResourceType.CME_LOTE, action = Action.UPDATE)
+    public BaixaUsoLoteDto registrarBaixaUso(@Validated @RequestBody BaixaUsoLoteRequest request) {
+        return loteService.registrarBaixaUso(request);
     }
 
     @PostMapping("/movimentacoes")

@@ -1,0 +1,127 @@
+databaseChangeLog:
+  - changeSet:
+      id: v38-001-kit-version-aprovacao
+      author: codex
+      changes:
+        - addColumn:
+            tableName: cme_kits_versao
+            columns:
+              - column:
+                  name: status_aprovacao
+                  type: VARCHAR(20)
+                  defaultValue: PENDENTE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: aprovado_por_id
+                  type: BIGINT
+              - column:
+                  name: aprovado_em
+                  type: TIMESTAMP
+              - column:
+                  name: revalidado_em
+                  type: TIMESTAMP
+        - addForeignKeyConstraint:
+            baseTableName: cme_kits_versao
+            baseColumnNames: aprovado_por_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_cme_kits_versao_aprovado_por
+        - createIndex:
+            tableName: cme_kits_versao
+            indexName: ix_cme_kits_versao_status_aprovacao
+            columns:
+              - column:
+                  name: status_aprovacao
+
+  - changeSet:
+      id: v38-002-kit-version-aprovacao-aud
+      author: codex
+      preConditions:
+        onFail: MARK_RAN
+        tableExists:
+          tableName: cme_kits_versao_aud
+      changes:
+        - addColumn:
+            tableName: cme_kits_versao_aud
+            columns:
+              - column:
+                  name: status_aprovacao
+                  type: VARCHAR(20)
+              - column:
+                  name: aprovado_por_id
+                  type: BIGINT
+              - column:
+                  name: aprovado_em
+                  type: TIMESTAMP
+              - column:
+                  name: revalidado_em
+                  type: TIMESTAMP
+
+  - changeSet:
+      id: v38-003-notificacao-kit-aprovacao
+      author: codex
+      changes:
+        - sql:
+            splitStatements: false
+            sql: |
+              INSERT INTO notificacao_subscricoes (tenant_id, usuario_id, tipo, canal_email, criado_em)
+              SELECT t.id, u.id, 'CME_KIT_VERSAO_APROVACAO_SOLICITADA', TRUE, CURRENT_TIMESTAMP
+              FROM tenants t
+              JOIN users u ON u.tenant_id = t.id
+              WHERE u.email IS NOT NULL
+                AND (UPPER(COALESCE(u.department, '')) LIKE '%CME%' OR UPPER(COALESCE(u.full_name, '')) LIKE '%SUPERV%')
+                AND NOT EXISTS (
+                  SELECT 1 FROM notificacao_subscricoes ns
+                  WHERE ns.tenant_id = t.id
+                    AND ns.tipo = 'CME_KIT_VERSAO_APROVACAO_SOLICITADA'
+                    AND ns.usuario_id = u.id
+                );
+
+  - changeSet:
+      id: v38-004-kit-version-item-permissions
+      author: codex
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO permissions (tenant_id, resource, action, feature, code)
+              SELECT t.id, permission_scope.resource, permission_scope.action, permission_scope.feature,
+                     permission_scope.resource || '_' || permission_scope.action || '@' || permission_scope.feature
+              FROM tenants t
+              CROSS JOIN (
+                SELECT 'CME_KIT' AS resource, 'UPDATE' AS action, 'VERSAO' AS feature
+                UNION ALL SELECT 'CME_KIT', 'UPDATE', 'ITEM'
+                UNION ALL SELECT 'CME_KIT', 'DELETE', 'ITEM'
+              ) permission_scope
+              WHERE NOT EXISTS (
+                SELECT 1
+                FROM permissions p
+                WHERE p.tenant_id = t.id
+                  AND p.resource = permission_scope.resource
+                  AND p.action = permission_scope.action
+                  AND p.feature = permission_scope.feature
+              );
+
+  - changeSet:
+      id: v38-005-kit-version-item-role-permissions
+      author: codex
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO role_permissions (tenant_id, role_id, permission_id)
+              SELECT r.tenant_id, r.id, p.id
+              FROM roles r
+              JOIN permissions p ON p.tenant_id = r.tenant_id
+              WHERE r.name IN ('SYSTEM_ADMIN', 'ADMIN_TI', 'ADMIN_ASSISTENCIAL', 'GESTOR')
+                AND p.resource = 'CME_KIT'
+                AND (
+                  (p.action = 'UPDATE' AND p.feature IN ('VERSAO', 'ITEM'))
+                  OR (p.action = 'DELETE' AND p.feature = 'ITEM')
+                )
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM role_permissions rp
+                  WHERE rp.tenant_id = r.tenant_id
+                    AND rp.role_id = r.id
+                    AND rp.permission_id = p.id
+                );

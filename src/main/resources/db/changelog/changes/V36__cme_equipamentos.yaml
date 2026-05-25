@@ -1,0 +1,104 @@
+databaseChangeLog:
+  - changeSet:
+      id: V36-1-cme-equipamentos
+      author: qualitascare
+      preConditions:
+        onFail: MARK_RAN
+        not:
+          tableExists:
+            tableName: cme_equipamentos
+      changes:
+        - createTable:
+            tableName: cme_equipamentos
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_cme_equipamentos
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: codigo
+                  type: VARCHAR(60)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: nome
+                  type: VARCHAR(120)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: tipo_equipamento
+                  type: VARCHAR(40)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: fabricante
+                  type: VARCHAR(80)
+              - column:
+                  name: modelo
+                  type: VARCHAR(80)
+              - column:
+                  name: numero_serie
+                  type: VARCHAR(80)
+              - column:
+                  name: localizacao
+                  type: VARCHAR(120)
+              - column:
+                  name: ativo
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: observacoes
+                  type: VARCHAR(255)
+        - addForeignKeyConstraint:
+            baseTableName: cme_equipamentos
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_cme_equipamento_tenant
+        - addUniqueConstraint:
+            tableName: cme_equipamentos
+            columnNames: tenant_id, codigo
+            constraintName: uk_cme_equipamento_codigo
+
+  - changeSet:
+      id: V36-2-cme-equipamento-etapas
+      author: qualitascare
+      preConditions:
+        onFail: MARK_RAN
+        not:
+          tableExists:
+            tableName: cme_equipamento_etapas
+      changes:
+        - createTable:
+            tableName: cme_equipamento_etapas
+            columns:
+              - column:
+                  name: equipamento_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: tipo_etapa
+                  type: VARCHAR(30)
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: cme_equipamento_etapas
+            columnNames: equipamento_id, tipo_etapa
+            constraintName: pk_cme_equipamento_etapas
+        - addForeignKeyConstraint:
+            baseTableName: cme_equipamento_etapas
+            baseColumnNames: equipamento_id
+            referencedTableName: cme_equipamentos
+            referencedColumnNames: id
+            constraintName: fk_cme_equipamento_etapa_equipamento

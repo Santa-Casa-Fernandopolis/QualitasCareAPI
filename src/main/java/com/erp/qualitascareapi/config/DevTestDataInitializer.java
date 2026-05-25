@@ -1312,6 +1312,12 @@ public class DevTestDataInitializer implements ApplicationRunner {
                     Action.CREATE,
                     "VERSAO",
                     "CME_KIT_CREATE@VERSAO");
+            Permission kitVersionUpdate = findOrCreatePermission(
+                    tenant,
+                    ResourceType.CME_KIT,
+                    Action.UPDATE,
+                    "VERSAO",
+                    "CME_KIT_UPDATE@VERSAO");
             Permission kitVersionDelete = findOrCreatePermission(
                     tenant,
                     ResourceType.CME_KIT,
@@ -1330,6 +1336,18 @@ public class DevTestDataInitializer implements ApplicationRunner {
                     Action.CREATE,
                     "ITEM",
                     "CME_KIT_CREATE@ITEM");
+            Permission kitItemUpdate = findOrCreatePermission(
+                    tenant,
+                    ResourceType.CME_KIT,
+                    Action.UPDATE,
+                    "ITEM",
+                    "CME_KIT_UPDATE@ITEM");
+            Permission kitItemDelete = findOrCreatePermission(
+                    tenant,
+                    ResourceType.CME_KIT,
+                    Action.DELETE,
+                    "ITEM",
+                    "CME_KIT_DELETE@ITEM");
 
             for (String roleName : List.of(
                     "SYSTEM_ADMIN",
@@ -1360,8 +1378,11 @@ public class DevTestDataInitializer implements ApplicationRunner {
                     ensureRolePermission(role, kitUpdate, tenant);
                     ensureRolePermission(role, kitDelete, tenant);
                     ensureRolePermission(role, kitVersionCreate, tenant);
+                    ensureRolePermission(role, kitVersionUpdate, tenant);
                     ensureRolePermission(role, kitVersionDelete, tenant);
                     ensureRolePermission(role, kitItemCreate, tenant);
+                    ensureRolePermission(role, kitItemUpdate, tenant);
+                    ensureRolePermission(role, kitItemDelete, tenant);
                 });
             }
         }

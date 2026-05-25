@@ -91,6 +91,18 @@ public class KitController {
         kitService.deleteKitVersion(id);
     }
 
+    @PatchMapping("/kits/versoes/{id}/aprovacao")
+    @RequiresPermission(resource = ResourceType.CME_KIT, action = Action.UPDATE, feature = "VERSAO")
+    public KitVersionDto aprovarKitVersion(@PathVariable Long id, @Validated @RequestBody KitVersionApprovalRequest request) {
+        return kitService.registrarAprovacaoVersao(id, request);
+    }
+
+    @PatchMapping("/kits/versoes/{id}/revalidacao")
+    @RequiresPermission(resource = ResourceType.CME_KIT, action = Action.UPDATE, feature = "VERSAO")
+    public KitVersionDto revalidarKitVersion(@PathVariable Long id, @Validated @RequestBody KitVersionRevalidacaoRequest request) {
+        return kitService.revalidarVersao(id, request);
+    }
+
     @PostMapping("/kits/itens")
     @ResponseStatus(HttpStatus.CREATED)
     @RequiresPermission(resource = ResourceType.CME_KIT, action = Action.CREATE, feature = "ITEM")
@@ -98,9 +110,92 @@ public class KitController {
         return kitService.createKitItem(request);
     }
 
+    @PutMapping("/kits/itens/{id}")
+    @RequiresPermission(resource = ResourceType.CME_KIT, action = Action.UPDATE, feature = "ITEM")
+    public KitItemDto updateKitItem(@PathVariable Long id, @Validated @RequestBody KitItemRequest request) {
+        return kitService.updateKitItem(id, request);
+    }
+
+    @DeleteMapping("/kits/itens/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @RequiresPermission(resource = ResourceType.CME_KIT, action = Action.DELETE, feature = "ITEM")
+    public void deleteKitItem(@PathVariable Long id) {
+        kitService.deleteKitItem(id);
+    }
+
     @GetMapping("/kits/itens")
     @RequiresPermission(resource = ResourceType.CME_KIT, action = Action.READ, feature = "ITEM")
     public Page<KitItemDto> listKitItems(@RequestParam(required = false) Long versaoId, Pageable pageable) {
         return kitService.listKitItems(versaoId, pageable);
+    }
+
+    @PostMapping("/instrumentos-fisicos")
+    @ResponseStatus(HttpStatus.CREATED)
+    @RequiresPermission(resource = ResourceType.CME_KIT, action = Action.CREATE, feature = "CADASTRO")
+    public InstrumentoFisicoDto createInstrumentoFisico(@Validated @RequestBody InstrumentoFisicoRequest request) {
+        return kitService.createInstrumentoFisico(request);
+    }
+
+    @GetMapping("/instrumentos-fisicos")
+    @RequiresPermission(resource = ResourceType.CME_KIT, action = Action.READ, feature = "LISTA")
+    public Page<InstrumentoFisicoDto> listInstrumentosFisicos(Pageable pageable) {
+        return kitService.listInstrumentosFisicos(pageable);
+    }
+
+    @GetMapping("/instrumentos-fisicos/{id}")
+    @RequiresPermission(resource = ResourceType.CME_KIT, action = Action.READ, feature = "LISTA")
+    public InstrumentoFisicoDto getInstrumentoFisico(@PathVariable Long id) {
+        return kitService.findInstrumentoFisicoById(id);
+    }
+
+    @PutMapping("/instrumentos-fisicos/{id}")
+    @RequiresPermission(resource = ResourceType.CME_KIT, action = Action.UPDATE, feature = "CADASTRO")
+    public InstrumentoFisicoDto updateInstrumentoFisico(@PathVariable Long id, @Validated @RequestBody InstrumentoFisicoRequest request) {
+        return kitService.updateInstrumentoFisico(id, request);
+    }
+
+    @PostMapping("/kits-fisicos")
+    @ResponseStatus(HttpStatus.CREATED)
+    @RequiresPermission(resource = ResourceType.CME_KIT, action = Action.CREATE, feature = "CADASTRO")
+    public KitFisicoDto createKitFisico(@Validated @RequestBody KitFisicoRequest request) {
+        return kitService.createKitFisico(request);
+    }
+
+    @GetMapping("/kits-fisicos")
+    @RequiresPermission(resource = ResourceType.CME_KIT, action = Action.READ, feature = "LISTA")
+    public Page<KitFisicoDto> listKitsFisicos(Pageable pageable) {
+        return kitService.listKitsFisicos(pageable);
+    }
+
+    @GetMapping("/kits-fisicos/{id}")
+    @RequiresPermission(resource = ResourceType.CME_KIT, action = Action.READ, feature = "LISTA")
+    public KitFisicoDto getKitFisico(@PathVariable Long id) {
+        return kitService.findKitFisicoById(id);
+    }
+
+    @PutMapping("/kits-fisicos/{id}")
+    @RequiresPermission(resource = ResourceType.CME_KIT, action = Action.UPDATE, feature = "CADASTRO")
+    public KitFisicoDto updateKitFisico(@PathVariable Long id, @Validated @RequestBody KitFisicoRequest request) {
+        return kitService.updateKitFisico(id, request);
+    }
+
+    @PostMapping("/kits-fisicos/instrumentos")
+    @ResponseStatus(HttpStatus.CREATED)
+    @RequiresPermission(resource = ResourceType.CME_KIT, action = Action.CREATE, feature = "ITEM")
+    public KitFisicoInstrumentoDto vincularInstrumentoFisico(@Validated @RequestBody KitFisicoInstrumentoRequest request) {
+        return kitService.vincularInstrumentoFisico(request);
+    }
+
+    @GetMapping("/kits-fisicos/{id}/instrumentos")
+    @RequiresPermission(resource = ResourceType.CME_KIT, action = Action.READ, feature = "ITEM")
+    public Page<KitFisicoInstrumentoDto> listInstrumentosDoKitFisico(@PathVariable Long id, Pageable pageable) {
+        return kitService.listInstrumentosDoKitFisico(id, pageable);
+    }
+
+    @DeleteMapping("/kits-fisicos/instrumentos/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @RequiresPermission(resource = ResourceType.CME_KIT, action = Action.DELETE, feature = "ITEM")
+    public void deleteInstrumentoKitFisico(@PathVariable Long id) {
+        kitService.desvincularInstrumentoFisico(id);
     }
 }

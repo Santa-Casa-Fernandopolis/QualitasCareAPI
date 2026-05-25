@@ -12,4 +12,5 @@ public interface CmeEtapaExecucaoRepository extends JpaRepository<CmeEtapaExecuc
     List<CmeEtapaExecucao> findAllByProcesso_Tenant_IdOrderByProcesso_DataAberturaDesc(Long tenantId);
     Optional<CmeEtapaExecucao> findFirstByProcessoIdAndEtapa_TipoEtapaOrderByEtapa_OrdemAsc(Long processoId, CmeEtapaTipo tipoEtapa);
     boolean existsByProcessoId(Long processoId);
+    boolean existsByEtapaId(Long etapaId);
 }

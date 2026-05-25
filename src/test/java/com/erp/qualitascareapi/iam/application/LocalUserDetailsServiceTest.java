@@ -75,6 +75,22 @@ class LocalUserDetailsServiceTest {
     }
 
     @Test
+    void loadUserByUsername_acceptsTenantIdWhenCodeLookupDoesNotMatch() {
+        User user = buildUser("admin.scf");
+        when(userRepository.findByUsernameIgnoreCaseAndTenant_Code("admin.scf", "1"))
+                .thenReturn(Optional.empty());
+        when(userRepository.findByUsernameIgnoreCaseAndTenant_Id("admin.scf", 1L))
+                .thenReturn(Optional.of(user));
+
+        UserDetails details = service.loadUserByUsername("admin.scf@1");
+
+        assertThat(details.getUsername()).isEqualTo("admin.scf");
+        verify(userRepository).findByUsernameIgnoreCaseAndTenant_Code("admin.scf", "1");
+        verify(userRepository).findByUsernameIgnoreCaseAndTenant_Id("admin.scf", 1L);
+        verify(userRepository, never()).findByUsernameIgnoreCase("admin.scf");
+    }
+
+    @Test
     void loadUserByUsername_withoutTenantFallsBackToGenericLookup() {
         User user = buildUser("enf.scf");
         when(userRepository.findByUsernameIgnoreCase("enf.scf"))

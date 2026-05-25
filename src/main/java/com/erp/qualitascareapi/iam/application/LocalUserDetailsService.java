@@ -55,8 +55,8 @@ public class LocalUserDetailsService implements UserDetailsService {
             if (normalizedCode.isEmpty()) {
                 throw new UsernameNotFoundException("Tenant code must be provided when using tenant/username format");
             }
-            return userRepository
-                    .findByUsernameIgnoreCaseAndTenant_Code(username, normalizedCode)
+            return userRepository.findByUsernameIgnoreCaseAndTenant_Code(username, normalizedCode)
+                    .or(() -> resolveByTenantId(username, normalizedCode))
                     .orElseThrow(() -> new UsernameNotFoundException("User not found for tenant"));
         }
 
@@ -68,5 +68,13 @@ public class LocalUserDetailsService implements UserDetailsService {
         }
 
         return user;
+    }
+
+    private java.util.Optional<User> resolveByTenantId(String username, String tenantCode) {
+        try {
+            return userRepository.findByUsernameIgnoreCaseAndTenant_Id(username, Long.valueOf(tenantCode));
+        } catch (NumberFormatException ignored) {
+            return java.util.Optional.empty();
+        }
     }
 }

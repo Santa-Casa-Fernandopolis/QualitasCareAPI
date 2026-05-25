@@ -67,3 +67,13 @@
       file: db/changelog/changes/V33__saneante_lote_preparador.yaml
   - include:
       file: db/changelog/changes/V34__cme_fluxo_dinamico_rastreabilidade.yaml
+  - include:
+      file: db/changelog/changes/V35__cme_etapas_catalogo.yaml
+  - include:
+      file: db/changelog/changes/V36__cme_equipamentos.yaml
+  - include:
+      file: db/changelog/changes/V37__cme_identificacao_fisica.yaml
+  - include:
+      file: db/changelog/changes/V38__kit_version_aprovacao.yaml
+  - include:
+      file: db/changelog/changes/V39__kit_item_update_delete_permissions.yaml

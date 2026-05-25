@@ -21,5 +21,7 @@ public enum TipoNotificacao {
     /** Supervisor do setor precisa validar teste Bowie-Dick. */
     CME_BOWIE_DICK_VALIDACAO_SOLICITADA,
     /** Qualidade precisa tratar Teste Bowie-Dick reprovado. */
-    CME_BOWIE_DICK_REPROVADO_QUALIDADE
+    CME_BOWIE_DICK_REPROVADO_QUALIDADE,
+    /** Supervisora da CME precisa aprovar uma versão de kit. */
+    CME_KIT_VERSAO_APROVACAO_SOLICITADA
 }

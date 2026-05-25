@@ -11,6 +11,7 @@ import com.erp.qualitascareapi.iam.domain.User;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import org.hibernate.envers.Audited;
+import org.hibernate.envers.RelationTargetAuditMode;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -32,7 +33,8 @@ import java.util.Objects;
                 @Index(name = "ix_lote_tenant_status",      columnList = "tenant_id,status"),
                 @Index(name = "ix_lote_tenant_tipo_fluxo",  columnList = "tenant_id,tipo_fluxo"),
                 @Index(name = "ix_lote_tenant_ciclo",       columnList = "tenant_id,ciclo_esterilizacao_id"),
-                @Index(name = "ix_lote_tenant_kit_versao",  columnList = "tenant_id,kit_versao_id")
+                @Index(name = "ix_lote_tenant_kit_versao",  columnList = "tenant_id,kit_versao_id"),
+                @Index(name = "ix_lote_tenant_kit_fisico",  columnList = "tenant_id,kit_fisico_id")
         })
 public class LoteEtiqueta implements ApprovableTarget {
 
@@ -59,6 +61,11 @@ public class LoteEtiqueta implements ApprovableTarget {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "kit_versao_id")
     private KitVersion kitVersao;
+
+    @Audited(targetAuditMode = RelationTargetAuditMode.NOT_AUDITED)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "kit_fisico_id")
+    private KitFisico kitFisico;
 
     // Descrição livre para inalatórios (máscara, tubo, etc.)
     @Column(name = "descricao_item", length = 200)
@@ -115,6 +122,8 @@ public class LoteEtiqueta implements ApprovableTarget {
     public void setProcesso(ProcessoReprocessamento processo)  { this.processo = processo; }
     public KitVersion getKitVersao()                           { return kitVersao; }
     public void setKitVersao(KitVersion kitVersao)             { this.kitVersao = kitVersao; }
+    public KitFisico getKitFisico()                            { return kitFisico; }
+    public void setKitFisico(KitFisico kitFisico)              { this.kitFisico = kitFisico; }
     public String getDescricaoItem()                           { return descricaoItem; }
     public void setDescricaoItem(String descricaoItem)         { this.descricaoItem = descricaoItem; }
     public CicloEsterilizacao getCicloEsterilizacao()          { return cicloEsterilizacao; }

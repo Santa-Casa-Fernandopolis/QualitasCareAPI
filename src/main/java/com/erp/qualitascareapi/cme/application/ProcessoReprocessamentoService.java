@@ -10,6 +10,7 @@ import com.erp.qualitascareapi.cme.repo.*;
 import com.erp.qualitascareapi.cme.domain.ConferenciaKit;
 import com.erp.qualitascareapi.cme.domain.SecagemMaterial;
 import com.erp.qualitascareapi.common.domain.EvidenciaArquivo;
+import com.erp.qualitascareapi.common.exception.ApplicationException;
 import com.erp.qualitascareapi.common.repo.EvidenciaArquivoRepository;
 import com.erp.qualitascareapi.iam.domain.Tenant;
 import com.erp.qualitascareapi.iam.domain.User;
@@ -17,6 +18,7 @@ import com.erp.qualitascareapi.iam.repo.TenantRepository;
 import com.erp.qualitascareapi.iam.repo.UserRepository;
 import com.erp.qualitascareapi.security.application.TenantScopeGuard;
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.http.HttpStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -50,6 +52,7 @@ public class ProcessoReprocessamentoService {
     private final EvidenciaArquivoRepository evidenciaArquivoRepository;
     private final CmeFluxoProcessoRepository fluxoProcessoRepository;
     private final CmeEtapaProcessoRepository etapaProcessoRepository;
+    private final CmeEtapaCatalogoRepository etapaCatalogoRepository;
     private final CmeEtapaExecucaoRepository etapaExecucaoRepository;
     private final TenantScopeGuard tenantScopeGuard;
 
@@ -66,6 +69,7 @@ public class ProcessoReprocessamentoService {
                                           EvidenciaArquivoRepository evidenciaArquivoRepository,
                                           CmeFluxoProcessoRepository fluxoProcessoRepository,
                                           CmeEtapaProcessoRepository etapaProcessoRepository,
+                                          CmeEtapaCatalogoRepository etapaCatalogoRepository,
                                           CmeEtapaExecucaoRepository etapaExecucaoRepository,
                                           TenantScopeGuard tenantScopeGuard) {
         this.tenantRepository = tenantRepository;
@@ -81,6 +85,7 @@ public class ProcessoReprocessamentoService {
         this.evidenciaArquivoRepository = evidenciaArquivoRepository;
         this.fluxoProcessoRepository = fluxoProcessoRepository;
         this.etapaProcessoRepository = etapaProcessoRepository;
+        this.etapaCatalogoRepository = etapaCatalogoRepository;
         this.etapaExecucaoRepository = etapaExecucaoRepository;
         this.tenantScopeGuard = tenantScopeGuard;
     }
@@ -131,6 +136,42 @@ public class ProcessoReprocessamentoService {
 
     // ---- Fluxos e rastreabilidade ----
 
+    public List<CmeEtapaCatalogoDto> listEtapasCatalogo() {
+        return etapaCatalogoRepository.findAllByTenantIdOrderByNomeAsc(tenantScopeGuard.currentTenantId())
+                .stream().map(this::toEtapaCatalogoDto).toList();
+    }
+
+    public CmeEtapaCatalogoDto createEtapaCatalogo(CmeEtapaCatalogoRequest request) {
+        tenantScopeGuard.checkRequestedTenant(request.tenantId());
+        Tenant tenant = tenantRepository.findById(request.tenantId())
+                .orElseThrow(() -> new EntityNotFoundException("Tenant não encontrado"));
+        String codigo = normalizeCodigo(request.codigo());
+        if (etapaCatalogoRepository.existsByTenantIdAndCodigoIgnoreCase(tenant.getId(), codigo)) {
+            throw new ApplicationException(HttpStatus.CONFLICT, "cme.etapa-catalogo.codigo-duplicado",
+                    "Já existe uma etapa cadastrada com este código.");
+        }
+        CmeEtapaCatalogo etapa = new CmeEtapaCatalogo();
+        etapa.setTenant(tenant);
+        applyEtapaCatalogoRequest(etapa, request, codigo);
+        return toEtapaCatalogoDto(etapaCatalogoRepository.save(etapa));
+    }
+
+    public CmeEtapaCatalogoDto updateEtapaCatalogo(Long id, CmeEtapaCatalogoRequest request) {
+        CmeEtapaCatalogo etapa = etapaCatalogoRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Etapa não encontrada"));
+        tenantScopeGuard.checkRequestedTenant(etapa.getTenant().getId());
+        String codigo = normalizeCodigo(request.codigo());
+        applyEtapaCatalogoRequest(etapa, request, codigo);
+        return toEtapaCatalogoDto(etapaCatalogoRepository.save(etapa));
+    }
+
+    public void deleteEtapaCatalogo(Long id) {
+        CmeEtapaCatalogo etapa = etapaCatalogoRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Etapa não encontrada"));
+        tenantScopeGuard.checkRequestedTenant(etapa.getTenant().getId());
+        etapaCatalogoRepository.delete(etapa);
+    }
+
     public List<CmeFluxoProcessoDto> listFluxosProcesso() {
         return fluxoProcessoRepository.findAllByTenantIdOrderByTipoFluxoAscNumeroVersaoDesc(tenantScopeGuard.currentTenantId())
                 .stream().map(this::toFluxoDto).toList();
@@ -173,11 +214,38 @@ public class ProcessoReprocessamentoService {
         return toEtapaDto(etapaProcessoRepository.save(buildEtapa(fluxo, request)));
     }
 
-    public List<CmeRastreabilidadeColunaDto> getRastreabilidade() {
+    public CmeEtapaProcessoDto updateEtapaFluxo(Long fluxoId, Long etapaId, CmeEtapaProcessoRequest request) {
+        CmeEtapaProcesso etapa = findEtapaDoFluxo(fluxoId, etapaId);
+        etapa.setCodigo(request.codigo());
+        etapa.setNome(request.nome());
+        etapa.setTipoEtapa(request.tipoEtapa());
+        etapa.setOrdem(request.ordem());
+        etapa.setObrigatoria(request.obrigatoria() == null || request.obrigatoria());
+        etapa.setPermitePular(request.permitePular() != null && request.permitePular());
+        etapa.setExigeEvidencia(request.exigeEvidencia() != null && request.exigeEvidencia());
+        etapa.setExigeAprovacao(request.exigeAprovacao() != null && request.exigeAprovacao());
+        etapa.setRotaDestino(request.rotaDestino());
+        etapa.setObservacoes(request.observacoes());
+        return toEtapaDto(etapaProcessoRepository.save(etapa));
+    }
+
+    public void deleteEtapaFluxo(Long fluxoId, Long etapaId) {
+        CmeEtapaProcesso etapa = findEtapaDoFluxo(fluxoId, etapaId);
+        if (etapaExecucaoRepository.existsByEtapaId(etapaId)) {
+            throw new ApplicationException(HttpStatus.CONFLICT, "cme.fluxo-etapa.in-use",
+                    "Não é possível excluir uma etapa já utilizada em processos da CME. Crie uma nova versão do fluxo.");
+        }
+        etapaProcessoRepository.delete(etapa);
+    }
+
+    public List<CmeRastreabilidadeColunaDto> getRastreabilidade(TipoFluxoCME tipoFluxo) {
         Long tenantId = tenantScopeGuard.currentTenantId();
         List<CmeEtapaExecucao> execucoes = etapaExecucaoRepository.findAllByProcesso_Tenant_IdOrderByProcesso_DataAberturaDesc(tenantId);
         Map<Long, CmeRastreabilidadeColunaDtoBuilder> columns = new LinkedHashMap<>();
         for (CmeEtapaExecucao execucao : execucoes) {
+            if (tipoFluxo != null && execucao.getProcesso().getTipoFluxo() != tipoFluxo) {
+                continue;
+            }
             CmeEtapaProcesso etapa = execucao.getEtapa();
             columns.computeIfAbsent(etapa.getId(), id -> new CmeRastreabilidadeColunaDtoBuilder(etapa));
             if (execucao.getStatus() == CmeEtapaExecucaoStatus.EM_ANDAMENTO) {
@@ -188,6 +256,7 @@ public class ProcessoReprocessamentoService {
         List<CmeFluxoProcesso> fluxos = fluxoProcessoRepository.findAllByTenantIdOrderByTipoFluxoAscNumeroVersaoDesc(tenantId);
         fluxos.stream()
                 .filter(CmeFluxoProcesso::isAtivo)
+                .filter(fluxo -> tipoFluxo == null || fluxo.getTipoFluxo() == tipoFluxo)
                 .forEach(fluxo -> etapaProcessoRepository.findAllByFluxoProcessoIdOrderByOrdemAsc(fluxo.getId())
                         .forEach(etapa -> columns.computeIfAbsent(etapa.getId(), id -> new CmeRastreabilidadeColunaDtoBuilder(etapa))));
 
@@ -412,10 +481,20 @@ public class ProcessoReprocessamentoService {
         };
     }
 
+    private CmeEtapaProcesso findEtapaDoFluxo(Long fluxoId, Long etapaId) {
+        CmeEtapaProcesso etapa = etapaProcessoRepository.findById(etapaId)
+                .orElseThrow(() -> new EntityNotFoundException("Etapa não encontrada"));
+        if (!etapa.getFluxoProcesso().getId().equals(fluxoId)) {
+            throw new EntityNotFoundException("Etapa não encontrada para o fluxo informado");
+        }
+        tenantScopeGuard.checkRequestedTenant(etapa.getFluxoProcesso().getTenant().getId());
+        return etapa;
+    }
+
     private CmeEtapaProcesso buildEtapa(CmeFluxoProcesso fluxo, CmeEtapaProcessoRequest request) {
         CmeEtapaProcesso etapa = new CmeEtapaProcesso();
         etapa.setFluxoProcesso(fluxo);
-        etapa.setCodigo(request.codigo());
+        etapa.setCodigo(normalizeCodigo(request.codigo()));
         etapa.setNome(request.nome());
         etapa.setTipoEtapa(request.tipoEtapa());
         etapa.setOrdem(request.ordem());
@@ -426,6 +505,29 @@ public class ProcessoReprocessamentoService {
         etapa.setRotaDestino(request.rotaDestino());
         etapa.setObservacoes(request.observacoes());
         return etapa;
+    }
+
+    private void applyEtapaCatalogoRequest(CmeEtapaCatalogo etapa, CmeEtapaCatalogoRequest request, String codigo) {
+        etapa.setCodigo(codigo);
+        etapa.setNome(request.nome());
+        etapa.setTipoEtapa(request.tipoEtapa());
+        etapa.setObrigatoria(request.obrigatoria() == null || request.obrigatoria());
+        etapa.setPermitePular(request.permitePular() != null && request.permitePular());
+        etapa.setExigeEvidencia(request.exigeEvidencia() != null && request.exigeEvidencia());
+        etapa.setExigeAprovacao(request.exigeAprovacao() != null && request.exigeAprovacao());
+        etapa.setRotaDestino(request.rotaDestino());
+        etapa.setAtivo(request.ativo() == null || request.ativo());
+        etapa.setObservacoes(request.observacoes());
+    }
+
+    private String normalizeCodigo(String codigo) {
+        return codigo == null ? null : codigo.trim().toUpperCase().replace(' ', '_');
+    }
+
+    private CmeEtapaCatalogoDto toEtapaCatalogoDto(CmeEtapaCatalogo etapa) {
+        return new CmeEtapaCatalogoDto(etapa.getId(), etapa.getTenant().getId(), etapa.getCodigo(), etapa.getNome(),
+                etapa.getTipoEtapa(), etapa.isObrigatoria(), etapa.isPermitePular(), etapa.isExigeEvidencia(),
+                etapa.isExigeAprovacao(), etapa.getRotaDestino(), etapa.isAtivo(), etapa.getObservacoes());
     }
 
     private CmeFluxoProcessoDto toFluxoDto(CmeFluxoProcesso fluxo) {
@@ -490,6 +592,8 @@ public class ProcessoReprocessamentoService {
                 l.getProcesso() != null ? l.getProcesso().getId() : null,
                 l.getCodigo(),
                 l.getKitVersao() != null ? l.getKitVersao().getId() : null,
+                l.getKitFisico() != null ? l.getKitFisico().getId() : null,
+                l.getKitFisico() != null ? l.getKitFisico().getIdentificadorUnico() : null,
                 l.getDataEmpacotamento(), l.getValidade(), l.getStatus(), l.getQrCode(),
                 l.getMontadoPor() != null ? l.getMontadoPor().getId() : null,
                 l.getDataHoraInicioMontagem(), l.getDataHoraFimMontagem(),

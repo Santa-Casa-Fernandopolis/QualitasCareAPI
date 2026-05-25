@@ -1,9 +1,12 @@
 package com.erp.qualitascareapi.core.domain;
 
+import com.erp.qualitascareapi.cme.enums.StatusAprovacaoCme;
+import com.erp.qualitascareapi.iam.domain.User;
 import jakarta.persistence.*;
 import org.hibernate.envers.Audited;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Audited
 @Entity
@@ -29,6 +32,20 @@ public class KitVersion {
 
     @Column(nullable = false)
     private Boolean ativo = Boolean.TRUE;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status_aprovacao", nullable = false, length = 20)
+    private StatusAprovacaoCme statusAprovacao = StatusAprovacaoCme.PENDENTE;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "aprovado_por_id")
+    private User aprovadoPor;
+
+    @Column(name = "aprovado_em")
+    private LocalDateTime aprovadoEm;
+
+    @Column(name = "revalidado_em")
+    private LocalDateTime revalidadoEm;
 
     @Column(length = 255)
     private String observacoes;
@@ -82,6 +99,38 @@ public class KitVersion {
 
     public void setAtivo(Boolean ativo) {
         this.ativo = ativo;
+    }
+
+    public StatusAprovacaoCme getStatusAprovacao() {
+        return statusAprovacao;
+    }
+
+    public void setStatusAprovacao(StatusAprovacaoCme statusAprovacao) {
+        this.statusAprovacao = statusAprovacao;
+    }
+
+    public User getAprovadoPor() {
+        return aprovadoPor;
+    }
+
+    public void setAprovadoPor(User aprovadoPor) {
+        this.aprovadoPor = aprovadoPor;
+    }
+
+    public LocalDateTime getAprovadoEm() {
+        return aprovadoEm;
+    }
+
+    public void setAprovadoEm(LocalDateTime aprovadoEm) {
+        this.aprovadoEm = aprovadoEm;
+    }
+
+    public LocalDateTime getRevalidadoEm() {
+        return revalidadoEm;
+    }
+
+    public void setRevalidadoEm(LocalDateTime revalidadoEm) {
+        this.revalidadoEm = revalidadoEm;
     }
 
     public String getObservacoes() {

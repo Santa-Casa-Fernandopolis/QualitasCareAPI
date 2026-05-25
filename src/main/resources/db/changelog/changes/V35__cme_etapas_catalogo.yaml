@@ -1,0 +1,94 @@
+databaseChangeLog:
+  - changeSet:
+      id: V35-1-cme-etapas-catalogo
+      author: qualitascare
+      preConditions:
+        onFail: MARK_RAN
+        not:
+          tableExists:
+            tableName: cme_etapas_catalogo
+      changes:
+        - createTable:
+            tableName: cme_etapas_catalogo
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_cme_etapas_catalogo
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: codigo
+                  type: VARCHAR(60)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: nome
+                  type: VARCHAR(120)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: tipo_etapa
+                  type: VARCHAR(30)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: obrigatoria
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: permite_pular
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: exige_evidencia
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: exige_aprovacao
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: rota_destino
+                  type: VARCHAR(120)
+              - column:
+                  name: ativo
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: observacoes
+                  type: VARCHAR(255)
+        - addForeignKeyConstraint:
+            baseTableName: cme_etapas_catalogo
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_cme_etapa_catalogo_tenant
+        - addUniqueConstraint:
+            tableName: cme_etapas_catalogo
+            columnNames: tenant_id, codigo
+            constraintName: uk_cme_etapa_catalogo_codigo
+        - createIndex:
+            tableName: cme_etapas_catalogo
+            indexName: ix_cme_etapa_catalogo_tenant_nome
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: nome

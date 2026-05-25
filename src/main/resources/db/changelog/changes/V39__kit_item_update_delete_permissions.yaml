@@ -1,0 +1,90 @@
+databaseChangeLog:
+  - changeSet:
+      id: V39-00-notificacao-kit-versao-aprovacao-type
+      author: codex
+      changes:
+        - sql:
+            dbms: postgresql
+            sql: |
+              ALTER TABLE notificacoes DROP CONSTRAINT IF EXISTS notificacoes_tipo_check;
+              ALTER TABLE notificacoes
+                ADD CONSTRAINT notificacoes_tipo_check
+                CHECK (tipo IN (
+                  'TEMPERATURA_GELADEIRA_ALERTA',
+                  'TEMPERATURA_GELADEIRA_NAO_CONFORME',
+                  'MONITORAMENTO_AMBIENTAL_ALERTA',
+                  'MONITORAMENTO_AMBIENTAL_NAO_CONFORME',
+                  'DISPOSITIVO_IOT_OFFLINE',
+                  'GED_PARECER_SOLICITADO',
+                  'GED_ASSINATURA_SOLICITADA',
+                  'PGRSS_LICENCA_VENCIDA',
+                  'PGRSS_LICENCA_PROXIMA_VENCIMENTO',
+                  'PGRSS_NAO_CONFORMIDADE_CRITICA',
+                  'PGRSS_PLANO_ACAO_VENCIDO',
+                  'CME_BOWIE_DICK_VALIDACAO_SOLICITADA',
+                  'CME_BOWIE_DICK_REPROVADO_QUALIDADE',
+                  'CME_KIT_VERSAO_APROVACAO_SOLICITADA'
+                ));
+        - sql:
+            dbms: h2
+            sql: |
+              ALTER TABLE notificacoes DROP CONSTRAINT IF EXISTS notificacoes_tipo_check;
+
+  - changeSet:
+      id: V39-01-kit-item-update-delete-permissions
+      author: codex
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO permissions (tenant_id, resource, action, feature, code)
+              SELECT t.id, 'CME_KIT', permission_scope.action, 'ITEM',
+                     'CME_KIT_' || permission_scope.action || '@ITEM'
+              FROM tenants t
+              CROSS JOIN (
+                SELECT 'UPDATE' AS action
+                UNION ALL SELECT 'DELETE'
+              ) permission_scope
+              WHERE NOT EXISTS (
+                SELECT 1
+                FROM permissions p
+                WHERE p.tenant_id = t.id
+                  AND p.resource = 'CME_KIT'
+                  AND p.action = permission_scope.action
+                  AND p.feature = 'ITEM'
+              );
+
+              INSERT INTO permissions (tenant_id, resource, action, feature, code)
+              SELECT t.id, 'CME_KIT', 'UPDATE', 'VERSAO', 'CME_KIT_UPDATE@VERSAO'
+              FROM tenants t
+              WHERE NOT EXISTS (
+                SELECT 1
+                FROM permissions p
+                WHERE p.tenant_id = t.id
+                  AND p.resource = 'CME_KIT'
+                  AND p.action = 'UPDATE'
+                  AND p.feature = 'VERSAO'
+              );
+
+  - changeSet:
+      id: V39-02-kit-item-maintenance-role-permissions
+      author: codex
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO role_permissions (tenant_id, role_id, permission_id)
+              SELECT r.tenant_id, r.id, p.id
+              FROM roles r
+              JOIN permissions p ON p.tenant_id = r.tenant_id
+              WHERE r.name IN ('SYSTEM_ADMIN', 'ADMIN_TI', 'ADMIN_ASSISTENCIAL', 'GESTOR')
+                AND p.resource = 'CME_KIT'
+                AND (
+                  (p.action IN ('UPDATE', 'DELETE') AND p.feature = 'ITEM')
+                  OR (p.action = 'UPDATE' AND p.feature = 'VERSAO')
+                )
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM role_permissions rp
+                  WHERE rp.tenant_id = r.tenant_id
+                    AND rp.role_id = r.id
+                    AND rp.permission_id = p.id
+                );

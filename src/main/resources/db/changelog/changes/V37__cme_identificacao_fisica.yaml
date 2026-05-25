@@ -1,0 +1,244 @@
+databaseChangeLog:
+  - changeSet:
+      id: v37-001-cme-instrumentos-fisicos
+      author: codex
+      changes:
+        - createTable:
+            tableName: cme_instrumentos_fisicos
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_cme_instrumentos_fisicos
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: instrumento_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: identificador_unico
+                  type: VARCHAR(80)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(30)
+                  defaultValue: ATIVO
+                  constraints:
+                    nullable: false
+              - column:
+                  name: localizacao
+                  type: VARCHAR(120)
+              - column:
+                  name: observacoes
+                  type: VARCHAR(800)
+              - column:
+                  name: ativo
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: cme_instrumentos_fisicos
+            columnNames: tenant_id, identificador_unico
+            constraintName: uk_cme_instr_fis_tenant_ident
+        - addForeignKeyConstraint:
+            baseTableName: cme_instrumentos_fisicos
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_cme_instr_fis_tenant
+        - addForeignKeyConstraint:
+            baseTableName: cme_instrumentos_fisicos
+            baseColumnNames: instrumento_id
+            referencedTableName: cme_instrumentos
+            referencedColumnNames: id
+            constraintName: fk_cme_instr_fis_instr
+        - createIndex:
+            tableName: cme_instrumentos_fisicos
+            indexName: ix_cme_instr_fis_tenant_status
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: status
+
+  - changeSet:
+      id: v37-002-cme-kits-fisicos
+      author: codex
+      changes:
+        - createTable:
+            tableName: cme_kits_fisicos
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_cme_kits_fisicos
+              - column:
+                  name: tenant_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: kit_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: kit_versao_atual_id
+                  type: BIGINT
+              - column:
+                  name: identificador_unico
+                  type: VARCHAR(80)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(30)
+                  defaultValue: ATIVO
+                  constraints:
+                    nullable: false
+              - column:
+                  name: localizacao
+                  type: VARCHAR(120)
+              - column:
+                  name: observacoes
+                  type: VARCHAR(800)
+              - column:
+                  name: ativo
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: cme_kits_fisicos
+            columnNames: tenant_id, identificador_unico
+            constraintName: uk_cme_kit_fis_tenant_ident
+        - addForeignKeyConstraint:
+            baseTableName: cme_kits_fisicos
+            baseColumnNames: tenant_id
+            referencedTableName: tenants
+            referencedColumnNames: id
+            constraintName: fk_cme_kit_fis_tenant
+        - addForeignKeyConstraint:
+            baseTableName: cme_kits_fisicos
+            baseColumnNames: kit_id
+            referencedTableName: cme_kits_procedimento
+            referencedColumnNames: id
+            constraintName: fk_cme_kit_fis_kit
+        - addForeignKeyConstraint:
+            baseTableName: cme_kits_fisicos
+            baseColumnNames: kit_versao_atual_id
+            referencedTableName: cme_kits_versao
+            referencedColumnNames: id
+            constraintName: fk_cme_kit_fis_versao
+        - createIndex:
+            tableName: cme_kits_fisicos
+            indexName: ix_cme_kit_fis_tenant_status
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: status
+
+  - changeSet:
+      id: v37-003-cme-kit-fisico-instrumentos
+      author: codex
+      changes:
+        - createTable:
+            tableName: cme_kit_fisico_instrumentos
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_cme_kit_fisico_instrumentos
+              - column:
+                  name: kit_fisico_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: instrumento_fisico_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: vinculado_em
+                  type: DATE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: desvinculado_em
+                  type: DATE
+              - column:
+                  name: observacoes
+                  type: VARCHAR(500)
+              - column:
+                  name: ativo
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: cme_kit_fisico_instrumentos
+            baseColumnNames: kit_fisico_id
+            referencedTableName: cme_kits_fisicos
+            referencedColumnNames: id
+            constraintName: fk_cme_kit_fis_instr_kit
+        - addForeignKeyConstraint:
+            baseTableName: cme_kit_fisico_instrumentos
+            baseColumnNames: instrumento_fisico_id
+            referencedTableName: cme_instrumentos_fisicos
+            referencedColumnNames: id
+            constraintName: fk_cme_kit_fis_instr_instr
+        - createIndex:
+            tableName: cme_kit_fisico_instrumentos
+            indexName: ix_cme_kit_fis_instr_kit
+            columns:
+              - column:
+                  name: kit_fisico_id
+        - createIndex:
+            tableName: cme_kit_fisico_instrumentos
+            indexName: ix_cme_kit_fis_instr_instr
+            columns:
+              - column:
+                  name: instrumento_fisico_id
+
+  - changeSet:
+      id: v37-004-cme-lote-kit-fisico
+      author: codex
+      changes:
+        - addColumn:
+            tableName: cme_lotes
+            columns:
+              - column:
+                  name: kit_fisico_id
+                  type: BIGINT
+        - addForeignKeyConstraint:
+            baseTableName: cme_lotes
+            baseColumnNames: kit_fisico_id
+            referencedTableName: cme_kits_fisicos
+            referencedColumnNames: id
+            constraintName: fk_cme_lotes_kit_fisico
+        - createIndex:
+            tableName: cme_lotes
+            indexName: ix_lote_tenant_kit_fisico
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: kit_fisico_id

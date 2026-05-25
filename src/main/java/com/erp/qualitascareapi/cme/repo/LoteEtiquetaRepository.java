@@ -15,6 +15,7 @@ import java.util.Optional;
 public interface LoteEtiquetaRepository extends JpaRepository<LoteEtiqueta, Long> {
     List<LoteEtiqueta> findByProcessoId(Long processoId);
     Optional<LoteEtiqueta> findFirstByProcessoId(Long processoId);
+    Optional<LoteEtiqueta> findByTenant_IdAndCodigoIgnoreCase(Long tenantId, String codigo);
     Page<LoteEtiqueta> findAllByTenantId(Long tenantId, Pageable pageable);
 
     long countByTenant_IdAndStatusIn(Long tenantId, List<LoteStatus> statuses);

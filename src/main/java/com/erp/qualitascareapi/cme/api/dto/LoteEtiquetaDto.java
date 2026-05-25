@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public record LoteEtiquetaDto(Long id, Long tenantId, Long processoId, String codigo, Long kitVersaoId,
+                              Long kitFisicoId, String kitFisicoIdentificador,
                               LocalDate dataEmpacotamento, LocalDate validade,
                               LoteStatus status, String qrCode, Long montadoPorId,
                               LocalDateTime dataHoraInicioMontagem, LocalDateTime dataHoraFimMontagem,
